@@ -1,0 +1,40 @@
+services:
+  # PostgreSQL database
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: pass
+      POSTGRES_DB: robo_advisory
+    ports:
+      - "5432:5432"
+    networks:
+      - vpc-network
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  # Compute node
+  python-engine:
+    build: ./python-node
+    ports:
+      - "5000:5000"
+    networks:
+      - vpc-network
+
+  # Operational node
+  go-backend:
+    build: ./go-node
+    ports:
+      - "8080:8080" # where the app will run
+    depends_on:
+      - db
+      - python-engine
+    networks:
+      - vpc-network
+
+networks:
+  vpc-network:
+    driver: bridge # simulate VPC
+
+volumes:
+  pgdata:
