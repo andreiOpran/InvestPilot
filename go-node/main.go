@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"golang.org/x/crypto/bcrypt"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -40,6 +41,13 @@ type Portfolio struct {
 // struct to read incoming json data from request
 type DepositRequst struct {
 	Amount float64 `json:"amount" binding:"required,gt=0"` // greater than 0
+}
+
+type RegisterRequest struct {
+	Email             string `json:"email" binding:"required,email"`
+	Password          string `json:"password" binding:"required,min=6"`
+	RiskTolerance     int    `json:"risk_tolerance"`
+	InvestmentHorizon int    `json:"investment_horizon"`
 }
 
 var DB *gorm.DB
@@ -100,22 +108,6 @@ func main() {
 		c.JSON(http.StatusOK, gin.H{"message": "Go node works"})
 	})
 
-	// endpoint that shows vpc communication
-	r.POST("/simulate-investment", func(c *gin.Context) {
-		// make a request to the py container using the name of the service from docker-compose
-		resp, err := http.Post("http://python-engine:5000/optimize", "application/json", nil)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error commincating with Py node"})
-			return
-		}
-		defer resp.Body.Close()
-
-		body, _ := io.ReadAll(resp.Body)
-
-		// forward response to frontend
-		c.Data(http.StatusOK, "application/json", body)
-	})
-
 	r.GET("/status", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
 			"status":   "Server is running",
@@ -123,54 +115,111 @@ func main() {
 		})
 	})
 
-	r.GET("/user", func(c *gin.Context) {
-		var user User
+	v1 := r.Group("/api/v1")
+	{
 
-		// Preload("Wallet") tells GORM to also fetch the attached Wallet data
-		if err := DB.Preload("Wallet").Where("email = ?", "test@roboadvisor.com").First(&user).Error; err != nil {
-			c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
-			return
-		}
+		// endpoint that shows vpc communication
+		v1.POST("/simulate-investment", func(c *gin.Context) {
+			// make a request to the py container using the name of the service from docker-compose
+			resp, err := http.Post("http://python-engine:5000/optimize", "application/json", nil)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Error commincating with Py node"})
+				return
+			}
+			defer resp.Body.Close()
 
-		c.JSON(http.StatusOK, gin.H{
-			"user_id":            user.ID,
-			"email":              user.Email,
-			"risk_tolerance":     user.RiskTolerance,
-			"investment_horizon": user.InvestmentHorizon,
-			"wallet_balance":     user.Wallet.Balance,
+			body, _ := io.ReadAll(resp.Body)
+
+			// forward response to frontend
+			c.Data(http.StatusOK, "application/json", body)
 		})
-	})
 
-	r.POST("/deposit", func(c *gin.Context) {
-		var req DepositRequst
+		v1.GET("/user", func(c *gin.Context) {
+			var user User
 
-		// 1. read and validate the JSON body from the request
-		if err := c.ShouldBindJSON(&req); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Please provide a valid amount greater than 0"})
-		}
+			// Preload("Wallet") tells GORM to also fetch the attached Wallet data
+			if err := DB.Preload("Wallet").Where("email = ?", "test@roboadvisor.com").First(&user).Error; err != nil {
+				c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+				return
+			}
 
-		var user User
-		// 2. find dummy user and their attached wallet
-		if err := DB.Preload("Wallet").Where("email = ?", "test@roboadvisor.com").First(&user).Error; err != nil {
-			c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
-			return
-		}
-
-		// 3. add simulated money to the wallet
-		user.Wallet.Balance += req.Amount
-
-		user.Wallet.UserId = user.ID
-
-		// 4. save updated walet to the database
-		DB.Save(&user.Wallet)
-
-		// 5. send a succes response back
-		c.JSON(http.StatusOK, gin.H{
-			"message":     "Paper trading deposit successful.",
-			"added":       req.Amount,
-			"new_balance": user.Wallet.Balance,
+			c.JSON(http.StatusOK, gin.H{
+				"user_id":            user.ID,
+				"email":              user.Email,
+				"risk_tolerance":     user.RiskTolerance,
+				"investment_horizon": user.InvestmentHorizon,
+				"wallet_balance":     user.Wallet.Balance,
+			})
 		})
-	})
+
+		v1.POST("/deposit", func(c *gin.Context) {
+			var req DepositRequst
+
+			// 1. read and validate the JSON body from the request
+			if err := c.ShouldBindJSON(&req); err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Please provide a valid amount greater than 0"})
+			}
+
+			var user User
+			// 2. find dummy user and their attached wallet
+			if err := DB.Preload("Wallet").Where("email = ?", "test@roboadvisor.com").First(&user).Error; err != nil {
+				c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+				return
+			}
+
+			// 3. add simulated money to the wallet
+			user.Wallet.Balance += req.Amount
+
+			user.Wallet.UserId = user.ID
+
+			// 4. save updated walet to the database
+			DB.Save(&user.Wallet)
+
+			// 5. send a succes response back
+			c.JSON(http.StatusOK, gin.H{
+				"message":     "Paper trading deposit successful.",
+				"added":       req.Amount,
+				"new_balance": user.Wallet.Balance,
+			})
+		})
+
+		v1.POST("/register", func(c *gin.Context) {
+			var req RegisterRequest
+
+			// validate incoming json
+			if err := c.ShouldBindJSON(&req); err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+				return
+			}
+
+			// hash the password with cost 14
+			hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), 14)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not hash password"})
+				return
+			}
+
+			// build user with an empty wallet
+			user := User{
+				Email:             req.Email,
+				Password:          string(hashedPassword),
+				RiskTolerance:     req.RiskTolerance,
+				InvestmentHorizon: req.InvestmentHorizon,
+				Wallet:            Wallet{Balance: 0.0},
+			}
+
+			// save to DB (will fail if email already exists)
+			if err := DB.Create(&user).Error; err != nil {
+				c.JSON(http.StatusConflict, gin.H{"error": "Email already registered"})
+				return
+			}
+
+			c.JSON(http.StatusCreated, gin.H{
+				"message": "User registered successfully",
+				"user_id": user.ID,
+			})
+		})
+	}
 
 	fmt.Println("Operational Node (Go) starting on port 8080...")
 
