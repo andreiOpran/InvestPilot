@@ -37,6 +37,11 @@ type Portfolio struct {
 	Shares float64 `gorm:"not null"` // number of shares or percentage holding
 }
 
+// struct to read incoming json data from request
+type DepositRequst struct {
+	Amount float64 `json:"amount" binding:"required,gt=0"` // greater than 0
+}
+
 var DB *gorm.DB
 
 func initDB() {
@@ -58,8 +63,36 @@ func initDB() {
 	fmt.Println("Database tables migrated successfully.")
 }
 
+func seedDummyUser() {
+	var user User
+
+	result := DB.Where("email = ?", "test@roboadvisor.com").First(&user)
+
+	// if the user does not exist, we create one
+	if result.Error != nil && result.Error == gorm.ErrRecordNotFound {
+		fmt.Println("Dummy user not found. Creating one now...")
+
+		dummyUser := User{
+			Email:             "test@roboadvisor.com",
+			Password:          "pass",
+			InvestmentHorizon: 10,
+			RiskTolerance:     4,
+			Wallet: Wallet{
+				Balance: 0.0,
+			},
+		}
+
+		DB.Create(&dummyUser)
+		fmt.Println("Dummy user created successfully with an empty wallet.")
+	} else {
+		fmt.Println("Dummy user already exists in the database.")
+	}
+}
+
 func main() {
 	initDB()
+
+	seedDummyUser()
 
 	r := gin.Default()
 
@@ -87,6 +120,55 @@ func main() {
 		c.JSON(http.StatusOK, gin.H{
 			"status":   "Server is running",
 			"database": "Connected",
+		})
+	})
+
+	r.GET("/user", func(c *gin.Context) {
+		var user User
+
+		// Preload("Wallet") tells GORM to also fetch the attached Wallet data
+		if err := DB.Preload("Wallet").Where("email = ?", "test@roboadvisor.com").First(&user).Error; err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"user_id":            user.ID,
+			"email":              user.Email,
+			"risk_tolerance":     user.RiskTolerance,
+			"investment_horizon": user.InvestmentHorizon,
+			"wallet_balance":     user.Wallet.Balance,
+		})
+	})
+
+	r.POST("/deposit", func(c *gin.Context) {
+		var req DepositRequst
+
+		// 1. read and validate the JSON body from the request
+		if err := c.ShouldBindJSON(&req); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Please provide a valid amount greater than 0"})
+		}
+
+		var user User
+		// 2. find dummy user and their attached wallet
+		if err := DB.Preload("Wallet").Where("email = ?", "test@roboadvisor.com").First(&user).Error; err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+			return
+		}
+
+		// 3. add simulated money to the wallet
+		user.Wallet.Balance += req.Amount
+
+		user.Wallet.UserId = user.ID
+
+		// 4. save updated walet to the database
+		DB.Save(&user.Wallet)
+
+		// 5. send a succes response back
+		c.JSON(http.StatusOK, gin.H{
+			"message":     "Paper trading deposit successful.",
+			"added":       req.Amount,
+			"new_balance": user.Wallet.Balance,
 		})
 	})
 
