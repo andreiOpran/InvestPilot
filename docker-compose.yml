@@ -25,7 +25,7 @@ services:
   go-backend:
     build: ./go-node
     ports:
-      - "8080:8080" # where the app will run
+      - "8081:8080" # where the app will run
     depends_on:
       - db
       - python-engine
