@@ -5,8 +5,10 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -48,6 +50,19 @@ type RegisterRequest struct {
 	Password          string `json:"password" binding:"required,min=6"`
 	RiskTolerance     int    `json:"risk_tolerance"`
 	InvestmentHorizon int    `json:"investment_horizon"`
+}
+
+type LoginRequest struct {
+	Email    string `json:"email" binding:"required,email"`
+	Password string `json:"password" binding:"required"`
+}
+
+// TODO: in production should be retrieved from env var
+var jwtSecret = []byte("secret-key")
+
+type Claims struct {
+	UserID uint `json:"user_id"`
+	jwt.RegisteredClaims
 }
 
 var DB *gorm.DB
@@ -217,6 +232,51 @@ func main() {
 			c.JSON(http.StatusCreated, gin.H{
 				"message": "User registered successfully",
 				"user_id": user.ID,
+			})
+		})
+
+		v1.POST("/login", func(c *gin.Context) {
+			var req LoginRequest
+
+			// validate incoming json
+			if err := c.ShouldBindJSON(&req); err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+				return
+			}
+
+			// look up user by email
+			var user User
+			if err := DB.Where("email = ?", req.Email).First(&user).Error; err != nil {
+				// vague, do not reveal whether email exists
+				c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid email or password"})
+				return
+			}
+
+			// compare provided password against stored bcrypt hash
+			if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password)); err != nil {
+				c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid email or password"})
+				return
+			}
+
+			// build JWT claims, token expires in 24 hours
+			claims := Claims{
+				UserID: user.ID,
+				RegisteredClaims: jwt.RegisteredClaims{
+					ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)),
+					IssuedAt:  jwt.NewNumericDate(time.Now()),
+				},
+			}
+
+			// sign the token with HS256
+			token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+			tokenString, err := token.SignedString(jwtSecret)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not generate token"})
+				return
+			}
+
+			c.JSON(http.StatusOK, gin.H{
+				"token": tokenString,
 			})
 		})
 	}
