@@ -246,10 +246,9 @@ func main() {
 		})
 
 		// protected: JWT required for all routes inside
-		protected := v1.Group("/")
-		protected.Use(authMiddleware())
+		protected := v1.Group("/", authMiddleware())
 		{
-			v1.GET("/user", func(c *gin.Context) {
+			protected.GET("/user", func(c *gin.Context) {
 				var user User
 
 				// Preload("Wallet") tells GORM to also fetch the attached Wallet data
@@ -267,7 +266,7 @@ func main() {
 				})
 			})
 
-			v1.POST("/deposit", func(c *gin.Context) {
+			protected.POST("/deposit", func(c *gin.Context) {
 				var req DepositRequst
 
 				// 1. read and validate the JSON body from the request
