@@ -19,7 +19,7 @@ import (
 type User struct {
 	ID                uint        `gorm:"primaryKey"`
 	Email             string      `gorm:"unique;not null"`
-	Password          string      `gorm:"not null"`  // TODO: hash later for security
+	Password          string      `gorm:"not null"`  // brcypt hashed
 	InvestmentHorizon int         `gorm:"default:5"` // years
 	RiskTolerance     int         `gorm:"default:3"` // risk from 1 (min) to 5 (max)
 	Wallet            Wallet      // one-to-one relation with financial balance
@@ -250,9 +250,10 @@ func main() {
 		{
 			protected.GET("/user", func(c *gin.Context) {
 				var user User
+				userID := c.MustGet("userID").(uint)
 
 				// Preload("Wallet") tells GORM to also fetch the attached Wallet data
-				if err := DB.Preload("Wallet").Where("email = ?", "test@roboadvisor.com").First(&user).Error; err != nil {
+				if err := DB.Preload("Wallet").First(&user, userID).Error; err != nil {
 					c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
 					return
 				}
@@ -268,15 +269,17 @@ func main() {
 
 			protected.POST("/deposit", func(c *gin.Context) {
 				var req DepositRequst
+				userID := c.MustGet("userID").(uint)
 
 				// 1. read and validate the JSON body from the request
 				if err := c.ShouldBindJSON(&req); err != nil {
 					c.JSON(http.StatusBadRequest, gin.H{"error": "Please provide a valid amount greater than 0"})
+					return
 				}
 
 				var user User
-				// 2. find dummy user and their attached wallet
-				if err := DB.Preload("Wallet").Where("email = ?", "test@roboadvisor.com").First(&user).Error; err != nil {
+				// 2. find the authenticated user and their attached wallet
+				if err := DB.Preload("Wallet").First(&user, userID).Error; err != nil {
 					c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
 					return
 				}

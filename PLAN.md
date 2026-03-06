@@ -61,11 +61,12 @@ type Portfolio struct {
 
 **Phase 2: Authentication & Security with 2FA**
 
-- [ ] Install golang.org/x/crypto/bcrypt, github.com/golang-jwt/jwt/v5, and github.com/pquerna/otp.
-- [ ] Implement POST /register: Hash password, generate 2FA Secret, create User, and attach empty Wallet. Return QR code data for Google Authenticator.
-- [ ] Implement POST /login: Verify bcrypt hash. If valid, return a temporary token (or require 2FA code immediately).
+- [x] Install golang.org/x/crypto/bcrypt and github.com/golang-jwt/jwt/v5. (github.com/pquerna/otp still needed for 2FA)
+- [x] Implement POST /register: Hash password with bcrypt, create User, and attach empty Wallet. (2FA secret generation pending)
+- [x] Implement POST /login: Verify bcrypt hash, generate and return JWT token. (temp token + 2FA verification step pending)
 - [ ] Implement POST /verify-2fa: Validate the 6-digit TOTP code against the user's secret. Generate and return the final JWT token.
-- [ ] Create a Gin Middleware to protect routes (require Bearer Token).
+- [x] Create a Gin Middleware to protect routes (require Bearer Token).
+- [ ] Refactor GET /user and POST /deposit to use userID from JWT context instead of hardcoded dummy email.
 
 **Phase 3: The Python Math Engine & Data Persistence**
 

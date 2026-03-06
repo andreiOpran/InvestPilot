@@ -5,13 +5,13 @@ BASE_URL="http://localhost:8081/api/v1"
 echo "--- 1. Register ---"
 curl -s -X POST "$BASE_URL/register" \
   -H "Content-Type: application/json" \
-  -d '{"email": "andrei@test.com", "password": "secure123", "risk_tolerance": 4, "investment_horizon": 10}' | jq .
+  -d '{"email": "andrei2@test.com", "password": "secure123", "risk_tolerance": 4, "investment_horizon": 10}' | jq .
 
 echo ""
 echo "--- 2. Login ---"
 TOKEN=$(curl -s -X POST "$BASE_URL/login" \
   -H "Content-Type: application/json" \
-  -d '{"email": "andrei@test.com", "password": "secure123"}' | jq -r .token)
+  -d '{"email": "andrei2@test.com", "password": "secure123"}' | jq -r .token)
 
 echo "Token: $TOKEN"
 
