@@ -35,3 +35,7 @@ curl -s -X GET "$BASE_URL/user" \
 echo ""
 echo "--- 6. Get user WITHOUT token (should get 401) ---"
 curl -s -X GET "$BASE_URL/user" | jq .
+
+echo ""
+echo "--- 7. Simulate Investment (tests Go -> Python VPC communication) ---"
+curl -s -X POST "$BASE_URL/simulate-investment" | jq .

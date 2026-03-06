@@ -1,0 +1,184 @@
+package main
+
+import (
+	"io"
+	"net/http"
+	"time"
+
+	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v5"
+	"golang.org/x/crypto/bcrypt"
+)
+
+func RegisterRoutes(r *gin.Engine) {
+	r.GET("/ping", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"message": "Go node works"})
+	})
+
+	r.GET("/status", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{
+			"status":   "Server is running",
+			"database": "Connected",
+		})
+	})
+
+	v1 := r.Group("/api/v1")
+	{
+		// endpoint that shows vpc communication
+		v1.POST("/simulate-investment", func(c *gin.Context) {
+			// make a request to the py container using the name of the service from docker-compose
+			resp, err := http.Post("http://python-engine:5000/optimize", "application/json", nil)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Error commincating with Py node"})
+				return
+			}
+			// close the response body to avoid memory leaks
+			defer resp.Body.Close()
+
+			body, _ := io.ReadAll(resp.Body)
+
+			// forward response to frontend
+			c.Data(http.StatusOK, "application/json", body)
+		})
+
+		v1.POST("/register", func(c *gin.Context) {
+			var req RegisterRequest
+
+			// validate incoming json
+			if err := c.ShouldBindJSON(&req); err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+				return
+			}
+
+			// hash the password with cost 14
+			hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), 14)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not hash password"})
+				return
+			}
+
+			// build user with an empty wallet
+			user := User{
+				Email:             req.Email,
+				Password:          string(hashedPassword),
+				RiskTolerance:     req.RiskTolerance,
+				InvestmentHorizon: req.InvestmentHorizon,
+				Wallet:            Wallet{Balance: 0.0},
+				Portfolios:        []Portfolio{},
+			}
+
+			// save to DB (will fail if email already exists)
+			if err := DB.Create(&user).Error; err != nil {
+				c.JSON(http.StatusConflict, gin.H{"error": "Email already registered"})
+				return
+			}
+
+			c.JSON(http.StatusCreated, gin.H{
+				"message": "User registered successfully",
+				"user_id": user.ID,
+			})
+		})
+
+		v1.POST("/login", func(c *gin.Context) {
+			var req LoginRequest
+
+			// validate incoming json
+			if err := c.ShouldBindJSON(&req); err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+				return
+			}
+
+			// look up user by email
+			var user User
+			if err := DB.Where("email = ?", req.Email).First(&user).Error; err != nil {
+				// vague, do not reveal whether email exists
+				c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid email or password"})
+				return
+			}
+
+			// compare provided password against stored bcrypt hash
+			if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password)); err != nil {
+				// vague, do not reveal whether email exists
+				c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid email or password"})
+				return
+			}
+
+			// build JWT claims, token expires in 24 hours
+			claims := Claims{
+				UserID: user.ID,
+				RegisteredClaims: jwt.RegisteredClaims{
+					ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)),
+					IssuedAt:  jwt.NewNumericDate(time.Now()),
+				},
+			}
+
+			// sign the token with HS256
+			token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+			tokenString, err := token.SignedString(jwtSecret)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not generate token"})
+				return
+			}
+
+			c.JSON(http.StatusOK, gin.H{
+				"token": tokenString,
+			})
+		})
+
+		// protected: JWT required for all routes inside
+		protected := v1.Group("/", authMiddleware())
+		{
+			protected.GET("/user", func(c *gin.Context) {
+				var user User
+				userID := c.MustGet("userID").(uint)
+
+				// Preload("Wallet") tells GORM to also fetch the attached Wallet data
+				if err := DB.Preload("Wallet").First(&user, userID).Error; err != nil {
+					c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+					return
+				}
+
+				c.JSON(http.StatusOK, gin.H{
+					"user_id":            user.ID,
+					"email":              user.Email,
+					"risk_tolerance":     user.RiskTolerance,
+					"investment_horizon": user.InvestmentHorizon,
+					"wallet_balance":     user.Wallet.Balance,
+				})
+			})
+
+			protected.POST("/deposit", func(c *gin.Context) {
+				var req DepositRequst
+				userID := c.MustGet("userID").(uint)
+
+				// 1. read and validate the JSON body from the request
+				if err := c.ShouldBindJSON(&req); err != nil {
+					c.JSON(http.StatusBadRequest, gin.H{"error": "Please provide a valid amount greater than 0"})
+					return
+				}
+
+				var user User
+				// 2. find the authenticated user and their attached wallet
+				if err := DB.Preload("Wallet").First(&user, userID).Error; err != nil {
+					c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+					return
+				}
+
+				// 3. add simulated money to the wallet
+				user.Wallet.Balance += req.Amount
+
+				user.Wallet.UserId = user.ID
+
+				// 4. save updated walet to the database
+				DB.Save(&user.Wallet)
+
+				// 5. send a succes response back
+				c.JSON(http.StatusOK, gin.H{
+					"message":     "Paper trading deposit successful.",
+					"added":       req.Amount,
+					"new_balance": user.Wallet.Balance,
+				})
+			})
+		}
+	}
+}
