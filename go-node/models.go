@@ -45,16 +45,16 @@ type InvestmentRound struct {
 // a single holding within an investment round
 // can be ETF ("LYMS", "XDWI") or cash ("USD")
 type Portfolio struct {
-	ID              uint    `gorm:"primaryKey"`
-	UserID          uint    `gorm:"not null;index"` // foreign key to user
-	RoundID         uint    `gorm:"not null;index"` // foreign key to InvestmentRound
-	Ticker          string  `gorm:"not null"`       // "LYMS", "XDWI" or "USD"
-	Weight          float64 `gorm:"not null"`       // markowitz weight (0.40 or 1.0 for USD)
-	Shares          float64 `gorm:"not null"`       // number of shares or dollar amount for USD
-	PurchasePrice   float64 `gorm:"not null"`       // price per share at purchase, 1.0 for USD
-	AllocatedAmount float64 `gorm:"not null"`       // total dollars in this holding
-	CreatedAt       time.Time
-	UpdatedAt       time.Time
+	ID                uint    `gorm:"primaryKey"`
+	UserID            uint    `gorm:"not null;index"` // foreign key to user
+	InvestmentRoundID uint    `gorm:"not null;index"` // foreign key to InvestmentRound
+	Ticker            string  `gorm:"not null"`       // "LYMS", "XDWI" or "USD"
+	Weight            float64 `gorm:"not null"`       // markowitz weight (0.40 or 1.0 for USD)
+	Shares            float64 `gorm:"not null"`       // number of shares or dollar amount for USD
+	PurchasePrice     float64 `gorm:"not null"`       // price per share at purchase, 1.0 for USD
+	AllocatedAmount   float64 `gorm:"not null"`       // total dollars in this holding
+	CreatedAt         time.Time
+	UpdatedAt         time.Time
 }
 
 type HistoricalMarketData struct {

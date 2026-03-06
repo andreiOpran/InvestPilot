@@ -32,6 +32,13 @@ services:
     networks:
       - vpc-network
 
+  adminer:
+    image: adminer
+    ports:
+      - "8082:8080"
+    networks:
+      - vpc-network
+
 networks:
   vpc-network:
     driver: bridge # simulate VPC

@@ -64,7 +64,6 @@ func RegisterRoutes(r *gin.Engine) {
 				RiskTolerance:     req.RiskTolerance,
 				InvestmentHorizon: req.InvestmentHorizon,
 				Wallet:            Wallet{Balance: 0.0},
-				Portfolios:        []Portfolio{},
 			}
 
 			// save to DB (will fail if email already exists)
