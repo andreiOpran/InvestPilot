@@ -66,7 +66,7 @@ type Portfolio struct {
 - [x] Implement POST /login: Verify bcrypt hash, generate and return JWT token. (temp token + 2FA verification step pending)
 - [ ] Implement POST /verify-2fa: Validate the 6-digit TOTP code against the user's secret. Generate and return the final JWT token.
 - [x] Create a Gin Middleware to protect routes (require Bearer Token).
-- [ ] Refactor GET /user and POST /deposit to use userID from JWT context instead of hardcoded dummy email.
+- [x] Refactor GET /user and POST /deposit to use userID from JWT context instead of hardcoded dummy email.
 
 **Phase 3: The Python Math Engine & Data Persistence**
 

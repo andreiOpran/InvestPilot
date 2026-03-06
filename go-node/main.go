@@ -23,7 +23,7 @@ func initDB() {
 	fmt.Println("Successfully connected to PostgreSQL.")
 
 	// AutoMigrate automatically creates or updates the db table
-	err = DB.AutoMigrate(&User{}, &Wallet{}, &Portfolio{})
+	DB.AutoMigrate(&User{}, &Wallet{}, &Transaction{}, &InvestmentRound{}, &Portfolio{}, &HistoricalMarketData{})
 	if err != nil {
 		log.Fatal("Error during table migration: ", err)
 	}
