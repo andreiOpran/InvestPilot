@@ -18,8 +18,13 @@ services:
     build: ./python-node
     ports:
       - "5000:5000"
+    environment:
+      - DATABASE_URL=postgresql://admin:pass@db:5432/robo_advisory
+      - PYTHONUNBUFFERED=1
     networks:
       - vpc-network
+    depends_on:
+      - db
 
   # Operational node
   go-backend:

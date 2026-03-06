@@ -14,9 +14,16 @@ curl -s -X POST "$BASE_URL/register" \
 }
 ```
 
+- session timeout:
+  - Redis variant
+  - 24hr delay
+  - user has an increment that constitutes a part of the token
+
 
 - inspect db in bash:
 ```sql
+docker exec -it licenta-db-1 psql -U admin -d robo_advisory
+
 -- see all tables
 \dt
 
