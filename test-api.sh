@@ -39,3 +39,7 @@ curl -s -X GET "$BASE_URL/user" | jq .
 echo ""
 echo "--- 7. Simulate Investment (tests Go -> Python VPC communication) ---"
 curl -s -X POST "$BASE_URL/simulate-investment" | jq .
+
+echo ""
+echo "--- 8. Sync market data (calls Python /sync directly) ---"
+curl -s -X POST "http://localhost:5000/sync" | jq .

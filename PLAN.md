@@ -8,7 +8,7 @@ This project is an Automated Wealth Management (Robo-Advisory) platform using a 
 
 **Operational Node (Backend API):** Golang (Gin Framework, GORM). Handles users, wallets, auth (including 2FA), payments, and frontend serving.
 
-**Decisional Node (Math Engine):** Python 3 (Flask, Pandas, SciPy, yfinance). A private microservice that computes the Markowitz algorithm.
+**Decisional Node (Math Engine):** Python 3 (FastAPI, Uvicorn, Pandas, SciPy, yfinance). A private microservice that computes the Markowitz algorithm. Auto-generates Swagger UI at /docs.
 
 **Database:** PostgreSQL. Stores users, balances, asset holdings, and historical market data.
 
@@ -21,32 +21,71 @@ This project is an Automated Wealth Management (Robo-Advisory) platform using a 
 3. Database Schema (GORM Models)
 
 ```go
+// investor account
 type User struct {
-    ID                uint        `gorm:"primaryKey"`
-    Email             string      `gorm:"unique;not null"`
-    Password          string      `gorm:"not null"` // Must be hashed with bcrypt
-    TwoFactorSecret   string      // Secret for Google Authenticator/TOTP
-    IsTwoFactorEnable bool        `gorm:"default:false"` // Flag to check if 2FA is active
-    InvestmentHorizon int         `gorm:"default:5"` 
-    RiskTolerance     int         `gorm:"default:3"` // Range 1 to 5
-    Wallet            Wallet      // 1-to-1 relationship
-    Portfolios        []Portfolio // 1-to-many relationship
+    ID                uint      `gorm:"primaryKey"`
+    Email             string    `gorm:"unique;not null"`
+    Password          string    `gorm:"not null"` // bcrypt hashed
+    TwoFactorSecret   string    // secret for Google Authenticator/TOTP (Phase 5)
+    IsTwoFactorEnable bool      `gorm:"default:false"`
+    InvestmentHorizon int       // in years
+    RiskTolerance     int       // 1 (min) to 5 (max)
+    CreatedAt         time.Time
+    UpdatedAt         time.Time
+    Wallet            Wallet
 }
 
+// uninvested money, staging area between bank and portfolio
 type Wallet struct {
-    ID      uint    `gorm:"primaryKey"`
-    UserID  uint    // Foreign key to User
-    Balance float64 `gorm:"default:0.0"` 
+    ID        uint      `gorm:"primaryKey"`
+    UserId    uint      `gorm:"unique;not null"`
+    Balance   float64   `gorm:"not null;default:0.0"`
+    CreatedAt time.Time
+    UpdatedAt time.Time
 }
 
+// tracks money moving in/out of the portfolio for the contribution chart
+type Transaction struct {
+    ID        uint      `gorm:"primaryKey"`
+    UserID    uint      `gorm:"not null;index"`
+    Type      string    `gorm:"not null"` // "invest" or "sell"
+    Amount    float64   `gorm:"not null"` // always positive
+    CreatedAt time.Time
+}
+
+// groups all holdings belonging to one optimization run
+type InvestmentRound struct {
+    ID         uint        `gorm:"primaryKey"`
+    UserID     uint        `gorm:"not null;index"`
+    TotalValue float64     `gorm:"not null"`
+    IsActive   bool        `gorm:"not null;default:true"` // false after a newer round replaces it
+    CreatedAt  time.Time
+    Portfolios []Portfolio
+}
+
+// single holding within an investment round
+// Ticker can be ETF (SPY, QQQ, BND, GLD, VNQ) or "USD" for uninvested cash
 type Portfolio struct {
-    ID     uint    `gorm:"primaryKey"`
-    UserID uint    // Foreign key to User
-    Ticker string  `gorm:"not null"` // e.g., "VTI", "BND"
-    Shares float64 `gorm:"not null"` // Percentage or exact shares
+    ID              uint      `gorm:"primaryKey"`
+    UserID          uint      `gorm:"not null;index"`
+    RoundID         uint      `gorm:"not null;index"`
+    Ticker          string    `gorm:"not null"`
+    Weight          float64   `gorm:"not null"` // markowitz weight e.g. 0.40, or 1.0 for USD
+    Shares          float64   `gorm:"not null"` // number of shares, or dollar amount for USD
+    PurchasePrice   float64   `gorm:"not null"` // price per share at purchase, 1.0 for USD
+    AllocatedAmount float64   `gorm:"not null"` // total dollars in this holding
+    CreatedAt       time.Time
+    UpdatedAt       time.Time
 }
 
-// TODO: Add model for HistoricalMarketData to store yfinance prices
+// daily closing prices for each ETF, used as Markowitz input
+type HistoricalMarketData struct {
+    ID         uint      `gorm:"primaryKey"`
+    Ticker     string    `gorm:"not null;uniqueIndex:idx_ticker_date"`
+    Date       time.Time `gorm:"not null;uniqueIndex:idx_ticker_date"`
+    ClosePrice float64   `gorm:"not null"` // adjusted closing price
+    CreatedAt  time.Time
+}
 ```
 
 4. Development Roadmap
@@ -70,18 +109,37 @@ type Portfolio struct {
 
 **Phase 3: The Python Math Engine & Data Persistence**
 
-- [ ] Setup yfinance in Python to fetch historical data for base ETFs (e.g., VTI, VXUS, BND).
-- [ ] Store/Update fetched historical data in PostgreSQL to avoid repeated external API calls.
+ETF universe: SPY (US equities), QQQ (US tech), BND (bonds), GLD (gold), VNQ (real estate)
+
+Investment strategy: user clicks Invest -> funds held as USD ticker until scheduled rebalance -> every 30 days optimizer runs for all users -> old round marked IsActive=false -> new Portfolio rows created with real ETF weights.
+
+**Architectural Justification: Local HistoricalMarketData vs. Live yfinance Fetching**
+
+A deliberate design decision was made to persist all ETF price data in the local PostgreSQL `HistoricalMarketData` table via the `/sync` ingestion pipeline, rather than fetching prices live from Yahoo Finance on demand. Three enterprise-grade concerns motivate this:
+
+1. **Frontend Performance & Rate Limiting (Charts):** The Plotly.js dashboard must render a user's portfolio evolution over time on every login. Fetching months of price history from Yahoo Finance on each page load would immediately exhaust yfinance's rate limits under any real user load. Serving pre-synced data from the local DB enables instant, reliable chart rendering at zero external cost.
+
+2. **Microservice Decoupling (Go vs. Python):** The Python node is a pure mathematical engine — it outputs portfolio weights (dimensionless percentages). The Go node is responsible for trade execution and must independently resolve the *actual current ETF prices* to compute exact share counts (`shares = (weight * total_value) / latest_close_price`). By reading prices from PostgreSQL directly, Go never needs to call Python for price data, keeping the two nodes cleanly decoupled and independently deployable.
+
+3. **Fault Tolerance & Resilience:** If the external yfinance API is unavailable exactly when the monthly `/rebalance` cron job fires, a live-fetch dependency would crash the entire rebalance cycle. By relying on locally synced closing prices, Go can always execute the rebalance successfully using the most recent data available in the DB, ensuring the platform remains operational regardless of third-party outages.
+
+- [x] Setup yfinance in Python to fetch 2 years of daily closing prices for all 5 ETFs.
+- [x] Store/Update fetched prices in PostgreSQL using ON CONFLICT - 502 trading days x 5 tickers = 2510 rows.
+- [x] Expose POST /sync in FastAPI as a data ingestion pipeline: triggers yfinance fetching and upserts all prices into PostgreSQL, independently of optimization.
 - [ ] Write the Markowitz Optimization algorithm using scipy.optimize, reading historical data from the DB.
-- [ ] Expose POST /optimize in Flask that accepts `{ "funds": 5000, "risk_tolerance": 4 }`.
-- [ ] Return ideal portfolio weights (e.g., `{"VTI": 0.60, "BND": 0.40}`).
+- [ ] **Architectural decision — Model Portfolios:** Instead of optimizing per-user, pre-compute a fixed set of "Model Portfolios" covering every combination of Risk Level (1–5) and Investment Horizon (Short: 1–3 yrs, Medium: 4–7 yrs, Long: 8+ yrs) — 15 buckets total. This is computationally O(K) where K=15, rather than O(N) per user.
+- [ ] Expose `POST /generate-models` in FastAPI (replaces the per-user `/optimize`). It reads historical prices from the DB, runs Markowitz for each of the 15 risk/horizon buckets, and returns a JSON dictionary mapping each bucket key to its optimal ETF weights (e.g., `{"risk_4_horizon_long": {"SPY": 0.80, "BND": 0.20}, "risk_2_horizon_short": {"BND": 0.60, "GLD": 0.25, "SPY": 0.15}, ...}`).
 
 **Phase 4: Orchestration (Go + Python) & Stripe Integration**
 
-- [ ] Integrate Stripe Sandbox API in Go to securely handle the POST /deposit logic.
-- [ ] Update Go's flow: Once Stripe confirms payment, Go triggers Python's /optimize endpoint.
-- [ ] Receive weights from Python, calculate exact shares based on wallet balance.
-- [ ] Deduct balance from Wallet and save the new assets into the Portfolios table.
+- [ ] Integrate Stripe Sandbox API in Go for POST /deposit (bank -> wallet) and POST /cashout (wallet -> bank).
+- [ ] Implement POST /invest in Go: moves wallet balance to portfolio as USD ticker, creates InvestmentRound.
+- [ ] Implement POST /rebalance in Go (cron, every 30 days) using the Model Portfolios approach:
+  1. Go makes a **single** call to Python's `POST /generate-models`, receiving the full dictionary of 15 pre-computed Model Portfolios. This reduces the Python node's computational load from O(N users) to O(K=15 models).
+  2. Go queries PostgreSQL for all users with an active InvestmentRound.
+  3. For each user, Go derives the bucket key from their `RiskTolerance` (1–5) and `InvestmentHorizon` (mapped to short/medium/long), then looks up the matching weights in the received dictionary — no further Python calls needed.
+  4. Go calculates exact share counts using: `shares = (weight * total_value) / latest_close_price` where `latest_close_price` is read from the `HistoricalMarketData` table.
+  5. New `Portfolio` rows are saved and the old `InvestmentRound` is marked `IsActive=false`.
 
 **Phase 5: Frontend Dashboard**
 
@@ -96,6 +154,7 @@ type Portfolio struct {
 - [ ] Configure internal VPC networking.
 - [ ] Configure UFW firewall (block everything except SSH and Go's web ports).
 - [ ] Deploy PostgreSQL and Go on Droplet 1, Python on Droplet 2.
+- [ ] (Optional) Replace Python Droplet with a DigitalOcean Function (serverless). Python only runs during /sync and /rebalance — idle 99% of the time, so a serverless function eliminates the cost of a permanent server. Go would invoke the function URL instead of the internal VPC address. Note: keeping Python as a dedicated Droplet inside the VPC is the preferred security choice — the decisional node is never exposed to the public internet and is only reachable by Go over the private network. The serverless option trades that security boundary for cost efficiency. Additional concern: scipy, pandas, and numpy are large packages (~150MB combined) which may exceed serverless function storage limits and significantly increase cold start times, making a dedicated Droplet more practical.
 
 **Phase 7: Blockchain Audit Log** (Optional/Bonus)
 

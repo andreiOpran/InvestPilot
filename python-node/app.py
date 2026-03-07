@@ -1,22 +1,17 @@
-from flask import Flask, request, jsonify
-import yfinance as yf
-import pandas as pd
-import numpy as np
-from scipy.optimize import minimize
-from sqlalchemy import create_engine, text, bindparam
+from fastapi import FastAPI
+from yfinance import download
+from sqlalchemy import create_engine, text
 import os
 
-app = Flask(__name__)
+app = FastAPI(title="Robo-Advisory Python Engine", version="1.0")
 
-# same connection string format as Go, reads from environment
 DATABASE_URL = os.environ.get("DATABASE_URL", "postgresql://admin:pass@db:5432/robo_advisory")
 engine = create_engine(DATABASE_URL)
 
-# ETF universe
 TICKERS = ["SPY", "QQQ", "BND", "GLD", "VNQ"]
 
 def fetch_and_store_prices():
-    df = yf.download(TICKERS, period="2y", interval="1d")["Close"]
+    df = download(TICKERS, period="2y", interval="1d")["Close"]
     
     print("DataFrame shape:", df.shape)
     print("DataFrame head:", df.head())
@@ -47,17 +42,63 @@ def fetch_and_store_prices():
     return len(rows)
 
 
-@app.route('/sync', methods=['POST'])
+@app.post('/generate-models')
+def generate_models():
+    # TODO: replace with real Markowitz optimizer reading from historical_market_data table
+    # 15 buckets (risk 1-5 x horizon short/medium/long)
+    # lower risk = more BND/GLD, higher risk = more SPY/QQQ
+    # shorter horizon = more conservative allocation regardless of risk level
+    mock_prices = {
+        "SPY": 510.00,
+        "QQQ": 430.00,
+        "BND": 72.50,
+        "GLD": 185.00,
+        "VNQ": 85.00
+    }
+
+    mock_weights = {
+        "risk_1_horizon_short":  {"BND": 0.70, "GLD": 0.20, "VNQ": 0.05, "SPY": 0.05, "QQQ": 0.00},
+        # "risk_1_horizon_medium": {"BND": 0.65, "GLD": 0.20, "VNQ": 0.10, "SPY": 0.05, "QQQ": 0.00},
+        # "risk_1_horizon_long":   {"BND": 0.55, "GLD": 0.20, "VNQ": 0.15, "SPY": 0.10, "QQQ": 0.00},
+
+        "risk_2_horizon_short":  {"BND": 0.55, "GLD": 0.20, "VNQ": 0.10, "SPY": 0.15, "QQQ": 0.00},
+        # "risk_2_horizon_medium": {"BND": 0.45, "GLD": 0.20, "VNQ": 0.15, "SPY": 0.20, "QQQ": 0.00},
+        # "risk_2_horizon_long":   {"BND": 0.35, "GLD": 0.15, "VNQ": 0.15, "SPY": 0.30, "QQQ": 0.05},
+
+        "risk_3_horizon_short":  {"BND": 0.40, "GLD": 0.15, "VNQ": 0.10, "SPY": 0.30, "QQQ": 0.05},
+        # "risk_3_horizon_medium": {"BND": 0.30, "GLD": 0.10, "VNQ": 0.15, "SPY": 0.35, "QQQ": 0.10},
+        # "risk_3_horizon_long":   {"BND": 0.20, "GLD": 0.10, "VNQ": 0.15, "SPY": 0.40, "QQQ": 0.15},
+
+        "risk_4_horizon_short":  {"BND": 0.25, "GLD": 0.10, "VNQ": 0.10, "SPY": 0.40, "QQQ": 0.15},
+        # "risk_4_horizon_medium": {"BND": 0.15, "GLD": 0.05, "VNQ": 0.10, "SPY": 0.45, "QQQ": 0.25},
+        # "risk_4_horizon_long":   {"BND": 0.10, "GLD": 0.05, "VNQ": 0.05, "SPY": 0.50, "QQQ": 0.30},
+
+        "risk_5_horizon_short":  {"BND": 0.15, "GLD": 0.05, "VNQ": 0.10, "SPY": 0.45, "QQQ": 0.25},
+        # "risk_5_horizon_medium": {"BND": 0.05, "GLD": 0.05, "VNQ": 0.10, "SPY": 0.45, "QQQ": 0.35},
+        # "risk_5_horizon_long":   {"BND": 0.00, "GLD": 0.05, "VNQ": 0.10, "SPY": 0.45, "QQQ": 0.40},
+    }
+
+    result = {}
+    for bucket, weights in mock_weights.items():
+        result[bucket] = {
+            "weights": weights,
+            "prices": mock_prices
+        }
+
+    return result
+
+@app.post('/sync')
 def sync():
     try:
         row_count = fetch_and_store_prices()
-        return jsonify({
+        return {
             "message": "Data synced successfully",
             "rows_inserted": row_count,
             "tickers": TICKERS
-        }), 200
+        }
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return {"error": str(e)}
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    import uvicorn
+    uvicorn.run(app, host='0.0.0.0', port=5000)

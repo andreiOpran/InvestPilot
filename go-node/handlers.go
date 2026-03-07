@@ -27,7 +27,7 @@ func RegisterRoutes(r *gin.Engine) {
 		// endpoint that shows vpc communication
 		v1.POST("/simulate-investment", func(c *gin.Context) {
 			// make a request to the py container using the name of the service from docker-compose
-			resp, err := http.Post("http://python-engine:5000/optimize", "application/json", nil)
+			resp, err := http.Post("http://python-engine:5000/generate-models", "application/json", nil)
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "Error commincating with Py node"})
 				return
