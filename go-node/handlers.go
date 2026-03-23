@@ -83,17 +83,42 @@ func generateSecureToken(length int) (string, error) {
 	return hex.EncodeToString(bytes), nil
 }
 
-// helper for generating JWT
-func generateSessionToken(userID uint) (string, error) {
+// helper for generating short-lived Access JWT and a long lived Refresh Token
+func generateTokensAndSession(c *gin.Context, userID uint) (string, string, error) {
+	// generate short-lived JWT (10 minutes)
 	claims := Claims{
 		UserID: userID,
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(10 * time.Minute)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 		},
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString(jwtSecret)
+	accessToken, err := token.SignedString(jwtSecret)
+	if err != nil {
+		return "", "", err
+	}
+
+	// generate long-lived refresh token (consists of random hex available for 7 days)
+	refreshToken, err := generateSecureToken(32)
+	if err != nil {
+		return "", "", err
+	}
+
+	// save session to database
+	session := Session{
+		UserID:       userID,
+		RefreshToken: refreshToken,
+		ClientIP:     c.ClientIP(),
+		UserAgent:    c.Request.UserAgent(),
+		ExpiresAt:    time.Now().Add(7 * 24 * time.Hour),
+	}
+
+	if err := DB.Create(&session).Error; err != nil {
+		return "", "", err
+	}
+
+	return accessToken, refreshToken, nil
 }
 
 func RegisterRoutes(r *gin.Engine) {
@@ -315,7 +340,7 @@ func RegisterRoutes(r *gin.Engine) {
 				return
 			}
 
-			// if the use has 2FA enabled, stop and tell client to prompt for code
+			// if the user has 2FA enabled, stop and tell client to prompt for code
 			if user.IsTwoFactorEnable {
 				c.JSON(http.StatusOK, gin.H{
 					"status":  "2fa_required",
@@ -325,15 +350,17 @@ func RegisterRoutes(r *gin.Engine) {
 				return
 			}
 
-			// if 2FA is not enabled, in log normally
-			tokenString, err := generateSessionToken(user.ID)
+			// if 2FA is not enabled, log in normally
+			accessToken, refreshToken, err := generateTokensAndSession(c, user.ID)
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not generate token"})
 				return
 			}
 
 			c.JSON(http.StatusOK, gin.H{
-				"token": tokenString,
+				"status":        "success",
+				"access_token":  accessToken,
+				"refresh_token": refreshToken,
 			})
 		})
 
@@ -374,16 +401,78 @@ func RegisterRoutes(r *gin.Engine) {
 			}
 
 			// generate session
-			tokenString, err := generateSessionToken(user.ID)
+			accessToken, refreshToken, err := generateTokensAndSession(c, user.ID)
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not generate token"})
 				return
 			}
 
 			c.JSON(http.StatusOK, gin.H{
-				"status": "success",
-				"token":  tokenString,
+				"status":        "success",
+				"access_token":  accessToken,
+				"refresh_token": refreshToken,
 			})
+		})
+
+		v1.POST("/refresh-token", func(c *gin.Context) {
+			var req RefreshRequest
+			if err := c.ShouldBindJSON(&req); err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Refresh token required"})
+				return
+			}
+
+			// look up session in the DB, preload user to make sure he hasn't been deleted
+			var session Session
+			if err := DB.Preload("User").Where("refresh_token = ?", req.RefreshToken).First(&session).Error; err != nil {
+				c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired refresh token"})
+				return
+			}
+
+			// check expiration
+			if time.Now().After(session.ExpiresAt) {
+				// cleanup expired session
+				DB.Delete(&session)
+				c.JSON(http.StatusUnauthorized, gin.H{"error": "Refresh session expired. Please log in again."})
+				return
+			}
+
+			// send new 10-minute access token
+			claims := Claims{
+				UserID: session.UserID,
+				RegisteredClaims: jwt.RegisteredClaims{
+					ExpiresAt: jwt.NewNumericDate(time.Now().Add(10 * time.Minute)),
+					IssuedAt:  jwt.NewNumericDate(time.Now()),
+				},
+			}
+			newToken := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+			newAccessToken, err := newToken.SignedString(jwtSecret)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not generate new token"})
+				return
+			}
+
+			// TODO: refresh token rotation, generate a new refresh token, invalidate the old one, and return both
+			// for now, we reuse the existing valid refresh token for the duration of the 7 days
+
+			c.JSON(http.StatusOK, gin.H{
+				"access_token": newAccessToken,
+			})
+		})
+
+		v1.POST("/logout", func(c *gin.Context) {
+			var req RefreshRequest
+			if err := c.ShouldBindJSON(&req); err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Refresh token required for logout"})
+				return
+			}
+
+			// delete session from the db (access token is nto deleted because it has short lifetime)
+			if err := DB.Where("refresh_token = ?", req.RefreshToken).Delete(&Session{}).Error; err != nil {
+				// return succes even if we have an error here
+				// client will clear local state anyway
+			}
+
+			c.JSON(http.StatusOK, gin.H{"message": "Logged out successfully"})
 		})
 
 		// protected: JWT required for all routes inside

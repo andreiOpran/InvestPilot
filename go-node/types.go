@@ -34,5 +34,9 @@ type Enable2FARequest struct {
 	Token string `json:"token" binding:"required,len=6"`
 }
 
+type RefreshRequest struct {
+	RefreshToken string `json:"refresh_token" binding:"required"`
+}
+
 // TODO: in production should be retrieved from env var
 var jwtSecret = []byte("secret-key")
