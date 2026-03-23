@@ -1,9 +1,12 @@
 package main
 
 import (
+	"bytes"
 	"crypto/rand"
+	"encoding/base64"
 	"encoding/hex"
 	"fmt"
+	"image/png"
 	"io"
 	"net/http"
 	"os"
@@ -11,6 +14,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/pquerna/otp/totp"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -21,6 +25,19 @@ func generateSecureToken(length int) (string, error) {
 		return "", err
 	}
 	return hex.EncodeToString(bytes), nil
+}
+
+// helper for generating JWT
+func generateSessionToken(userID uint) (string, error) {
+	claims := Claims{
+		UserID: userID,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)),
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+		},
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	return token.SignedString(jwtSecret)
 }
 
 func RegisterRoutes(r *gin.Engine) {
@@ -242,18 +259,18 @@ func RegisterRoutes(r *gin.Engine) {
 				return
 			}
 
-			// build JWT claims, token expires in 24 hours
-			claims := Claims{
-				UserID: user.ID,
-				RegisteredClaims: jwt.RegisteredClaims{
-					ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)),
-					IssuedAt:  jwt.NewNumericDate(time.Now()),
-				},
+			// if the use has 2FA enabled, stop and tell client to prompt for code
+			if user.IsTwoFactorEnable {
+				c.JSON(http.StatusOK, gin.H{
+					"status":  "2fa_required",
+					"message": "Please submit your TOTP code.",
+					"email":   user.Email,
+				})
+				return
 			}
 
-			// sign the token with HS256
-			token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-			tokenString, err := token.SignedString(jwtSecret)
+			// if 2FA is not enabled, in log normally
+			tokenString, err := generateSessionToken(user.ID)
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not generate token"})
 				return
@@ -261,6 +278,49 @@ func RegisterRoutes(r *gin.Engine) {
 
 			c.JSON(http.StatusOK, gin.H{
 				"token": tokenString,
+			})
+		})
+
+		v1.POST("/verify-2fa", func(c *gin.Context) {
+			var req Verify2FARequest
+			if err := c.ShouldBindJSON(&req); err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			}
+
+			// re-authenticate user (stateless flow)
+			var user User
+			if err := DB.Where("email = ?", req.Email).First(&user).Error; err != nil {
+				c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials or token"})
+				return
+			}
+
+			if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password)); err != nil {
+				c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials or token"})
+				return
+			}
+
+			if !user.IsTwoFactorEnable {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "2FA is not enabled on this account"})
+				return
+			}
+
+			// validate TOTP code
+			valid := totp.Validate(req.Token, user.TwoFactorSecret)
+			if !valid {
+				c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid 2FA token"})
+				return
+			}
+
+			// generate session
+			tokenString, err := generateSessionToken(user.ID)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not generate token"})
+				return
+			}
+
+			c.JSON(http.StatusOK, gin.H{
+				"status": "success",
+				"token":  tokenString,
 			})
 		})
 
@@ -284,6 +344,86 @@ func RegisterRoutes(r *gin.Engine) {
 					"investment_horizon": user.InvestmentHorizon,
 					"wallet_balance":     user.Wallet.Balance,
 				})
+			})
+
+			protected.GET("/2fa/setup", func(c *gin.Context) {
+				userID := c.MustGet("userID").(uint)
+				var user User
+				if err := DB.First(&user, userID).Error; err != nil {
+					c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+					return
+				}
+
+				if user.IsTwoFactorEnable {
+					c.JSON(http.StatusBadRequest, gin.H{"error": "2FA is already enabled for this account"})
+					return
+				}
+
+				// generate OTP key
+				key, err := totp.Generate(totp.GenerateOpts{
+					Issuer:      "Robo-Advisory",
+					AccountName: user.Email,
+				})
+				if err != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate QR code"})
+					return
+				}
+
+				// temp save secret (user must confirm it to enable)
+				user.TwoFactorSecret = key.Secret()
+				DB.Save(&user)
+
+				// generate QR code image
+				var buf bytes.Buffer
+				img, err := key.Image(200, 200)
+				if err != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate QR code"})
+					return
+				}
+
+				png.Encode(&buf, img)
+
+				b64String := base64.StdEncoding.EncodeToString(buf.Bytes())
+				c.JSON(http.StatusOK, gin.H{
+					"secret": key.Secret(),
+					"uri":    key.URL(), // app deep link (otpauth://...)
+					// send qr codes as base63 string for easy frontend rendering
+					// frontend: <img src="data:image/png;base64,+b64String"/>
+					"qr_code_b64": "data:image/png;base64," + b64String,
+				})
+			})
+
+			// confirm that token to permanently enable 2FA
+			protected.POST("/2fa/enable", func(c *gin.Context) {
+				var req Enable2FARequest
+				if err := c.ShouldBindJSON(&req); err != nil {
+					c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+					return
+				}
+
+				userID := c.MustGet("userID").(uint)
+				var user User
+				if err := DB.First(&user, userID).Error; err != nil {
+					c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+					return
+				}
+
+				if user.IsTwoFactorEnable {
+					c.JSON(http.StatusBadRequest, gin.H{"error": "2FA is already enabled"})
+					return
+				}
+
+				// validate the code agains the secret we saved during /setup
+				valid := totp.Validate(req.Token, user.TwoFactorSecret)
+				if !valid {
+					c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid code. 2FA not enabled."})
+					return
+				}
+
+				user.IsTwoFactorEnable = true
+				DB.Save(&user)
+
+				c.JSON(http.StatusOK, gin.H{"message": "2FA successfully enabled"})
 			})
 
 			protected.POST("/deposit", func(c *gin.Context) {

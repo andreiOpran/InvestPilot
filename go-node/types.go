@@ -24,5 +24,15 @@ type Claims struct {
 	jwt.RegisteredClaims
 }
 
+type Verify2FARequest struct {
+	Email    string `json:"email" binding:"required,email"`
+	Password string `json:"password" binding:"required"`
+	Token    string `json:"token" binding:"required,len=6"`
+}
+
+type Enable2FARequest struct {
+	Token string `json:"token" binding:"required,len=6"`
+}
+
 // TODO: in production should be retrieved from env var
 var jwtSecret = []byte("secret-key")
