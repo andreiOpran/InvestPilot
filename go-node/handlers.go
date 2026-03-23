@@ -245,6 +245,7 @@ func RegisterRoutes(r *gin.Engine) {
 			verificationURL := fmt.Sprintf("http://localhost:8080/api/v1/verify-email?token=%s", verificationToken)
 			emailBody := fmt.Sprintf("Welcome to Robo-Advisory application.\n\nPlease verify your email clicking the link below:\n%s\n\nNote: link expires in 24 hours.", verificationURL)
 
+			// send email in goroutine so SMTP server network latency does not affect API response time
 			go func() {
 				if err := emailClient.SendEmail(user.Email, "Verify Your Robo-Advisory Account", emailBody); err != nil {
 					fmt.Printf("Failed to send verification email to %s: %v\n", user.Email, err)
@@ -364,6 +365,22 @@ func RegisterRoutes(r *gin.Engine) {
 			})
 		})
 
+		v1.POST("/logout", func(c *gin.Context) {
+			var req RefreshRequest
+			if err := c.ShouldBindJSON(&req); err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Refresh token required for logout"})
+				return
+			}
+
+			// delete session from the db (access token is nto deleted because it has short lifetime)
+			if err := DB.Where("refresh_token = ?", req.RefreshToken).Delete(&Session{}).Error; err != nil {
+				// return succes even if we have an error here
+				// client will clear local state anyway
+			}
+
+			c.JSON(http.StatusOK, gin.H{"message": "Logged out successfully"})
+		})
+
 		v1.POST("/verify-2fa", func(c *gin.Context) {
 			var req Verify2FARequest
 			if err := c.ShouldBindJSON(&req); err != nil {
@@ -459,20 +476,107 @@ func RegisterRoutes(r *gin.Engine) {
 			})
 		})
 
-		v1.POST("/logout", func(c *gin.Context) {
-			var req RefreshRequest
+		v1.POST("/forgot-password", func(c *gin.Context) {
+			var req ForgotPasswordRequest
 			if err := c.ShouldBindJSON(&req); err != nil {
-				c.JSON(http.StatusBadRequest, gin.H{"error": "Refresh token required for logout"})
+				c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 				return
 			}
 
-			// delete session from the db (access token is nto deleted because it has short lifetime)
-			if err := DB.Where("refresh_token = ?", req.RefreshToken).Delete(&Session{}).Error; err != nil {
-				// return succes even if we have an error here
-				// client will clear local state anyway
+			// look up user
+			var user User
+			userExists := true
+			if err := DB.Where("email = ?", req.Email).First(&user).Error; err != nil {
+				userExists = false
 			}
 
-			c.JSON(http.StatusOK, gin.H{"message": "Logged out successfully"})
+			// generate recovery token, even if user is not found, to combat timing attacks
+			recoveryToken, err := generateSecureToken(32)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
+				return
+			}
+
+			if userExists && user.IsEmailVerified {
+				// generate and save action token
+				actionToken := ActionToken{
+					UserID:    user.ID,
+					Token:     recoveryToken,
+					Type:      "reset_password",
+					ExpiresAt: time.Now().Add(15 * time.Minute),
+				}
+
+				if err := DB.Create(&actionToken).Error; err != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not generate recovery process"})
+					return
+				}
+
+				// send recovery email
+				// TODO: In prod, get BaseURL from env
+				recoveryURL := fmt.Sprintf("http://localhost:8081/reset-password?token=%s", recoveryToken)
+				emailBody := fmt.Sprintf("You requested a password reset for your Robo-Advisory account.\n\nPlease click the link below to set a new password:\n%s\n\nThis link expires in 15 minutes. If you did not request this, please ignore this email.", recoveryURL)
+
+				// send email in goroutine so SMTP server network latency does not affect API response time
+				go func() {
+					if err := emailClient.SendEmail(user.Email, "Robo-Advisory Password Reset", emailBody); err != nil {
+						fmt.Printf("Failed to send recovery email to %s: %v\n", user.Email, err)
+					}
+				}()
+			}
+
+			// return vague success message
+			c.JSON(http.StatusOK, gin.H{"message": "If an account with that email exists, a password reset link has been sent."})
+		})
+
+		v1.POST("/reset-password", func(c *gin.Context) {
+			var req ResetPasswordRequest
+			if err := c.ShouldBindJSON(&req); err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+				return
+			}
+
+			var actionToken ActionToken
+
+			// find token and check type
+			if err := DB.Where("token = ? AND type = ?", req.Token, "reset_password").First(&actionToken).Error; err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid or expired recovery token"})
+				return
+			}
+
+			// check expiration
+			if time.Now().After(actionToken.ExpiresAt) {
+				// cleanup expired token
+				DB.Delete(&actionToken)
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Recovery token has expired"})
+				return
+			}
+
+			// hash the new password
+			hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.NewPassword), 14)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not process new password"})
+				return
+			}
+
+			// transaction - update user pass and delete token
+			// transaction is used in case of token deletion failure, then the password will not be updated
+			tx := DB.Begin()
+			if err := tx.Model(&User{}).Where("id = ?", actionToken.UserID).Update("password", string(hashedPassword)).Error; err != nil {
+				tx.Rollback()
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not complete reset process"})
+				return
+			}
+
+			// invalidate all existing sessions for this user
+			if err := tx.Where("user_id = ?", actionToken.UserID).Delete(&Session{}).Error; err != nil {
+				tx.Rollback()
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not invalidate old sessions"})
+				return
+			}
+
+			tx.Commit()
+
+			c.JSON(http.StatusOK, gin.H{"message": "Password successfully reset. You can now log in with your new password."})
 		})
 
 		// protected: JWT required for all routes inside
@@ -541,7 +645,7 @@ func RegisterRoutes(r *gin.Engine) {
 
 				b64String := base64.StdEncoding.EncodeToString(buf.Bytes())
 				c.JSON(http.StatusOK, gin.H{
-					"secret": key.Secret(),
+					"secret": encryptedSecret,
 					"uri":    key.URL(), // app deep link (otpauth://...)
 					// send qr codes as base63 string for easy frontend rendering
 					// frontend: <img src="data:image/png;base64,+b64String"/>
