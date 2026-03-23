@@ -3,6 +3,7 @@ package main
 import (
 	"io"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -20,6 +21,23 @@ func RegisterRoutes(r *gin.Engine) {
 			"status":   "Server is running",
 			"database": "Connected",
 		})
+	})
+
+	r.GET("/test-email", func(c *gin.Context) {
+		testEmail := os.Getenv("SMTP_TEST_DESTINATION")
+
+		err := emailClient.SendEmail(
+			testEmail,
+			"Test",
+			"Test for SMTP",
+		)
+
+		if err != nil {
+			c.JSON(500, gin.H{"error": err.Error()})
+			return
+		}
+
+		c.JSON(200, gin.H{"message": "Test email sent successfully"})
 	})
 
 	v1 := r.Group("/api/v1")

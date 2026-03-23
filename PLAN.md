@@ -26,13 +26,39 @@ type User struct {
     ID                uint      `gorm:"primaryKey"`
     Email             string    `gorm:"unique;not null"`
     Password          string    `gorm:"not null"` // bcrypt hashed
-    TwoFactorSecret   string    // secret for Google Authenticator/TOTP (Phase 5)
+    IsEmailVerified   bool      `gorm:"default:false"`
+    TwoFactorSecret   string    // secret for Google Authenticator/TOTP
     IsTwoFactorEnable bool      `gorm:"default:false"`
     InvestmentHorizon int       // in years
     RiskTolerance     int       // 1 (min) to 5 (max)
     CreatedAt         time.Time
     UpdatedAt         time.Time
+    
+    // relationships
     Wallet            Wallet
+    Sessions          []Session
+    ActionTokens      []ActionToken
+}
+
+// manages long-lived refresh tokens (allows multi-device logins)
+type Session struct {
+    ID           uint      `gorm:"primaryKey"`
+    UserID       uint      `gorm:"not null;index"`
+    RefreshToken string    `gorm:"unique;not null"`
+    ClientIP     string    // optional: track where they logged in from
+    UserAgent    string    // optional: track device (Chrome/Mac)
+    ExpiresAt    time.Time `gorm:"not null"`
+    CreatedAt    time.Time
+}
+
+// manages temporary, short-lived tokens (email verification, password reset)
+type ActionToken struct {
+    ID        uint      `gorm:"primaryKey"`
+    UserID    uint      `gorm:"not null;index"`
+    Token     string    `gorm:"unique;not null"`
+    Type      string    `gorm:"not null"` // "verify_email", "reset_password"
+    ExpiresAt time.Time `gorm:"not null"`
+    CreatedAt time.Time
 }
 
 // uninvested money, staging area between bank and portfolio
@@ -98,14 +124,29 @@ type HistoricalMarketData struct {
 - [x] Create dummy user seeding for initial testing.
 - [x] Create basic POST /deposit endpoint to simulate adding funds.
 
-**Phase 2: Authentication & Security with 2FA**
+**Phase 2: Identity Management, Authentication & Security**
 
-- [x] Install golang.org/x/crypto/bcrypt and github.com/golang-jwt/jwt/v5. (github.com/pquerna/otp still needed for 2FA)
-- [x] Implement POST /register: Hash password with bcrypt, create User, and attach empty Wallet. (2FA secret generation pending)
-- [x] Implement POST /login: Verify bcrypt hash, generate and return JWT token. (temp token + 2FA verification step pending)
-- [ ] Implement POST /verify-2fa: Validate the 6-digit TOTP code against the user's secret. Generate and return the final JWT token.
-- [x] Create a Gin Middleware to protect routes (require Bearer Token).
-- [x] Refactor GET /user and POST /deposit to use userID from JWT context instead of hardcoded dummy email.
+This phase implements a complete, enterprise-grade Identity and Access Management (IAM) flow, utilizing discrete database tables (`Session`, `ActionToken`) for robust session management, multi-device support, and security lifecycle.
+
+**Email Delivery Architecture (Dependency Injection):**
+An `EmailSender` interface will be implemented to decouple the email logic from the business logic. 
+- *Development:* Native Go `net/smtp` using a Gmail App Password for rapid local testing.
+- *Production (Future-proofing):* SendGrid API integration.
+
+- [x] Install `golang.org/x/crypto/bcrypt` and `github.com/golang-jwt/jwt/v5`. 
+- [ ] Install `github.com/pquerna/otp` for TOTP (Google Authenticator) 2FA generation and validation.
+- [ ] Implement `EmailSender` interface (SMTP strategy).
+- [ ] **POST /register:** Hash password with bcrypt, create `User` (with `IsEmailVerified=false`). Create a record in `ActionToken` (Type: "verify_email") and send the activation link via email. 
+- [ ] **GET /verify-email:** Accept token from URL query, find it in `ActionToken`, ensure it's not expired. Set `User.IsEmailVerified=true`, and delete the token row.
+- [ ] **POST /login (Step 1):** Verify email exists and password matches. Check `IsEmailVerified`. If user has 2FA enabled, return a temporary `status: "2fa_required"` response instead of tokens.
+- [ ] **POST /verify-2fa (Step 2):** Validate the 6-digit TOTP code against the user's `TwoFactorSecret`. If successful, proceed to generate session tokens.
+- [ ] **Token Strategy (Multi-Device):** Generate a Short-Lived Access Token (JWT, expires in 15 mins). Generate a secure random string for the Refresh Token, store it in the `Session` table (expires in 7 days), and return both to the client.
+- [ ] **POST /refresh-token:** Accept a valid Refresh Token, verify it exists in the `Session` table and is not expired, then issue a new 15-minute Access Token.
+- [ ] **POST /logout:** Accept the current Refresh Token and delete its corresponding row from the `Session` table.
+- [ ] **POST /forgot-password:** Create an `ActionToken` (Type: "reset_password", expires in 15 mins) and send the recovery link via email.
+- [ ] **POST /reset-password:** Validate the token from the `ActionToken` table. Hash the new password, update the `User` table, and delete the token row.
+- [x] Create a Gin Middleware to protect routes (require Bearer Access Token).
+- [x] Refactor `GET /user` and `POST /deposit` to use `userID` from JWT context.
 
 **Phase 3: The Python Math Engine & Data Persistence**
 

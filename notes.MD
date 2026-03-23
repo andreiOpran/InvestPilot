@@ -27,21 +27,6 @@ docker exec -it licenta-db-1 psql -U admin -d robo_advisory
 -- see all tables
 \dt
 
--- see users
-SELECT * FROM users;
-
--- see wallets
-SELECT * FROM wallets;
-
--- see transactions
-SELECT * FROM transactions;
-
--- see investment rounds
-SELECT * FROM investment_rounds;
-
--- see portfolio holdings
-SELECT * FROM portfolios;
-
 -- see market data
 SELECT * FROM historical_market_data LIMIT 20;
 
