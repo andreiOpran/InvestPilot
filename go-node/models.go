@@ -6,12 +6,38 @@ import "time"
 type User struct {
 	ID                uint   `gorm:"primaryKey"`
 	Email             string `gorm:"unique;not null"`
-	Password          string `gorm:"not null"` // brcypt hashed
+	Password          string `gorm:"not null"` // bcrypt hashed
+	IsEmailVerified   bool   `gorm:"default:false"`
+	TwoFactorSecret   string // secret for Google Authenticator/TOTP
+	IsTwoFactorEnable bool   `gorm:"default:false"`
 	InvestmentHorizon int    // in years
 	RiskTolerance     int    // risk from 1 (min) to 5 (max)
 	CreatedAt         time.Time
 	UpdatedAt         time.Time
-	Wallet            Wallet // one-to-one relation with trading balance
+	Wallet            Wallet        // one-to-one relation with trading balance
+	Sessions          []Session     // one-to-many relationship
+	ActionTokens      []ActionToken // one-to-many relationship
+}
+
+// manages long-lived refresh tokens (allows multi-device logins)
+type Session struct {
+	ID           uint      `gorm:"primaryKey"`
+	UserID       uint      `gorm:"not null;index"`
+	RefreshToken string    `gorm:"unique;not null"`
+	ClientIP     string    // optional: logged in IP
+	UserAgent    string    // optional: device (Chrome/Mac)
+	ExpiresAt    time.Time `gorm:"not null"`
+	CreatedAt    time.Time
+}
+
+// manages temporary, short-lived tokens (email verification, password reset)
+type ActionToken struct {
+	ID        uint      `gorm:"primaryKey"`
+	UserID    uint      `gorm:"not null;index"`
+	Token     string    `gorm:"unique;not null"`
+	Type      string    `gorm:"not null"` // "verify_email", "reset_password"
+	ExpiresAt time.Time `gorm:"not null"`
+	CreatedAt time.Time
 }
 
 // user's paper trading balance, uninvested money available to deposit or withdraw
