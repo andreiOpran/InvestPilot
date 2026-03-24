@@ -609,6 +609,13 @@ func RegisterRoutes(r *gin.Engine) {
 				return
 			}
 
+			// delete used token, it should be used only once
+			if err := tx.Delete(&actionToken).Error; err != nil {
+				tx.Rollback()
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not complete reset process"})
+				return
+			}
+
 			// invalidate all existing sessions for this user
 			if err := tx.Where("user_id = ?", actionToken.UserID).Delete(&Session{}).Error; err != nil {
 				tx.Rollback()
