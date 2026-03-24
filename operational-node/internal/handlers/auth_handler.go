@@ -11,11 +11,11 @@ import (
 	"github.com/pquerna/otp/totp"
 	"golang.org/x/crypto/bcrypt"
 
-	"licenta/go-node/internal/database"
-	"licenta/go-node/internal/mailer"
-	"licenta/go-node/internal/models"
-	"licenta/go-node/utils/crypto"
-	"licenta/go-node/utils/token"
+	"github.com/andreiOpran/licenta/operational-node/internal/database"
+	"github.com/andreiOpran/licenta/operational-node/internal/mailer"
+	"github.com/andreiOpran/licenta/operational-node/internal/models"
+	"github.com/andreiOpran/licenta/operational-node/utils/crypto"
+	"github.com/andreiOpran/licenta/operational-node/utils/token"
 )
 
 // RegisterHandler handles user registration

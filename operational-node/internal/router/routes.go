@@ -3,8 +3,8 @@ package router
 import (
 	"github.com/gin-gonic/gin"
 
-	"licenta/go-node/internal/handlers"
-	"licenta/go-node/internal/middleware"
+	"github.com/andreiOpran/licenta/operational-node/internal/handlers"
+	"github.com/andreiOpran/licenta/operational-node/internal/middleware"
 )
 
 // SetupRoutes registers all HTTP endpoints and maps them to handler functions

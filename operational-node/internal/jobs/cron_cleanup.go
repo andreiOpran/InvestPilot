@@ -4,8 +4,8 @@ import (
 	"log"
 	"time"
 
-	"licenta/go-node/internal/database"
-	"licenta/go-node/internal/models"
+	"github.com/andreiOpran/licenta/operational-node/internal/database"
+	"github.com/andreiOpran/licenta/operational-node/internal/models"
 
 	"github.com/robfig/cron/v3"
 )

@@ -5,8 +5,8 @@ import (
 	"encoding/hex"
 	"time"
 
-	"licenta/go-node/internal/database"
-	"licenta/go-node/internal/models"
+	"github.com/andreiOpran/licenta/operational-node/internal/database"
+	"github.com/andreiOpran/licenta/operational-node/internal/models"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"

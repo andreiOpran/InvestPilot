@@ -7,9 +7,9 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"licenta/go-node/internal/database"
-	"licenta/go-node/internal/mailer"
-	"licenta/go-node/internal/models"
+	"github.com/andreiOpran/licenta/operational-node/internal/database"
+	"github.com/andreiOpran/licenta/operational-node/internal/mailer"
+	"github.com/andreiOpran/licenta/operational-node/internal/models"
 )
 
 // PingHandler simple health check

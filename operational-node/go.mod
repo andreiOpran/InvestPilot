@@ -1,4 +1,4 @@
-module licenta/go-node
+module github.com/andreiOpran/licenta/operational-node
 
 go 1.24.0
 

@@ -9,9 +9,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/pquerna/otp/totp"
 
-	"licenta/go-node/internal/database"
-	"licenta/go-node/internal/models"
-	"licenta/go-node/utils/crypto"
+	"github.com/andreiOpran/licenta/operational-node/internal/database"
+	"github.com/andreiOpran/licenta/operational-node/internal/models"
+	"github.com/andreiOpran/licenta/operational-node/utils/crypto"
 )
 
 // Setup2FAHandler generates TOTP secret and QR code

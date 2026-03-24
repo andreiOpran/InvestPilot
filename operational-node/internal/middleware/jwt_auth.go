@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"licenta/go-node/internal/models"
-	"licenta/go-node/utils/token"
+	"github.com/andreiOpran/licenta/operational-node/internal/models"
+	"github.com/andreiOpran/licenta/operational-node/utils/token"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"

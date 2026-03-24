@@ -5,10 +5,10 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"licenta/go-node/internal/database"
-	"licenta/go-node/internal/jobs"
-	"licenta/go-node/internal/mailer"
-	"licenta/go-node/internal/router"
+	"github.com/andreiOpran/licenta/operational-node/internal/database"
+	"github.com/andreiOpran/licenta/operational-node/internal/jobs"
+	"github.com/andreiOpran/licenta/operational-node/internal/mailer"
+	"github.com/andreiOpran/licenta/operational-node/internal/router"
 )
 
 func main() {

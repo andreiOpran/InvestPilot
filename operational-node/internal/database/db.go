@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 
-	"licenta/go-node/internal/models"
+	"github.com/andreiOpran/licenta/operational-node/internal/models"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"

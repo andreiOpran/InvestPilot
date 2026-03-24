@@ -27,11 +27,11 @@ services:
 
   # Operational node
   go-backend:
-    build: ./go-node
+    build: ./operational-node
     ports:
       - "8081:8080" # where the app will run
     env_file:
-      - .env-go-node
+      - .env-operational-node
     depends_on:
       - db
       - python-engine
