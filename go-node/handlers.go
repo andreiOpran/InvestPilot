@@ -4,12 +4,13 @@ import (
 	"bytes"
 	"crypto/aes"
 	"crypto/cipher"
-	"crypto/rand"
+	cryptorand "crypto/rand"
 	"encoding/base64"
 	"encoding/hex"
 	"fmt"
 	"image/png"
 	"io"
+	mathrand "math/rand"
 	"net/http"
 	"os"
 	"time"
@@ -35,7 +36,7 @@ func EncryptAES(plainText string, key []byte) (string, error) {
 	}
 
 	nonce := make([]byte, aesGCM.NonceSize())
-	if _, err = io.ReadFull(rand.Reader, nonce); err != nil {
+	if _, err = io.ReadFull(cryptorand.Reader, nonce); err != nil {
 		return "", err
 	}
 
@@ -77,7 +78,7 @@ func DecryptAES(encryptedText string, key []byte) (string, error) {
 // helper for generating random string
 func generateSecureToken(length int) (string, error) {
 	bytes := make([]byte, length)
-	if _, err := rand.Read(bytes); err != nil {
+	if _, err := cryptorand.Read(bytes); err != nil {
 		return "", err
 	}
 	return hex.EncodeToString(bytes), nil
@@ -519,6 +520,9 @@ func RegisterRoutes(r *gin.Engine) {
 		})
 
 		v1.POST("/forgot-password", func(c *gin.Context) {
+			// record actual logic computing time to standardize response times to avoid timing attacks
+			startTime := time.Now()
+
 			var req ForgotPasswordRequest
 			if err := c.ShouldBindJSON(&req); err != nil {
 				c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -564,6 +568,23 @@ func RegisterRoutes(r *gin.Engine) {
 						fmt.Printf("Failed to send recovery email to %s: %v\n", user.Email, err)
 					}
 				}()
+			}
+
+			// timing attack avoidance logic
+			// stop timer to see how long it took to compute real logic
+			elapsed := time.Since(startTime)
+			// we set a target time of 100ms that all /forgot-password should achieve
+			targetTime := 100 * time.Millisecond
+			// generate random noise
+			noise := time.Duration(mathrand.Intn(20)) * time.Millisecond
+
+			// level actual response time with the target time
+			if elapsed < targetTime {
+				// the request was too fast, so we sleep until the target time + noise to prevent patterns
+				time.Sleep((targetTime - elapsed) + noise)
+			} else {
+				// if we surpassed target time, still sleep a bit to prevent patterns
+				time.Sleep(noise)
 			}
 
 			// return vague success message
