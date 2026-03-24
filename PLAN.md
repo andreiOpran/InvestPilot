@@ -23,16 +23,18 @@ This project is an Automated Wealth Management (Robo-Advisory) platform using a 
 ```go
 // investor account
 type User struct {
-    ID                uint      `gorm:"primaryKey"`
-    Email             string    `gorm:"unique;not null"`
-    Password          string    `gorm:"not null"` // bcrypt hashed
-    IsEmailVerified   bool      `gorm:"default:false"`
-    TwoFactorSecret   string    // secret for Google Authenticator/TOTP
-    IsTwoFactorEnable bool      `gorm:"default:false"`
-    InvestmentHorizon int       // in years
-    RiskTolerance     int       // 1 (min) to 5 (max)
-    CreatedAt         time.Time
-    UpdatedAt         time.Time
+    ID                  uint      `gorm:"primaryKey"`
+    Email               string    `gorm:"unique;not null"`
+    Password            string    `gorm:"not null"` // bcrypt hashed
+    IsEmailVerified     bool      `gorm:"default:false"`
+    TwoFactorSecret     string    // secret for Google Authenticator/TOTP
+    IsTwoFactorEnable   bool      `gorm:"default:false"`
+    InvestmentHorizon   int       // in years
+    RiskTolerance       int       // 1 (min) to 5 (max)
+    FailedLoginAttempts int       `gorm:"default:0"`
+    LockoutUntil        time.Time `gorm:"index"`
+    CreatedAt           time.Time
+    UpdatedAt           time.Time
     
     // relationships
     Wallet            Wallet
@@ -42,13 +44,16 @@ type User struct {
 
 // manages long-lived refresh tokens (allows multi-device logins)
 type Session struct {
-    ID           uint      `gorm:"primaryKey"`
-    UserID       uint      `gorm:"not null;index"`
-    RefreshToken string    `gorm:"unique;not null"`
-    ClientIP     string    // optional: track where they logged in from
-    UserAgent    string    // optional: track device (Chrome/Mac)
-    ExpiresAt    time.Time `gorm:"not null"`
-    CreatedAt    time.Time
+	ID           uint      `gorm:"primaryKey"`
+	UserID       uint      `gorm:"not null;index"`
+	FamilyID     string    `gorm:"index"` // makes the relaionship between same user sessions
+	RefreshToken string    `gorm:"unique;not null"`
+	IsUsed       bool      `gorm:"default:false"` // reuse detection
+	ClientIP     string    // optional: logged in IP
+	UserAgent    string    // optional: device (Chrome/Mac)
+	ExpiresAt    time.Time `gorm:"not null"`
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
 }
 
 // manages temporary, short-lived tokens (email verification, password reset)
@@ -134,17 +139,27 @@ An `EmailSender` interface will be implemented to decouple the email logic from 
 - *Production (Future-proofing):* SendGrid API integration.
 
 - [x] Install `golang.org/x/crypto/bcrypt` and `github.com/golang-jwt/jwt/v5`. 
-- [ ] Install `github.com/pquerna/otp` for TOTP (Google Authenticator) 2FA generation and validation.
-- [ ] Implement `EmailSender` interface (SMTP strategy).
-- [ ] **POST /register:** Hash password with bcrypt, create `User` (with `IsEmailVerified=false`). Create a record in `ActionToken` (Type: "verify_email") and send the activation link via email. 
-- [ ] **GET /verify-email:** Accept token from URL query, find it in `ActionToken`, ensure it's not expired. Set `User.IsEmailVerified=true`, and delete the token row.
-- [ ] **POST /login (Step 1):** Verify email exists and password matches. Check `IsEmailVerified`. If user has 2FA enabled, return a temporary `status: "2fa_required"` response instead of tokens.
-- [ ] **POST /verify-2fa (Step 2):** Validate the 6-digit TOTP code against the user's `TwoFactorSecret`. If successful, proceed to generate session tokens.
-- [ ] **Token Strategy (Multi-Device):** Generate a Short-Lived Access Token (JWT, expires in 15 mins). Generate a secure random string for the Refresh Token, store it in the `Session` table (expires in 7 days), and return both to the client.
-- [ ] **POST /refresh-token:** Accept a valid Refresh Token, verify it exists in the `Session` table and is not expired, then issue a new 15-minute Access Token.
-- [ ] **POST /logout:** Accept the current Refresh Token and delete its corresponding row from the `Session` table.
-- [ ] **POST /forgot-password:** Create an `ActionToken` (Type: "reset_password", expires in 15 mins) and send the recovery link via email.
-- [ ] **POST /reset-password:** Validate the token from the `ActionToken` table. Hash the new password, update the `User` table, and delete the token row.
+- [x] Install `github.com/pquerna/otp` for TOTP (Google Authenticator) 2FA generation and validation.
+- [x] Install `github.com/robfig/cron/v3` for automated background maintenance tasks.
+- [x] Implement `EmailSender` interface (SMTP strategy) with Goroutines to prevent network latency from blocking API responses.
+- [x] **POST /register:** Hash password with bcrypt, create `User` (with `IsEmailVerified=false`). Create a record in `ActionToken` (Type: "verify_email") and send the activation link via email. 
+- [x] **GET /verify-email:** Accept token from URL query, find it in `ActionToken`, ensure it's not expired. Set `User.IsEmailVerified=true`, and delete the token row.
+- [x] **POST /login (Step 1):** Verify email exists and password matches. Check `IsEmailVerified`. If user has 2FA enabled, return a temporary `status: "2fa_required"` response instead of tokens. (Includes dummy bcrypt hashing to prevent User Enumeration via Timing Attacks).
+- [x] **GET /2fa/setup:** Generate TOTP secret. Encrypt the secret using **AES-256-GCM (Encryption at Rest)** for zero-knowledge database storage, while safely returning the plaintext secret and Base64 QR code to the frontend for initial device pairing.
+- [x] **POST /2fa/enable:** Validate the initial 6-digit TOTP code against the decrypted `TwoFactorSecret` to permanently enable 2FA on the user's account.
+- [x] **POST /verify-2fa (Step 2):** Validate the 6-digit TOTP code against the user's decrypted `TwoFactorSecret`. If successful, proceed to generate session tokens.
+- [x] **Token Strategy (Multi-Device):** Generate a Short-Lived Access Token (JWT, expires in 10 mins). Generate a secure random string for the Refresh Token, store it in the `Session` table (expires in 7 days), and return both to the client.
+- [x] **POST /refresh-token (Rotation & Reuse Detection):** Implement Refresh Token Rotation. Group tokens by `FamilyID`. If a used (stolen) refresh token is presented, trigger a security alert and invalidate the entire token family to protect the account.
+- [x] **POST /refresh-token (Race Condition Mitigation):** Implemented **Optimistic Concurrency Control (OCC)** using the `UpdatedAt` timestamp to elegantly prevent Race Conditions and database anomalies during concurrent token renewal requests from multiple browser tabs.
+- [x] **POST /logout:** Accept the current Refresh Token and delete its corresponding row from the `Session` table.
+- [x] **POST /forgot-password:** Create an `ActionToken` (Type: "reset_password", expires in 15 mins) and send the recovery link via email. Implemented constant-time delay simulation (with random noise) to prevent Email Enumeration via Timing Attacks.
+- [x] **POST /reset-password:** Validate the token from the `ActionToken` table. Wrapped in a strict database transaction to hash the new password, invalidate all existing sessions, and **securely delete the single-use recovery token**.
+- [x] **Data Lifecycle Management (CRON):** Implement a nightly background job (running at 03:00 AM) to purge expired `Session` and `ActionToken` records, preventing database bloat and maintaining query performance.
+- [ ] **Cloudflare Turnstile Integration:** Implement an anti-bot challenge on `/login`, `/register`, and `/forgot-password`. Verification happens server-side before any `bcrypt` processing to save CPU resources.
+- [ ] **IP-Based Rate Limiting:** Implement a global Gin middleware using a "Token Bucket" algorithm to restrict requests per IP, preventing simple Denial of Service (DoS) and brute-force noise.
+- [ ] **Email-Based Account Lockout:** Implement a 5-attempt threshold logic. If exceeded, the specific account is locked for 15 minutes (`LockoutUntil`), regardless of the attacker's IP rotation.
+- [ ] **Atomic Deposit Logic:** Refactor `POST /deposit` to use database-level atomic increments (`gorm.Expr("balance + ?", amount)`) to prevent "Lost Update" race conditions during concurrent requests.
+- [ ] **Decisional Node Isolation:** Move `/simulate-investment` (and any route calling Python) inside the `protected` group to ensure only authenticated users can trigger CPU-intensive Markowitz calculations.
 - [x] Create a Gin Middleware to protect routes (require Bearer Access Token).
 - [x] Refactor `GET /user` and `POST /deposit` to use `userID` from JWT context.
 
@@ -188,6 +203,12 @@ A deliberate design decision was made to persist all ETF price data in the local
 - [ ] Build Login/Register UI (including 2FA QR code display and verification step).
 - [ ] Build Dashboard UI: Show current balance and Stripe deposit form.
 - [ ] Fetch GET /user/portfolio and use Plotly.js to render a Pie Chart of the user's asset allocation.
+- [ ] **Frontend Security & Session Management:** Design and implement the token storage strategy. Decide between using `localStorage` (Standard SPA approach) or `HttpOnly` Cookies (Advanced XSS mitigation) for securely holding the `access_token` and `refresh_token`.
+- [ ] **Frontend Axios/Fetch Interceptor:** Create a global wrapper for all API calls (`fetchWithAuth`). This function must automatically intercept `401 Unauthorized` responses, pause the original request, and silently call `POST /refresh-token` (handling either raw token strings or cookie-based credentials).
+- [ ] **Frontend Race Condition Mitigation (The "Refresh Queue"):** Implement a global "semaphore" (`isRefreshing` boolean) and a Promise queue inside the interceptor. If multiple API calls fail simultaneously due to an expired token, only *one* refresh request is sent to the backend, while the others wait in the queue for the new token, ensuring smooth UX and preventing backend 409 Conflicts.
+- [ ] **Frontend XSS Awareness:** Ensure all dynamic user data is rendered safely using `textContent` (or framework equivalents) rather than `innerHTML` to prevent Cross-Site Scripting attacks from stealing tokens (especially critical if opting for the `localStorage` strategy).
+- [ ] **Frontend Logout Flow:** Bind a logout button to `POST /logout` (sending the refresh token or invalidating the session cookie), followed by clearing the local state and redirecting to the login screen.
+- [ ] **Anti-Bot UI:** Integrate the Cloudflare Turnstile widget into authentication forms and handle the `cf-turnstile-response` token in the Fetch API payloads.
 
 **Phase 6: Cloud Deployment (Digital Ocean)**
 
