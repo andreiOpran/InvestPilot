@@ -1,9 +1,9 @@
-package main
+package models
 
 import "github.com/golang-jwt/jwt/v5"
 
 // struct to read incoming json data from request
-type DepositRequst struct {
+type DepositRequest struct {
 	Amount float64 `json:"amount" binding:"required,gt=0"` // greater than 0
 }
 
@@ -46,6 +46,3 @@ type ResetPasswordRequest struct {
 type RefreshRequest struct {
 	RefreshToken string `json:"refresh_token" binding:"required"`
 }
-
-// TODO: in production should be retrieved from env var
-var jwtSecret = []byte("secret-key")

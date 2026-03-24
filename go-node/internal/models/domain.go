@@ -1,4 +1,4 @@
-package main
+package models
 
 import "time"
 
@@ -28,7 +28,7 @@ type Session struct {
 	IsUsed       bool      `gorm:"default:false"` // reuse detection
 	ClientIP     string    // optional: logged in IP
 	UserAgent    string    // optional: device (Chrome/Mac)
-	ExpiresAt    time.Time `gorm:"not null"`
+	ExpiresAt    time.Time `gorm:"not null;index"` // indexed for fast cleanup
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
 }
@@ -38,8 +38,8 @@ type ActionToken struct {
 	ID        uint      `gorm:"primaryKey"`
 	UserID    uint      `gorm:"not null;index"`
 	Token     string    `gorm:"unique;not null"`
-	Type      string    `gorm:"not null"` // "verify_email", "reset_password"
-	ExpiresAt time.Time `gorm:"not null"`
+	Type      string    `gorm:"not null"`       // "verify_email", "reset_password"
+	ExpiresAt time.Time `gorm:"not null;index"` // indexed for fast cleanup
 	CreatedAt time.Time
 }
 

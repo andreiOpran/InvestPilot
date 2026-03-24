@@ -1,15 +1,17 @@
-package main
+package middleware
 
 import (
 	"fmt"
 	"net/http"
-	"strings"
+
+	"licenta/go-node/internal/models"
+	"licenta/go-node/utils/token"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 )
 
-func authMiddleware() gin.HandlerFunc {
+func AuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// read Authorization header
 		authHeader := c.GetHeader("Authorization")
@@ -20,23 +22,25 @@ func authMiddleware() gin.HandlerFunc {
 
 		// header must be in format "Bearer <token>"
 		// strings.TrimPrefix strips "Bearer ", leaving just the token
-		tokenString := strings.TrimPrefix(authHeader, "Bearer ")
-		if tokenString == authHeader { // TrimPrefix returns original if prefix not found
+		tokenString := authHeader
+		if len(tokenString) > 7 && tokenString[:7] == "Bearer " {
+			tokenString = tokenString[7:]
+		} else {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Authorization header must start with Bearer"})
 			return
 		}
 
 		// parse and validate token
-		claims := &Claims{}
-		token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
+		claims := &models.Claims{}
+		tokenObj, err := jwt.ParseWithClaims(tokenString, claims, func(t *jwt.Token) (interface{}, error) {
 			// ensure signing method is what we expect (prevent algorithm substitution attacks)
-			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-				return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+			if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
+				return nil, fmt.Errorf("Unexpected signing method: %v", t.Header["alg"])
 			}
-			return jwtSecret, nil
+			return token.JwtSecret, nil
 		})
 
-		if err != nil || !token.Valid {
+		if err != nil || !tokenObj.Valid {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired token"})
 			return
 		}

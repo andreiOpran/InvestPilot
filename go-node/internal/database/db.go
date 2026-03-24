@@ -1,17 +1,18 @@
-package main
+package database
 
 import (
 	"fmt"
 	"log"
 
-	"github.com/gin-gonic/gin"
+	"licenta/go-node/internal/models"
+
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
 
 var DB *gorm.DB
 
-func initDB() {
+func InitDB() {
 	dsn := "host=db user=admin password=pass dbname=robo_advisory port=5432 sslmode=disable"
 
 	var err error
@@ -24,31 +25,17 @@ func initDB() {
 
 	// AutoMigrate automatically creates or updates the db table
 	DB.AutoMigrate(
-		&User{},
-		&Session{},
-		&ActionToken{},
-		&Wallet{},
-		&Transaction{},
-		&InvestmentRound{},
-		&Portfolio{},
-		&HistoricalMarketData{},
+		&models.User{},
+		&models.Session{},
+		&models.ActionToken{},
+		&models.Wallet{},
+		&models.Transaction{},
+		&models.InvestmentRound{},
+		&models.Portfolio{},
+		&models.HistoricalMarketData{},
 	)
 	if err != nil {
 		log.Fatal("Error during table migration: ", err)
 	}
 	fmt.Println("Database tables migrated successfully.")
-}
-
-func main() {
-	initDB()
-	initEmailer()
-	StartTokenCleanupJob()
-
-	r := gin.Default()
-
-	fmt.Println("Operational Node (Go) starting on port 8080...")
-
-	RegisterRoutes(r)
-
-	r.Run(":8080")
 }

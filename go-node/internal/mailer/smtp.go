@@ -1,4 +1,4 @@
-package main
+package mailer
 
 import (
 	"fmt"
@@ -6,7 +6,7 @@ import (
 	"os"
 )
 
-// EmailSender inteerface for sending emails, allowing dependency inejection
+// EmailSender interface for sending emails, allowing dependency injection
 // we use SMTP in dev, and SendGrid in prod
 type EmailSender interface {
 	SendEmail(to string, subject string, body string) error
@@ -44,7 +44,7 @@ func (s *SMTPEmailer) SendEmail(to string, subject string, body string) error {
 func NewSMTPConfig() *SMTPEmailer {
 	host := os.Getenv("SMTP_HOST")
 	if host == "" {
-		host = "smtp.gmail.com" // Default to gmail
+		host = "smtp.gmail.com" // default to gmail
 	}
 	port := os.Getenv("SMTP_PORT")
 	if port == "" {
@@ -66,8 +66,8 @@ func NewSMTPConfig() *SMTPEmailer {
 	}
 }
 
-var emailClient EmailSender
+var Client EmailSender
 
-func initEmailer() {
-	emailClient = NewSMTPConfig()
+func InitEmailer() {
+	Client = NewSMTPConfig()
 }
