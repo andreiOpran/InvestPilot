@@ -23,7 +23,9 @@ type User struct {
 type Session struct {
 	ID           uint      `gorm:"primaryKey"`
 	UserID       uint      `gorm:"not null;index"`
+	FamilyID     string    `gorm:"index"` // makes the relaionship between same user sessions
 	RefreshToken string    `gorm:"unique;not null"`
+	IsUsed       bool      `gorm:"default:false"` // reuse detection
 	ClientIP     string    // optional: logged in IP
 	UserAgent    string    // optional: device (Chrome/Mac)
 	ExpiresAt    time.Time `gorm:"not null"`

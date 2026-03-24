@@ -105,10 +105,18 @@ func generateTokensAndSession(c *gin.Context, userID uint) (string, string, erro
 		return "", "", err
 	}
 
+	// generate familyid for the token
+	familyID, err := generateSecureToken(16)
+	if err != nil {
+		return "", "", err
+	}
+
 	// save session to database
 	session := Session{
 		UserID:       userID,
+		FamilyID:     familyID,
 		RefreshToken: refreshToken,
+		IsUsed:       false,
 		ClientIP:     c.ClientIP(),
 		UserAgent:    c.Request.UserAgent(),
 		ExpiresAt:    time.Now().Add(7 * 24 * time.Hour),
@@ -445,6 +453,17 @@ func RegisterRoutes(r *gin.Engine) {
 				return
 			}
 
+			// token reuse detection
+			// if someone tries to use a token that has already been changed by the legitimate user, we invalidate all sessions
+			if session.IsUsed {
+				DB.Where("family_id = ?", session.FamilyID).Delete(&Session{})
+
+				c.JSON(http.StatusUnauthorized, gin.H{
+					"error": "Security Alert: Token reuse detected. To protect your account, all devices have been logged out.",
+				})
+				return
+			}
+
 			// check expiration
 			if time.Now().After(session.ExpiresAt) {
 				// cleanup expired session
@@ -453,7 +472,20 @@ func RegisterRoutes(r *gin.Engine) {
 				return
 			}
 
+			// refresh token rotation
+			// mark currenttoken as being used, and keep it in the db as a trap for potential attackers
+			session.IsUsed = true
+			if err := DB.Save(&session).Error; err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not generate new token"})
+				return
+			}
+
 			// send new 10-minute access token
+			newRefreshToken, err := generateSecureToken(32)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not generate new token"})
+				return
+			}
 			claims := Claims{
 				UserID: session.UserID,
 				RegisteredClaims: jwt.RegisteredClaims{
@@ -468,11 +500,21 @@ func RegisterRoutes(r *gin.Engine) {
 				return
 			}
 
-			// TODO: refresh token rotation, generate a new refresh token, invalidate the old one, and return both
-			// for now, we reuse the existing valid refresh token for the duration of the 7 days
+			// save new token, with the same familyid as the previous one
+			newSession := Session{
+				UserID:       session.UserID,
+				FamilyID:     session.FamilyID, // same faimlyid as the previous session
+				RefreshToken: newRefreshToken,
+				IsUsed:       false,
+				ClientIP:     c.ClientIP(),
+				UserAgent:    c.Request.UserAgent(),
+				ExpiresAt:    time.Now().Add(7 * 24 * time.Hour),
+			}
+			DB.Create(&newSession)
 
 			c.JSON(http.StatusOK, gin.H{
-				"access_token": newAccessToken,
+				"access_token":  newAccessToken,
+				"refresh_token": newRefreshToken,
 			})
 		})
 
