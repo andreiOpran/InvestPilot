@@ -453,6 +453,8 @@ func RegisterRoutes(r *gin.Engine) {
 				c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired refresh token"})
 				return
 			}
+			// remember the last UpdatedAt when we retrieve the session, to prevent race conditions (optimistic locking)
+			originalUpdatedAt := session.UpdatedAt
 
 			// token reuse detection
 			// if someone tries to use a token that has already been changed by the legitimate user, we invalidate all sessions
@@ -473,20 +475,26 @@ func RegisterRoutes(r *gin.Engine) {
 				return
 			}
 
-			// refresh token rotation
-			// mark currenttoken as being used, and keep it in the db as a trap for potential attackers
-			session.IsUsed = true
-			if err := DB.Save(&session).Error; err != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not generate new token"})
+			// refresh token rotation with optimistic concurrency control
+			// mark current token as being used, and keep it in the db as a trap for potential attackers
+			// only if it hasn't been modified by another conucrrent request
+			result := DB.Model(&Session{}).
+				Where("id = ? AND updated_at = ?", session.ID, originalUpdatedAt).
+				Update("is_used", true)
+			// if 0 rows were affected, means another request just updated this token
+			if result.RowsAffected == 0 {
+				c.JSON(http.StatusConflict, gin.H{"error": "Concurrent request detected. Please try again."})
 				return
 			}
 
-			// send new 10-minute access token
+			// generate new refresh token
 			newRefreshToken, err := generateSecureToken(32)
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not generate new token"})
 				return
 			}
+
+			// send new 10 minute access token
 			claims := Claims{
 				UserID: session.UserID,
 				RegisteredClaims: jwt.RegisteredClaims{

@@ -30,6 +30,7 @@ type Session struct {
 	UserAgent    string    // optional: device (Chrome/Mac)
 	ExpiresAt    time.Time `gorm:"not null"`
 	CreatedAt    time.Time
+	UpdatedAt    time.Time
 }
 
 // manages temporary, short-lived tokens (email verification, password reset)
