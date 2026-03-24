@@ -694,7 +694,7 @@ func RegisterRoutes(r *gin.Engine) {
 
 				b64String := base64.StdEncoding.EncodeToString(buf.Bytes())
 				c.JSON(http.StatusOK, gin.H{
-					"secret": encryptedSecret,
+					"secret": key.Secret(),
 					"uri":    key.URL(), // app deep link (otpauth://...)
 					// send qr codes as base63 string for easy frontend rendering
 					// frontend: <img src="data:image/png;base64,+b64String"/>
