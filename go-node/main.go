@@ -42,6 +42,7 @@ func initDB() {
 func main() {
 	initDB()
 	initEmailer()
+	StartTokenCleanupJob()
 
 	r := gin.Default()
 
