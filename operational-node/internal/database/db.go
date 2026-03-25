@@ -3,6 +3,7 @@ package database
 import (
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/andreiOpran/licenta/operational-node/internal/config"
 	"github.com/andreiOpran/licenta/operational-node/internal/models"
@@ -43,4 +44,12 @@ func InitDB() {
 	}
 
 	fmt.Println("Database tables migrated successfully.")
+
+	// configure connection pool
+	sqlDB, err := DB.DB()
+	if err == nil {
+		sqlDB.SetMaxIdleConns(10)
+		sqlDB.SetMaxOpenConns(100)
+		sqlDB.SetConnMaxLifetime(time.Hour)
+	}
 }
