@@ -3,6 +3,7 @@ package services
 import (
 	"github.com/andreiOpran/licenta/operational-node/internal/database"
 	"github.com/andreiOpran/licenta/operational-node/internal/models"
+	"gorm.io/gorm"
 )
 
 func GetUserProfile(userID uint) (*models.User, error) {
@@ -34,20 +35,21 @@ func UpdateUserProfile(userID uint, req models.UpdateProfileRequest) error {
 }
 
 func DepositFunds(userID uint, amount float64) (float64, error) {
-	var user models.User
-	// find the authenticated user and their attached wallet
-	if err := database.DB.Preload("Wallet").First(&user, userID).Error; err != nil {
-		return 0, ErrUserNotFound
-	}
+	var wallet models.Wallet
 
-	// add simulated money to the wallet
-	user.Wallet.Balance += amount
-	user.Wallet.UserID = user.ID
+	// atomic update to prevent race conditions
+	err := database.DB.Model(&wallet).
+		Where("user_id = ?", userID).
+		Update("balance", gorm.Expr("balance + ?", amount)).Error
 
-	// save updated walet to the database
-	if err := database.DB.Save(&user.Wallet).Error; err != nil {
+	if err != nil {
 		return 0, ErrInternal
 	}
 
-	return user.Wallet.Balance, nil
+	// fetch updated wallet to return new balance
+	if err := database.DB.Where("user_id = ?", userID).First(&wallet).Error; err != nil {
+		return 0, ErrUserNotFound
+	}
+
+	return wallet.Balance, nil
 }
