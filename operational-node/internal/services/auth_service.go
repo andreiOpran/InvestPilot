@@ -74,7 +74,7 @@ func (s *authService) RegisterUser(req models.RegisterRequest) error {
 	}
 
 	// save to db via repo (will fail if email already exists)
-	if err := s.authRepo.CreateUser(&user).Error; err != nil {
+	if err := s.authRepo.CreateUser(&user); err != nil {
 		return ErrEmailExists
 	}
 
@@ -164,13 +164,23 @@ func (s *authService) AuthenticateUser(email, password, clientIP, userAgent stri
 	}
 
 	// if 2fa is not enabled, log in normally
-	accessToken, refreshToken, err := token.GenerateTokensAndSession(
-		user.ID,
-		clientIP,
-		userAgent,
-		[]byte(config.Env.JWTSecret),
-	)
+	// get tokens
+	accessToken, refreshToken, familyID, err := token.GenerateTokens(user.ID, []byte(config.Env.JWTSecret))
 	if err != nil {
+		return nil, ErrInternal
+	}
+
+	// generate and save session
+	session := models.Session{
+		UserID:       user.ID,
+		FamilyID:     familyID,
+		RefreshToken: refreshToken,
+		IsUsed:       false,
+		ClientIP:     clientIP,
+		UserAgent:    userAgent,
+		ExpiresAt:    time.Now().Add(config.Env.RefreshTokenLifetime),
+	}
+	if err := s.authRepo.CreateSession(&session); err != nil {
 		return nil, ErrInternal
 	}
 
@@ -207,14 +217,23 @@ func (s *authService) Verify2FA(email, password, totpToken, clientIP, userAgent 
 		return "", "", ErrInvalid2FAToken
 	}
 
-	// generate session
-	accessToken, refreshToken, err := token.GenerateTokensAndSession(
-		user.ID,
-		clientIP,
-		userAgent,
-		[]byte(config.Env.JWTSecret),
-	)
+	// get tokens
+	accessToken, refreshToken, familyID, err := token.GenerateTokens(user.ID, []byte(config.Env.JWTSecret))
 	if err != nil {
+		return "", "", ErrInternal
+	}
+
+	// generate and save session
+	session := models.Session{
+		UserID:       user.ID,
+		FamilyID:     familyID,
+		RefreshToken: refreshToken,
+		IsUsed:       false,
+		ClientIP:     clientIP,
+		UserAgent:    userAgent,
+		ExpiresAt:    time.Now().Add(config.Env.RefreshTokenLifetime),
+	}
+	if err := s.authRepo.CreateSession(&session); err != nil {
 		return "", "", ErrInternal
 	}
 
@@ -281,7 +300,10 @@ func (s *authService) RefreshToken(refreshTokenStr, clientIP, userAgent string) 
 		UserAgent:    userAgent,
 		ExpiresAt:    time.Now().Add(config.Env.RefreshTokenLifetime),
 	}
-	s.authRepo.CreateSession(&newSession)
+
+	if err := s.authRepo.CreateSession(&newSession); err != nil {
+		return "", "", ErrInternal
+	}
 
 	return newAccessToken, newRefreshToken, nil
 }

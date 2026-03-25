@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/andreiOpran/licenta/operational-node/internal/config"
-	"github.com/andreiOpran/licenta/operational-node/internal/database"
 	"github.com/andreiOpran/licenta/operational-node/internal/models"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -23,7 +22,7 @@ func GenerateSecureToken(length int) (string, error) {
 
 // helper for generating short-lived Access JWT and a long lived Refresh Token
 // jwtSecret is provided by callers to avoid package-level globals
-func GenerateTokensAndSession(userID uint, clientIP, userAgent string, jwtSecret []byte) (string, string, error) {
+func GenerateTokens(userID uint, jwtSecret []byte) (string, string, string, error) {
 	// generate short-lived JWT
 	claims := models.Claims{
 		UserID: userID,
@@ -35,35 +34,20 @@ func GenerateTokensAndSession(userID uint, clientIP, userAgent string, jwtSecret
 	tokenObj := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	accessToken, err := tokenObj.SignedString(jwtSecret)
 	if err != nil {
-		return "", "", err
+		return "", "", "", err
 	}
 
 	// generate long-lived refresh token (consists of random hex available for configured lifetime)
 	refreshToken, err := GenerateSecureToken(config.Env.SecureTokenBytes)
 	if err != nil {
-		return "", "", err
+		return "", "", "", err
 	}
 
 	// generate familyid for the token
 	familyID, err := GenerateSecureToken(config.Env.FamilyIDBytes)
 	if err != nil {
-		return "", "", err
+		return "", "", "", err
 	}
 
-	// save session to database
-	session := models.Session{
-		UserID:       userID,
-		FamilyID:     familyID,
-		RefreshToken: refreshToken,
-		IsUsed:       false,
-		ClientIP:     clientIP,
-		UserAgent:    userAgent,
-		ExpiresAt:    time.Now().Add(config.Env.RefreshTokenLifetime),
-	}
-
-	if err := database.DB.Create(&session).Error; err != nil {
-		return "", "", err
-	}
-
-	return accessToken, refreshToken, nil
+	return accessToken, refreshToken, familyID, nil
 }
