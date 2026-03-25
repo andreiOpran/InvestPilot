@@ -2,7 +2,7 @@ package services
 
 import (
 	"github.com/andreiOpran/licenta/operational-node/internal/models"
-	"gorm.io/gorm"
+	"github.com/andreiOpran/licenta/operational-node/internal/repositories"
 )
 
 type UserService interface {
@@ -12,28 +12,26 @@ type UserService interface {
 }
 
 type userService struct {
-	db *gorm.DB
+	userRepo repositories.UserRepository
 }
 
-func NewUserService(db *gorm.DB) UserService {
+func NewUserService(userRepo repositories.UserRepository) UserService {
 	return &userService{
-		db: db,
+		userRepo: userRepo,
 	}
 }
 
 func (s *userService) GetUserProfile(userID uint) (*models.User, error) {
-	var user models.User
-	// Preload("Wallet") tells GORM to also fetch the attached wallet data
-	if err := s.db.Preload("Wallet").First(&user, userID).Error; err != nil {
+	user, err := s.userRepo.FindByIDWithWallet(userID)
+	if err != nil {
 		return nil, ErrUserNotFound
 	}
-	return &user, nil
+	return user, nil
 }
 
 func (s *userService) UpdateUserProfile(userID uint, req models.UpdateProfileRequest) error {
-	var user models.User
-
-	if err := s.db.First(&user, userID).Error; err != nil {
+	user, err := s.userRepo.FindByID(userID)
+	if err != nil {
 		return ErrUserNotFound
 	}
 
@@ -42,7 +40,7 @@ func (s *userService) UpdateUserProfile(userID uint, req models.UpdateProfileReq
 	user.InvestmentHorizon = req.InvestmentHorizon
 
 	// save changes to db
-	if err := s.db.Save(&user).Error; err != nil {
+	if err := s.userRepo.Save(user); err != nil {
 		return ErrInternal
 	}
 
@@ -50,19 +48,14 @@ func (s *userService) UpdateUserProfile(userID uint, req models.UpdateProfileReq
 }
 
 func (s *userService) DepositFunds(userID uint, amount float64) (float64, error) {
-	var wallet models.Wallet
-
-	// atomic update to prevent race conditions (lost update anomaly)
-	err := s.db.Model(&wallet).
-		Where("user_id = ?", userID).
-		Update("balance", gorm.Expr("balance + ?", amount)).Error
-
-	if err != nil {
+	// atomic update to prevent race conditions delegated to repository
+	if err := s.userRepo.AddWalletBalance(userID, amount); err != nil {
 		return 0, ErrInternal
 	}
 
 	// fetch updated wallet to return new balance
-	if err := s.db.Where("user_id = ?", userID).First(&wallet).Error; err != nil {
+	wallet, err := s.userRepo.FindWalletByUserID(userID)
+	if err != nil {
 		return 0, ErrUserNotFound
 	}
 

@@ -6,10 +6,9 @@ import (
 	"image/png"
 
 	"github.com/pquerna/otp/totp"
-	"gorm.io/gorm"
 
 	"github.com/andreiOpran/licenta/operational-node/internal/config"
-	"github.com/andreiOpran/licenta/operational-node/internal/models"
+	"github.com/andreiOpran/licenta/operational-node/internal/repositories"
 	"github.com/andreiOpran/licenta/operational-node/utils/crypto"
 )
 
@@ -19,18 +18,18 @@ type SecurityService interface {
 }
 
 type securityService struct {
-	db *gorm.DB
+	userRepo repositories.UserRepository
 }
 
-func NewSecurityService(db *gorm.DB) SecurityService {
+func NewSecurityService(userRepo repositories.UserRepository) SecurityService {
 	return &securityService{
-		db: db,
+		userRepo: userRepo,
 	}
 }
 
 func (s *securityService) Setup2FA(userID uint) (string, string, string, error) {
-	var user models.User
-	if err := s.db.First(&user, userID).Error; err != nil {
+	user, err := s.userRepo.FindByID(userID)
+	if err != nil {
 		return "", "", "", ErrUserNotFound
 	}
 
@@ -53,7 +52,7 @@ func (s *securityService) Setup2FA(userID uint) (string, string, string, error) 
 	}
 	// temp save secret (user must confirm it to enable)
 	user.TwoFactorSecret = encryptedSecret
-	s.db.Save(&user)
+	s.userRepo.Save(user)
 
 	// generate QR code image
 	var buf bytes.Buffer
@@ -69,8 +68,8 @@ func (s *securityService) Setup2FA(userID uint) (string, string, string, error) 
 }
 
 func (s *securityService) Enable2FA(userID uint, token string) error {
-	var user models.User
-	if err := s.db.First(&user, userID).Error; err != nil {
+	user, err := s.userRepo.FindByID(userID)
+	if err != nil {
 		return ErrUserNotFound
 	}
 
@@ -90,7 +89,7 @@ func (s *securityService) Enable2FA(userID uint, token string) error {
 	}
 
 	user.IsTwoFactorEnable = true
-	s.db.Save(&user)
+	s.userRepo.Save(user)
 
 	return nil
 }

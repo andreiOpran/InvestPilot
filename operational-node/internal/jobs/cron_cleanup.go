@@ -4,11 +4,11 @@ import (
 	"log"
 	"time"
 
+	"github.com/robfig/cron/v3"
+
 	"github.com/andreiOpran/licenta/operational-node/internal/config"
 	"github.com/andreiOpran/licenta/operational-node/internal/database"
-	"github.com/andreiOpran/licenta/operational-node/internal/models"
-
-	"github.com/robfig/cron/v3"
+	"github.com/andreiOpran/licenta/operational-node/internal/repositories"
 )
 
 // StartTokenCleanupJob configures and starts the cron for ExecuteTokenCleanup()
@@ -32,37 +32,35 @@ func ExecuteTokenCleanup() {
 	log.Println("[CRON JOB / MANUAL] Cleaning up expired tokens...")
 	now := time.Now()
 
-	// clean ActionTokens (few, so we use regular deletion)
-	res1 := database.DB.Where("expires_at < ?", now).Delete(&models.ActionToken{})
-	if res1.Error != nil {
-		log.Printf("[CLEANUP] Error deleting ActionTokens: %v\n", res1.Error)
-	} else if res1.RowsAffected > 0 {
-		log.Printf("[CLEANUP] Deleted %d expired ActionTokens.\n", res1.RowsAffected)
+	// init cleanup repository using the global db explicitly for the cron job
+	repo := repositories.NewCleanupRepository(database.DB)
+
+	// clean actiontokens (few, so we use regular deletion)
+	rowsAffected, err := repo.DeleteExpiredActionTokens(now)
+	if err != nil {
+		log.Printf("[CLEANUP] Error deleting ActionTokens: %v\n", err)
+	} else if rowsAffected > 0 {
+		log.Printf("[CLEANUP] Deleted %d expired ActionTokens.\n", rowsAffected)
 	} else {
 		log.Println("[CLEANUP] No expired ActionTokens found for deletion.")
 	}
 
-	// clean expired sessions using batching (big count of sessions, compared to the ActionTokens)
+	// clean expired sessions using batching (big count of sessions, compared to the actiontokens)
 	var totalDeleted int64
 	batchSize := config.Env.CleanupBatchSize
 
 	for {
-		// we can use DELETE w/ LIMIT, so we retrieve 1000 ids,
-		// and then delete the sessions with ids that are in that set
-		subQuery := database.DB.Table("sessions").Select("id").Where("expires_at < ?", now).Limit(batchSize)
-
-		res2 := database.DB.Where("id IN (?)", subQuery).Delete(&models.Session{})
-
-		if res2.Error != nil {
-			log.Printf("[CLEANUP] Error deleting Sessions (Batch): %v\n", res2.Error)
+		// we use the repository which handles the subquery delete safely
+		deleted, err := repo.DeleteExpiredSessionsBatch(now, batchSize)
+		if err != nil {
+			log.Printf("[CLEANUP] Error deleting Sessions (Batch): %v\n", err)
 			break
 		}
 
-		rowsAffected := res2.RowsAffected
-		totalDeleted += rowsAffected
+		totalDeleted += deleted
 
-		// if we deleted less than 1000, means we are done
-		if rowsAffected < int64(batchSize) {
+		// if we deleted less than the batch size, means we are done
+		if deleted < int64(batchSize) {
 			break
 		}
 

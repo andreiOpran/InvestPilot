@@ -6,6 +6,7 @@ import (
 	"github.com/andreiOpran/licenta/operational-node/internal/database"
 	"github.com/andreiOpran/licenta/operational-node/internal/handlers"
 	"github.com/andreiOpran/licenta/operational-node/internal/middleware"
+	"github.com/andreiOpran/licenta/operational-node/internal/repositories"
 	"github.com/andreiOpran/licenta/operational-node/internal/services"
 )
 
@@ -15,12 +16,16 @@ func SetupRoutes(r *gin.Engine) {
 	r.Use(middleware.CORSMiddleware())
 	r.Use(middleware.SecurityHeadersMiddleware())
 
-	// init services with database dependency
-	authService := services.NewAuthService(database.DB)
-	userService := services.NewUserService(database.DB)
-	securityService := services.NewSecurityService(database.DB)
+	// init repositories
+	authRepo := repositories.NewAuthRepository(database.DB)
+	userRepo := repositories.NewUserRepository(database.DB)
 
-	// init handlers with service dependencies
+	// init services with repository deps
+	authService := services.NewAuthService(authRepo)
+	userService := services.NewUserService(userRepo)
+	securityService := services.NewSecurityService(userRepo)
+
+	// init handlers with service deps
 	authHandler := handlers.NewAuthHandler(authService)
 	userHandler := handlers.NewUserHandler(userService)
 	securityHandler := handlers.NewSecurityHandler(securityService)

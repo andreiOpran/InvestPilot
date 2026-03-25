@@ -8,11 +8,11 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/pquerna/otp/totp"
 	"golang.org/x/crypto/bcrypt"
-	"gorm.io/gorm"
 
 	"github.com/andreiOpran/licenta/operational-node/internal/config"
 	"github.com/andreiOpran/licenta/operational-node/internal/mailer"
 	"github.com/andreiOpran/licenta/operational-node/internal/models"
+	"github.com/andreiOpran/licenta/operational-node/internal/repositories"
 	"github.com/andreiOpran/licenta/operational-node/utils/crypto"
 	"github.com/andreiOpran/licenta/operational-node/utils/token"
 )
@@ -29,12 +29,12 @@ type AuthService interface {
 }
 
 type authService struct {
-	db *gorm.DB
+	authRepo repositories.AuthRepository
 }
 
-func NewAuthService(db *gorm.DB) AuthService {
+func NewAuthService(authRepo repositories.AuthRepository) AuthService {
 	return &authService{
-		db: db,
+		authRepo: authRepo,
 	}
 }
 
@@ -53,11 +53,8 @@ func (s *authService) RegisterUser(req models.RegisterRequest) error {
 	}
 
 	// check if the user exists
-	var existingUser models.User
-	userExists := false
-	if err := s.db.Where("email = ?", req.Email).First(&existingUser).Error; err == nil {
-		userExists = true
-	}
+	_, err = s.authRepo.FindUserByEmail(req.Email)
+	userExists := err == nil // if no error, user exists
 
 	// if user exists, pretend registration was successful to avoid user enumeration
 	if userExists {
@@ -76,8 +73,8 @@ func (s *authService) RegisterUser(req models.RegisterRequest) error {
 		Wallet:            models.Wallet{Balance: 0.0},
 	}
 
-	// save to db (will fail if email already exists)
-	if err := s.db.Create(&user).Error; err != nil {
+	// save to db via repo (will fail if email already exists)
+	if err := s.authRepo.CreateUser(&user).Error; err != nil {
 		return ErrEmailExists
 	}
 
@@ -95,7 +92,7 @@ func (s *authService) RegisterUser(req models.RegisterRequest) error {
 	}
 
 	// save actiontoken for email verification to database
-	if err := s.db.Create(&actionToken).Error; err != nil {
+	if err := s.authRepo.CreateActionToken(&actionToken); err != nil {
 		return ErrInternal
 	}
 
@@ -115,47 +112,31 @@ func (s *authService) RegisterUser(req models.RegisterRequest) error {
 }
 
 func (s *authService) VerifyEmail(tokenString string) error {
-	var actionToken models.ActionToken
-
-	// find token and preload user
-	if err := s.db.Where("token = ? AND type = ?", tokenString, "verify_email").First(&actionToken).Error; err != nil {
+	// find token
+	actionToken, err := s.authRepo.FindActionToken(tokenString, "verify_email")
+	if err != nil {
 		return ErrTokenInvalid
 	}
 
 	// check expiration
 	if time.Now().After(actionToken.ExpiresAt) {
 		// cleanup expired token
-		s.db.Delete(&actionToken)
+		s.authRepo.DeleteActionToken(actionToken)
 		return ErrTokenInvalid
 	}
 
-	// transaction - update user and delete token
-	tx := s.db.Begin()
-
-	// update user to verified
-	if err := tx.Model(&models.User{}).Where("id = ?", actionToken.UserID).Update("is_email_verified", true).Error; err != nil {
-		tx.Rollback()
+	// transaction handled internally by repository
+	if err := s.authRepo.VerifyEmailTx(actionToken.UserID, actionToken.ID); err != nil {
 		return ErrInternal
 	}
 
-	// delete used token
-	if err := tx.Delete(&actionToken).Error; err != nil {
-		tx.Rollback()
-		return ErrInternal
-	}
-
-	tx.Commit()
 	return nil
 }
 
 func (s *authService) AuthenticateUser(email, password, clientIP, userAgent string) (*LoginResult, error) {
 	// look up user by email
-	var user models.User
-	userExists := true
-	if err := s.db.Where("email = ?", email).First(&user).Error; err != nil {
-		userExists = false
-		// do not return here, continue to dummy bcrypt comparison to avoid timing attacks
-	}
+	user, err := s.authRepo.FindUserByEmail(email)
+	userExists := err == nil
 
 	// compare provided password against stored bcrypt hash, also dummy verifications for nonexistent user
 	if userExists {
@@ -202,8 +183,8 @@ func (s *authService) AuthenticateUser(email, password, clientIP, userAgent stri
 
 func (s *authService) Verify2FA(email, password, totpToken, clientIP, userAgent string) (string, string, error) {
 	// re-authenticate user (stateless flow)
-	var user models.User
-	if err := s.db.Where("email = ?", email).First(&user).Error; err != nil {
+	user, err := s.authRepo.FindUserByEmail(email)
+	if err != nil {
 		return "", "", ErrInvalidCredentials
 	}
 
@@ -242,8 +223,8 @@ func (s *authService) Verify2FA(email, password, totpToken, clientIP, userAgent 
 
 func (s *authService) RefreshToken(refreshTokenStr, clientIP, userAgent string) (string, string, error) {
 	// look up session in the db
-	var session models.Session
-	if err := s.db.Where("refresh_token = ?", refreshTokenStr).First(&session).Error; err != nil {
+	session, err := s.authRepo.FindSessionByToken(refreshTokenStr)
+	if err != nil {
 		return "", "", ErrTokenInvalid
 	}
 	// remember the last updatedat when we retrieve the session, to prevent race conditions (optimistic locking)
@@ -252,25 +233,21 @@ func (s *authService) RefreshToken(refreshTokenStr, clientIP, userAgent string) 
 	// token reuse detection
 	// if someone tries to use a token that has already been changed by the legitimate user, we invalidate all sessions
 	if session.IsUsed {
-		s.db.Where("family_id = ?", session.FamilyID).Delete(&models.Session{})
+		s.authRepo.DeleteSessionsByFamily(session.FamilyID)
 		return "", "", ErrTokenReuseDetected
 	}
 
 	// check expiration
 	if time.Now().After(session.ExpiresAt) {
 		// cleanup expired session
-		s.db.Delete(&session)
+		s.authRepo.DeleteSession(session)
 		return "", "", ErrTokenExpired
 	}
 
 	// refresh token rotation with optimistic concurrency control
-	// mark current token as being used, and keep it in the db as a trap for potential attackers
-	// only if it hasn't been modified by another conucrrent request
-	result := s.db.Model(&models.Session{}).
-		Where("id = ? AND updated_at = ?", session.ID, originalUpdatedAt).
-		Update("is_used", true)
+	rowsAffected, err := s.authRepo.MarkSessionAsUsed(session.ID, originalUpdatedAt)
 	// if 0 rows were affected, means another request just updated this token
-	if result.RowsAffected == 0 {
+	if err != nil || rowsAffected == 0 {
 		return "", "", ErrConcurrentRequest
 	}
 
@@ -304,7 +281,7 @@ func (s *authService) RefreshToken(refreshTokenStr, clientIP, userAgent string) 
 		UserAgent:    userAgent,
 		ExpiresAt:    time.Now().Add(config.Env.RefreshTokenLifetime),
 	}
-	s.db.Create(&newSession)
+	s.authRepo.CreateSession(&newSession)
 
 	return newAccessToken, newRefreshToken, nil
 }
@@ -313,7 +290,7 @@ func (s *authService) LogoutUser(refreshToken string) error {
 	// delete session from the db (access token is nto deleted because it has short lifetime)
 	// return succes even if we have an error here
 	// client will clear local state anyway
-	s.db.Where("refresh_token = ?", refreshToken).Delete(&models.Session{})
+	s.authRepo.DeleteSessionByToken(refreshToken)
 	return nil
 }
 
@@ -322,11 +299,8 @@ func (s *authService) ForgotPassword(email string) error {
 	startTime := time.Now()
 
 	// look up user
-	var user models.User
-	userExists := true
-	if err := s.db.Where("email = ?", email).First(&user).Error; err != nil {
-		userExists = false
-	}
+	user, err := s.authRepo.FindUserByEmail(email)
+	userExists := err == nil
 
 	// generate recovery token, even if user is not found, to combat timing attacks
 	recoveryToken, err := token.GenerateSecureToken(config.Env.SecureTokenBytes)
@@ -343,7 +317,7 @@ func (s *authService) ForgotPassword(email string) error {
 			ExpiresAt: time.Now().Add(config.Env.ResetPasswordLifetime),
 		}
 
-		if err := s.db.Create(&actionToken).Error; err == nil {
+		if err := s.authRepo.CreateActionToken(&actionToken); err == nil {
 			// send recovery email using embedded templates
 			recoveryURL := fmt.Sprintf("%s/reset-password?token=%s", config.Env.FrontendBaseURL, recoveryToken)
 			data := struct{ RecoveryURL string }{RecoveryURL: recoveryURL}
@@ -379,17 +353,16 @@ func (s *authService) ForgotPassword(email string) error {
 }
 
 func (s *authService) ResetPassword(tokenStr, newPassword string) error {
-	var actionToken models.ActionToken
-
 	// find token and check type
-	if err := s.db.Where("token = ? AND type = ?", tokenStr, "reset_password").First(&actionToken).Error; err != nil {
+	actionToken, err := s.authRepo.FindActionToken(tokenStr, "reset_password")
+	if err != nil {
 		return ErrTokenInvalid
 	}
 
 	// check expiration
 	if time.Now().After(actionToken.ExpiresAt) {
 		// cleanup expired token
-		s.db.Delete(&actionToken)
+		s.authRepo.DeleteActionToken(actionToken)
 		return ErrTokenExpired
 	}
 
@@ -399,25 +372,10 @@ func (s *authService) ResetPassword(tokenStr, newPassword string) error {
 		return ErrInternal
 	}
 
-	// transaction - update user pass and delete token
-	tx := s.db.Begin()
-	if err := tx.Model(&models.User{}).Where("id = ?", actionToken.UserID).Update("password", string(hashedPassword)).Error; err != nil {
-		tx.Rollback()
+	// pass to repository to handle the transaction securely
+	if err := s.authRepo.ResetPasswordTx(actionToken.UserID, actionToken.ID, string(hashedPassword)); err != nil {
 		return ErrInternal
 	}
 
-	// delete used token, it should be used only once
-	if err := tx.Delete(&actionToken).Error; err != nil {
-		tx.Rollback()
-		return ErrInternal
-	}
-
-	// invalidate all existing sessions for this user
-	if err := tx.Where("user_id = ?", actionToken.UserID).Delete(&models.Session{}).Error; err != nil {
-		tx.Rollback()
-		return ErrInternal
-	}
-
-	tx.Commit()
 	return nil
 }
