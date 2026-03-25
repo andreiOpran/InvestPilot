@@ -20,9 +20,9 @@ func main() {
 
 	r := gin.Default()
 
-	fmt.Println("Operational Node (Go) starting on port 8080...")
+	fmt.Println("Operational Node (Go) starting on port " + config.Env.ServerPort + "...")
 
 	router.SetupRoutes(r)
 
-	r.Run(":8080")
+	r.Run(":" + config.Env.ServerPort)
 }

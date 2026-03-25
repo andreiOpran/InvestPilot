@@ -24,6 +24,15 @@ type AppSettings struct {
 	VerifyEmailLifetime   time.Duration `env:"VERIFY_EMAIL_LIFETIME" envDefault:"24h"`
 	ResetPasswordLifetime time.Duration `env:"RESET_PASSWORD_LIFETIME" envDefault:"15m"`
 	CleanupBatchSize      int           `env:"CLEANUP_BATCH_SIZE" envDefault:"1000"`
+	ServerPort            string        `env:"PORT" envDefault:"8080"`
+	BcryptCost            int           `env:"BCRYPT_COST" envDefault:"14"`
+	SecureTokenBytes      int           `env:"SECURE_TOKEN_BYTES" envDefault:"32"`
+	FamilyIDBytes         int           `env:"FAMILY_ID_BYTES" envDefault:"16"`
+	TimingAttackTarget    time.Duration `env:"TIMING_ATTACK_TARGET" envDefault:"100ms"`
+	TimingAttackNoise     int           `env:"TIMING_ATTACK_NOISE" envDefault:"20"`
+	CronBatchSleep        time.Duration `env:"CRON_BATCH_SLEEP" envDefault:"100ms"`
+	APIBaseURL            string        `env:"API_BASE_URL" envDefault:"http://localhost:8080/api/v1"`
+	FrontendBaseURL       string        `env:"FRONTEND_BASE_URL" envDefault:"http://localhost:8081"`
 }
 
 // Env is the global configuration instance

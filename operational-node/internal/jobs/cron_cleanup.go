@@ -67,7 +67,7 @@ func ExecuteTokenCleanup() {
 		}
 
 		// sleep for a bit to let the db receive requests from the users
-		time.Sleep(100 * time.Millisecond)
+		time.Sleep(config.Env.CronBatchSleep)
 	}
 
 	if totalDeleted > 0 {

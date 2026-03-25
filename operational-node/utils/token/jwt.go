@@ -39,14 +39,14 @@ func GenerateTokensAndSession(c *gin.Context, userID uint, jwtSecret []byte) (st
 		return "", "", err
 	}
 
-	// generate long-lived refresh token (consists of random hex available for 7 days)
-	refreshToken, err := GenerateSecureToken(32)
+	// generate long-lived refresh token (consists of random hex available for configured lifetime)
+	refreshToken, err := GenerateSecureToken(config.Env.SecureTokenBytes)
 	if err != nil {
 		return "", "", err
 	}
 
 	// generate familyid for the token
-	familyID, err := GenerateSecureToken(16)
+	familyID, err := GenerateSecureToken(config.Env.FamilyIDBytes)
 	if err != nil {
 		return "", "", err
 	}

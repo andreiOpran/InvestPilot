@@ -30,7 +30,7 @@ func RegisterHandler(c *gin.Context) {
 	}
 
 	// even if the user already exists, we do the heavy bcrypt hashing
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), 14)
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), config.Env.BcryptCost)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not hash password"})
 		return
@@ -46,7 +46,7 @@ func RegisterHandler(c *gin.Context) {
 	// if user exists, pretend registration was successful to avoid user enumeration
 	if userExists {
 		// generate dummy token to simulate time taken by rand ops
-		_, _ = token.GenerateSecureToken(32)
+		_, _ = token.GenerateSecureToken(config.Env.SecureTokenBytes)
 
 		// same success response as real registration
 		c.JSON(http.StatusOK, gin.H{
@@ -72,7 +72,7 @@ func RegisterHandler(c *gin.Context) {
 	}
 
 	// generate ActionToken for email verification
-	verificationToken, err := token.GenerateSecureToken(32)
+	verificationToken, err := token.GenerateSecureToken(config.Env.SecureTokenBytes)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not generate verification token"})
 		return
@@ -92,8 +92,7 @@ func RegisterHandler(c *gin.Context) {
 	}
 
 	// send email
-	// TODO, in prod get BaseURL from env
-	verificationURL := fmt.Sprintf("http://localhost:8080/api/v1/verify-email?token=%s", verificationToken)
+	verificationURL := fmt.Sprintf("%s/verify-email?token=%s", config.Env.APIBaseURL, verificationToken)
 	emailBody := fmt.Sprintf("Welcome to Robo-Advisory application.\n\nPlease verify your email clicking the link below:\n%s\n\nNote: link expires in 24 hours.", verificationURL)
 
 	// send email in goroutine so SMTP server network latency does not affect API response time
@@ -335,17 +334,17 @@ func RefreshTokenHandler(c *gin.Context) {
 	}
 
 	// generate new refresh token
-	newRefreshToken, err := token.GenerateSecureToken(32)
+	newRefreshToken, err := token.GenerateSecureToken(config.Env.SecureTokenBytes)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not generate new token"})
 		return
 	}
 
-	// send new 10 minute access token
+	// send new access token with configured lifetime
 	claims := models.Claims{
 		UserID: session.UserID,
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(10 * time.Minute)),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(config.Env.AccessTokenLifetime)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 		},
 	}
@@ -364,7 +363,7 @@ func RefreshTokenHandler(c *gin.Context) {
 		IsUsed:       false,
 		ClientIP:     c.ClientIP(),
 		UserAgent:    c.Request.UserAgent(),
-		ExpiresAt:    time.Now().Add(7 * 24 * time.Hour),
+		ExpiresAt:    time.Now().Add(config.Env.RefreshTokenLifetime),
 	}
 	database.DB.Create(&newSession)
 
@@ -393,7 +392,7 @@ func ForgotPasswordHandler(c *gin.Context) {
 	}
 
 	// generate recovery token, even if user is not found, to combat timing attacks
-	recoveryToken, err := token.GenerateSecureToken(32)
+	recoveryToken, err := token.GenerateSecureToken(config.Env.SecureTokenBytes)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 		return
@@ -414,8 +413,7 @@ func ForgotPasswordHandler(c *gin.Context) {
 		}
 
 		// send recovery email
-		// TODO: In prod, get BaseURL from env
-		recoveryURL := fmt.Sprintf("http://localhost:8081/reset-password?token=%s", recoveryToken)
+		recoveryURL := fmt.Sprintf("%s/reset-password?token=%s", config.Env.FrontendBaseURL, recoveryToken)
 		emailBody := fmt.Sprintf("You requested a password reset for your Robo-Advisory account.\n\nPlease click the link below to set a new password:\n%s\n\nThis link expires in 15 minutes. If you did not request this, please ignore this email.", recoveryURL)
 
 		// send email in goroutine so SMTP server network latency does not affect API response time
@@ -429,10 +427,10 @@ func ForgotPasswordHandler(c *gin.Context) {
 	// timing attack avoidance logic
 	// stop timer to see how long it took to compute real logic
 	elapsed := time.Since(startTime)
-	// we set a target time of 100ms that all /forgot-password should achieve
-	targetTime := 100 * time.Millisecond
+	// use configured target time for request leveling
+	targetTime := config.Env.TimingAttackTarget
 	// generate random noise
-	noise := time.Duration(rand.Intn(20)) * time.Millisecond
+	noise := time.Duration(rand.Intn(config.Env.TimingAttackNoise)) * time.Millisecond
 
 	// level actual response time with the target time
 	if elapsed < targetTime {
@@ -472,7 +470,7 @@ func ResetPasswordHandler(c *gin.Context) {
 	}
 
 	// hash the new password
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.NewPassword), 14)
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.NewPassword), config.Env.BcryptCost)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not process new password"})
 		return
