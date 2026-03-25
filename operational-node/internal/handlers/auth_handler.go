@@ -91,16 +91,23 @@ func RegisterHandler(c *gin.Context) {
 		return
 	}
 
-	// send email
+	// send email using embedded templates
 	verificationURL := fmt.Sprintf("%s/verify-email?token=%s", config.Env.APIBaseURL, verificationToken)
-	emailBody := fmt.Sprintf("Welcome to Robo-Advisory application.\n\nPlease verify your email clicking the link below:\n%s\n\nNote: link expires in 24 hours.", verificationURL)
+	data := struct {
+		VerificationURL string
+	}{VerificationURL: verificationURL}
 
-	// send email in goroutine so SMTP server network latency does not affect API response time
-	go func() {
-		if err := mailer.Client.SendEmail(user.Email, "Verify Your Robo-Advisory Account", emailBody); err != nil {
-			fmt.Printf("Failed to send verification email to %s: %v\n", user.Email, err)
-		}
-	}()
+	subject, body, tmplErr := mailer.BuildEmailContent("verify_email", data)
+	if tmplErr != nil {
+		fmt.Printf("Failed to build verification email content: %v\n", tmplErr)
+	} else {
+		// send email in goroutine so SMTP server network latency does not affect API response time
+		go func() {
+			if err := mailer.Client.SendEmail(user.Email, subject, body); err != nil {
+				fmt.Printf("Failed to send verification email to %s: %v\n", user.Email, err)
+			}
+		}()
+	}
 
 	c.JSON(http.StatusCreated, gin.H{
 		"message": "If the email is valid, a verification link has been sent.",
@@ -412,16 +419,23 @@ func ForgotPasswordHandler(c *gin.Context) {
 			return
 		}
 
-		// send recovery email
+		// send recovery email using embedded templates
 		recoveryURL := fmt.Sprintf("%s/reset-password?token=%s", config.Env.FrontendBaseURL, recoveryToken)
-		emailBody := fmt.Sprintf("You requested a password reset for your Robo-Advisory account.\n\nPlease click the link below to set a new password:\n%s\n\nThis link expires in 15 minutes. If you did not request this, please ignore this email.", recoveryURL)
+		data := struct {
+			RecoveryURL string
+		}{RecoveryURL: recoveryURL}
 
-		// send email in goroutine so SMTP server network latency does not affect API response time
-		go func() {
-			if err := mailer.Client.SendEmail(user.Email, "Robo-Advisory Password Reset", emailBody); err != nil {
-				fmt.Printf("Failed to send recovery email to %s: %v\n", user.Email, err)
-			}
-		}()
+		subject, body, tmplErr := mailer.BuildEmailContent("reset_password", data)
+		if tmplErr != nil {
+			fmt.Printf("Failed to build recovery email content: %v\n", tmplErr)
+		} else {
+			// send email in goroutine so SMTP server network latency does not affect API response time
+			go func() {
+				if err := mailer.Client.SendEmail(user.Email, subject, body); err != nil {
+					fmt.Printf("Failed to send recovery email to %s: %v\n", user.Email, err)
+				}
+			}()
+		}
 	}
 
 	// timing attack avoidance logic

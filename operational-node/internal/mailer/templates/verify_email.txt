@@ -1,0 +1,8 @@
+Subject: Verify Your Robo-Advisory Account
+
+Welcome to Robo-Advisory application.
+
+Please verify your email by clicking the link below:
+{{ .VerificationURL }}
+
+Note: This link expires in 24 hours.
