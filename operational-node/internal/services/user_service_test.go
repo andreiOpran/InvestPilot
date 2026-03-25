@@ -7,12 +7,12 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
-	"github.com/andreiOpran/licenta/operational-node/internal/mocks"
+	"github.com/andreiOpran/licenta/operational-node/internal/mocks/repomocks"
 	"github.com/andreiOpran/licenta/operational-node/internal/models"
 )
 
 func TestGetUserProfile_userNotFound_returnsError(t *testing.T) {
-	mockRepo := new(mocks.MockUserRepository)
+	mockRepo := new(repomocks.MockUserRepository)
 	service := NewUserService(mockRepo)
 
 	mockRepo.On("FindByIDWithWallet", uint(999)).Return((*models.User)(nil), errors.New("db error")).Once()
@@ -23,7 +23,7 @@ func TestGetUserProfile_userNotFound_returnsError(t *testing.T) {
 }
 
 func TestGetUserProfile_validId_returnsUser(t *testing.T) {
-	mockRepo := new(mocks.MockUserRepository)
+	mockRepo := new(repomocks.MockUserRepository)
 	service := NewUserService(mockRepo)
 
 	expectedUser := &models.User{Email: "test@example.com", Wallet: models.Wallet{Balance: 150.5}}
@@ -36,7 +36,7 @@ func TestGetUserProfile_validId_returnsUser(t *testing.T) {
 }
 
 func TestUpdateUserProfile_userNotFound_returnsError(t *testing.T) {
-	mockRepo := new(mocks.MockUserRepository)
+	mockRepo := new(repomocks.MockUserRepository)
 	service := NewUserService(mockRepo)
 	req := models.UpdateProfileRequest{RiskTolerance: 4, InvestmentHorizon: 20}
 
@@ -48,7 +48,7 @@ func TestUpdateUserProfile_userNotFound_returnsError(t *testing.T) {
 }
 
 func TestUpdateUserProfile_validRequest_updatesSuccessfully(t *testing.T) {
-	mockRepo := new(mocks.MockUserRepository)
+	mockRepo := new(repomocks.MockUserRepository)
 	service := NewUserService(mockRepo)
 	req := models.UpdateProfileRequest{RiskTolerance: 4, InvestmentHorizon: 20}
 
@@ -64,7 +64,7 @@ func TestUpdateUserProfile_validRequest_updatesSuccessfully(t *testing.T) {
 }
 
 func TestDepositFunds_validRequest_returnsNewBalance(t *testing.T) {
-	mockRepo := new(mocks.MockUserRepository)
+	mockRepo := new(repomocks.MockUserRepository)
 	service := NewUserService(mockRepo)
 
 	mockRepo.On("AddWalletBalance", uint(1), 50.5).Return(nil).Once()

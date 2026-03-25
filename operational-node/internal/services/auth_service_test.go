@@ -10,13 +10,13 @@ import (
 	"github.com/stretchr/testify/mock"
 	"golang.org/x/crypto/bcrypt"
 
-	"github.com/andreiOpran/licenta/operational-node/internal/mocks"
+	"github.com/andreiOpran/licenta/operational-node/internal/mocks/repomocks"
 	"github.com/andreiOpran/licenta/operational-node/internal/models"
 	"github.com/andreiOpran/licenta/operational-node/utils/crypto"
 )
 
 func TestRegisterUser_existingUser_returnsSuccessQuietly(t *testing.T) {
-	mockRepo := new(mocks.MockAuthRepository)
+	mockRepo := new(repomocks.MockAuthRepository)
 	service := NewAuthService(mockRepo)
 	req := models.RegisterRequest{Email: "reg@test.com", Password: "password123"}
 
@@ -28,7 +28,7 @@ func TestRegisterUser_existingUser_returnsSuccessQuietly(t *testing.T) {
 }
 
 func TestRegisterUser_newUser_registersSuccessfully(t *testing.T) {
-	mockRepo := new(mocks.MockAuthRepository)
+	mockRepo := new(repomocks.MockAuthRepository)
 	service := NewAuthService(mockRepo)
 
 	mockRepo.On("FindUserByEmail", "new@test.com").Return((*models.User)(nil), errors.New("not found")).Once()
@@ -41,7 +41,7 @@ func TestRegisterUser_newUser_registersSuccessfully(t *testing.T) {
 }
 
 func TestVerifyEmail_invalidToken_returnsError(t *testing.T) {
-	mockRepo := new(mocks.MockAuthRepository)
+	mockRepo := new(repomocks.MockAuthRepository)
 	service := NewAuthService(mockRepo)
 
 	mockRepo.On("FindActionToken", "invalid", "verify_email").Return((*models.ActionToken)(nil), errors.New("not found")).Once()
@@ -51,7 +51,7 @@ func TestVerifyEmail_invalidToken_returnsError(t *testing.T) {
 }
 
 func TestVerifyEmail_expiredToken_returnsError(t *testing.T) {
-	mockRepo := new(mocks.MockAuthRepository)
+	mockRepo := new(repomocks.MockAuthRepository)
 	service := NewAuthService(mockRepo)
 
 	expiredToken := &models.ActionToken{ExpiresAt: time.Now().Add(-1 * time.Hour)}
@@ -64,7 +64,7 @@ func TestVerifyEmail_expiredToken_returnsError(t *testing.T) {
 }
 
 func TestVerifyEmail_validToken_verifiesSuccessfully(t *testing.T) {
-	mockRepo := new(mocks.MockAuthRepository)
+	mockRepo := new(repomocks.MockAuthRepository)
 	service := NewAuthService(mockRepo)
 
 	validToken := &models.ActionToken{UserID: 1, ID: 1, ExpiresAt: time.Now().Add(1 * time.Hour)}
@@ -77,7 +77,7 @@ func TestVerifyEmail_validToken_verifiesSuccessfully(t *testing.T) {
 }
 
 func TestAuthenticateUser_ghostUser_returnsError(t *testing.T) {
-	mockRepo := new(mocks.MockAuthRepository)
+	mockRepo := new(repomocks.MockAuthRepository)
 	service := NewAuthService(mockRepo)
 
 	mockRepo.On("FindUserByEmail", "ghost@test.com").Return((*models.User)(nil), errors.New("not found")).Once()
@@ -87,7 +87,7 @@ func TestAuthenticateUser_ghostUser_returnsError(t *testing.T) {
 }
 
 func TestAuthenticateUser_validCredentials_returnsTokens(t *testing.T) {
-	mockRepo := new(mocks.MockAuthRepository)
+	mockRepo := new(repomocks.MockAuthRepository)
 	service := NewAuthService(mockRepo)
 
 	hashed, _ := bcrypt.GenerateFromPassword([]byte("pass123"), 4)
@@ -105,7 +105,7 @@ func TestAuthenticateUser_validCredentials_returnsTokens(t *testing.T) {
 }
 
 func TestAuthenticateUser_2faRequired_returnsStatus(t *testing.T) {
-	mockRepo := new(mocks.MockAuthRepository)
+	mockRepo := new(repomocks.MockAuthRepository)
 	service := NewAuthService(mockRepo)
 
 	hashed, _ := bcrypt.GenerateFromPassword([]byte("pass123"), 4)
@@ -119,7 +119,7 @@ func TestAuthenticateUser_2faRequired_returnsStatus(t *testing.T) {
 }
 
 func TestVerify2FA_userNotFound_returnsError(t *testing.T) {
-	mockRepo := new(mocks.MockAuthRepository)
+	mockRepo := new(repomocks.MockAuthRepository)
 	service := NewAuthService(mockRepo)
 
 	mockRepo.On("FindUserByEmail", "ghost@test.com").Return((*models.User)(nil), errors.New("not found")).Once()
@@ -129,7 +129,7 @@ func TestVerify2FA_userNotFound_returnsError(t *testing.T) {
 }
 
 func TestVerify2FA_validToken_returnsTokens(t *testing.T) {
-	mockRepo := new(mocks.MockAuthRepository)
+	mockRepo := new(repomocks.MockAuthRepository)
 	service := NewAuthService(mockRepo)
 
 	hashed, _ := bcrypt.GenerateFromPassword([]byte("pass123"), 4)
@@ -154,7 +154,7 @@ func TestVerify2FA_validToken_returnsTokens(t *testing.T) {
 }
 
 func TestRefreshToken_invalidToken_returnsError(t *testing.T) {
-	mockRepo := new(mocks.MockAuthRepository)
+	mockRepo := new(repomocks.MockAuthRepository)
 	service := NewAuthService(mockRepo)
 
 	mockRepo.On("FindSessionByToken", "invalid").Return((*models.Session)(nil), errors.New("not found")).Once()
@@ -164,7 +164,7 @@ func TestRefreshToken_invalidToken_returnsError(t *testing.T) {
 }
 
 func TestRefreshToken_tokenReuse_invalidatesFamily(t *testing.T) {
-	mockRepo := new(mocks.MockAuthRepository)
+	mockRepo := new(repomocks.MockAuthRepository)
 	service := NewAuthService(mockRepo)
 
 	reusedSession := &models.Session{FamilyID: "fam1", IsUsed: true}
@@ -177,7 +177,7 @@ func TestRefreshToken_tokenReuse_invalidatesFamily(t *testing.T) {
 }
 
 func TestRefreshToken_validToken_rotatesSuccessfully(t *testing.T) {
-	mockRepo := new(mocks.MockAuthRepository)
+	mockRepo := new(repomocks.MockAuthRepository)
 	service := NewAuthService(mockRepo)
 
 	validSession := &models.Session{ID: 1, ExpiresAt: time.Now().Add(1 * time.Hour)}
@@ -193,7 +193,7 @@ func TestRefreshToken_validToken_rotatesSuccessfully(t *testing.T) {
 }
 
 func TestForgotPassword_validEmail_sendsEmail(t *testing.T) {
-	mockRepo := new(mocks.MockAuthRepository)
+	mockRepo := new(repomocks.MockAuthRepository)
 	service := NewAuthService(mockRepo)
 
 	user := &models.User{Email: "reset@test.com", IsEmailVerified: true}
@@ -206,7 +206,7 @@ func TestForgotPassword_validEmail_sendsEmail(t *testing.T) {
 }
 
 func TestResetPassword_validToken_updatesPassword(t *testing.T) {
-	mockRepo := new(mocks.MockAuthRepository)
+	mockRepo := new(repomocks.MockAuthRepository)
 	service := NewAuthService(mockRepo)
 
 	validToken := &models.ActionToken{UserID: 1, ID: 1, ExpiresAt: time.Now().Add(1 * time.Hour)}
@@ -219,7 +219,7 @@ func TestResetPassword_validToken_updatesPassword(t *testing.T) {
 }
 
 func TestLogoutUser_validToken_deletesSession(t *testing.T) {
-	mockRepo := new(mocks.MockAuthRepository)
+	mockRepo := new(repomocks.MockAuthRepository)
 	service := NewAuthService(mockRepo)
 
 	mockRepo.On("DeleteSessionByToken", "token").Return(nil).Once()

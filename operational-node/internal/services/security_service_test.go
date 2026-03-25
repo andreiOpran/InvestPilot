@@ -9,12 +9,12 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
-	"github.com/andreiOpran/licenta/operational-node/internal/mocks"
+	"github.com/andreiOpran/licenta/operational-node/internal/mocks/repomocks"
 	"github.com/andreiOpran/licenta/operational-node/internal/models"
 )
 
 func TestSetup2FA_userNotFound_returnsError(t *testing.T) {
-	mockRepo := new(mocks.MockUserRepository)
+	mockRepo := new(repomocks.MockUserRepository)
 	service := NewSecurityService(mockRepo)
 
 	mockRepo.On("FindByID", uint(999)).Return((*models.User)(nil), errors.New("not found")).Once()
@@ -24,7 +24,7 @@ func TestSetup2FA_userNotFound_returnsError(t *testing.T) {
 }
 
 func TestSetup2FA_alreadyEnabled_returnsError(t *testing.T) {
-	mockRepo := new(mocks.MockUserRepository)
+	mockRepo := new(repomocks.MockUserRepository)
 	service := NewSecurityService(mockRepo)
 
 	enabledUser := &models.User{Email: "1@test.com", IsTwoFactorEnable: true}
@@ -35,7 +35,7 @@ func TestSetup2FA_alreadyEnabled_returnsError(t *testing.T) {
 }
 
 func TestSetup2FA_validRequest_returnsSecretAndQR(t *testing.T) {
-	mockRepo := new(mocks.MockUserRepository)
+	mockRepo := new(repomocks.MockUserRepository)
 	service := NewSecurityService(mockRepo)
 
 	normalUser := &models.User{Email: "2@test.com", IsTwoFactorEnable: false}
@@ -51,7 +51,7 @@ func TestSetup2FA_validRequest_returnsSecretAndQR(t *testing.T) {
 }
 
 func TestEnable2FA_userNotFound_returnsError(t *testing.T) {
-	mockRepo := new(mocks.MockUserRepository)
+	mockRepo := new(repomocks.MockUserRepository)
 	service := NewSecurityService(mockRepo)
 
 	mockRepo.On("FindByID", uint(999)).Return((*models.User)(nil), errors.New("not found")).Once()
@@ -61,7 +61,7 @@ func TestEnable2FA_userNotFound_returnsError(t *testing.T) {
 }
 
 func TestEnable2FA_invalidToken_returnsError(t *testing.T) {
-	mockRepo := new(mocks.MockUserRepository)
+	mockRepo := new(repomocks.MockUserRepository)
 	service := NewSecurityService(mockRepo)
 
 	user := &models.User{Email: "2@test.com", IsTwoFactorEnable: false}
@@ -80,7 +80,7 @@ func TestEnable2FA_invalidToken_returnsError(t *testing.T) {
 }
 
 func TestEnable2FA_validToken_enablesSuccessfully(t *testing.T) {
-	mockRepo := new(mocks.MockUserRepository)
+	mockRepo := new(repomocks.MockUserRepository)
 	service := NewSecurityService(mockRepo)
 
 	user := &models.User{Email: "3@test.com", IsTwoFactorEnable: false}

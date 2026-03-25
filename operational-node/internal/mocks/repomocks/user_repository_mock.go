@@ -1,4 +1,4 @@
-package mocks
+package repomocks
 
 import (
 	"github.com/stretchr/testify/mock"
