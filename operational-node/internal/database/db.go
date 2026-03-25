@@ -37,7 +37,7 @@ func InitDB() {
 		&models.Wallet{},
 		&models.Transaction{},
 		&models.InvestmentRound{},
-		&models.Portfolio{},
+		&models.Holding{},
 		&models.HistoricalMarketData{},
 	); err != nil {
 		log.Fatalf("Error during table migration: %v", err)

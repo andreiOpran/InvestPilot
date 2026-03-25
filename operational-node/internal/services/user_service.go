@@ -42,7 +42,7 @@ func DepositFunds(userID uint, amount float64) (float64, error) {
 
 	// add simulated money to the wallet
 	user.Wallet.Balance += amount
-	user.Wallet.UserId = user.ID
+	user.Wallet.UserID = user.ID
 
 	// save updated walet to the database
 	if err := database.DB.Save(&user.Wallet).Error; err != nil {

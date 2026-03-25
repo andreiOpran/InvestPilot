@@ -46,7 +46,7 @@ type ActionToken struct {
 // user's paper trading balance, uninvested money available to deposit or withdraw
 type Wallet struct {
 	ID        uint    `gorm:"primaryKey"`
-	UserId    uint    `gorm:"unique;not null"` // foreign key to user
+	UserID    uint    `gorm:"unique;not null"` // foreign key to user
 	Balance   float64 `gorm:"not null;default:0.0"`
 	CreatedAt time.Time
 	UpdatedAt time.Time
@@ -68,12 +68,12 @@ type InvestmentRound struct {
 	TotalValue float64 `gorm:"not null"`              // total amount this round
 	IsActive   bool    `gorm:"not null;default:true"` // false after a newer round replaces it
 	CreatedAt  time.Time
-	Portfolios []Portfolio // one-to-many relationship with holdings
+	Holdings   []Holding // one-to-many relationship with holdings
 }
 
 // a single holding within an investment round
 // can be ETF ("LYMS", "XDWI") or cash ("USD")
-type Portfolio struct {
+type Holding struct {
 	ID                uint    `gorm:"primaryKey"`
 	UserID            uint    `gorm:"not null;index"` // foreign key to user
 	InvestmentRoundID uint    `gorm:"not null;index"` // foreign key to InvestmentRound
