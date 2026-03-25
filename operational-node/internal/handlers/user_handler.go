@@ -1,11 +1,11 @@
 package handlers
 
 import (
-	"io"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 
+	"github.com/andreiOpran/licenta/operational-node/internal/clients"
 	"github.com/andreiOpran/licenta/operational-node/internal/config"
 	"github.com/andreiOpran/licenta/operational-node/internal/database"
 	"github.com/andreiOpran/licenta/operational-node/internal/mailer"
@@ -45,16 +45,12 @@ func TestEmailHandler(c *gin.Context) {
 
 // SimulateInvestmentHandler proxies a request to python-engine service
 func SimulateInvestmentHandler(c *gin.Context) {
-	// make a request to the py container using the name of the service from docker-compose
-	resp, err := http.Post("http://python-engine:5000/generate-models", "application/json", nil)
+	// delegate HTTP call to dedicated python client
+	body, err := clients.SimulateInvestment()
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error commincating with Py node"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	// close the response body to avoid memory leaks
-	defer resp.Body.Close()
-
-	body, _ := io.ReadAll(resp.Body)
 
 	// forward response to frontend
 	c.Data(http.StatusOK, "application/json", body)

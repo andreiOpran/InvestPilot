@@ -33,6 +33,8 @@ type AppSettings struct {
 	CronBatchSleep        time.Duration `env:"CRON_BATCH_SLEEP" envDefault:"100ms"`
 	APIBaseURL            string        `env:"API_BASE_URL" envDefault:"http://localhost:8080/api/v1"`
 	FrontendBaseURL       string        `env:"FRONTEND_BASE_URL" envDefault:"http://localhost:8081"`
+	PythonNodeURL         string        `env:"PYTHON_NODE_URL" envDefault:"http://python-engine:5000"`
+	PythonClientTimeout   time.Duration `env:"PYTHON_CLIENT_TIMEOUT" envDefault:"5s"`
 }
 
 // Env is the global configuration instance
