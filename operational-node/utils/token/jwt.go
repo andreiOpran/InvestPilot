@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"time"
 
+	"github.com/andreiOpran/licenta/operational-node/internal/config"
 	"github.com/andreiOpran/licenta/operational-node/internal/database"
 	"github.com/andreiOpran/licenta/operational-node/internal/models"
 
@@ -28,7 +29,7 @@ func GenerateTokensAndSession(c *gin.Context, userID uint, jwtSecret []byte) (st
 	claims := models.Claims{
 		UserID: userID,
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(10 * time.Minute)),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(config.Env.AccessTokenLifetime)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 		},
 	}
@@ -58,7 +59,7 @@ func GenerateTokensAndSession(c *gin.Context, userID uint, jwtSecret []byte) (st
 		IsUsed:       false,
 		ClientIP:     c.ClientIP(),
 		UserAgent:    c.Request.UserAgent(),
-		ExpiresAt:    time.Now().Add(7 * 24 * time.Hour),
+		ExpiresAt:    time.Now().Add(config.Env.RefreshTokenLifetime),
 	}
 
 	if err := database.DB.Create(&session).Error; err != nil {

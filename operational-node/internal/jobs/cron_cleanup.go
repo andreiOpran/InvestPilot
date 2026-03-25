@@ -4,6 +4,7 @@ import (
 	"log"
 	"time"
 
+	"github.com/andreiOpran/licenta/operational-node/internal/config"
 	"github.com/andreiOpran/licenta/operational-node/internal/database"
 	"github.com/andreiOpran/licenta/operational-node/internal/models"
 
@@ -43,7 +44,7 @@ func ExecuteTokenCleanup() {
 
 	// clean expired sessions using batching (big count of sessions, compared to the ActionTokens)
 	var totalDeleted int64
-	batchSize := 1000
+	batchSize := config.Env.CleanupBatchSize
 
 	for {
 		// we can use DELETE w/ LIMIT, so we retrieve 1000 ids,

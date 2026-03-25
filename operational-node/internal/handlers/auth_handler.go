@@ -82,7 +82,7 @@ func RegisterHandler(c *gin.Context) {
 		UserID:    user.ID,
 		Token:     verificationToken,
 		Type:      "verify_email",
-		ExpiresAt: time.Now().Add(24 * time.Hour), // time available to verify
+		ExpiresAt: time.Now().Add(config.Env.VerifyEmailLifetime), // time available to verify
 	}
 
 	// save ActionToken for email verification to database
@@ -405,7 +405,7 @@ func ForgotPasswordHandler(c *gin.Context) {
 			UserID:    user.ID,
 			Token:     recoveryToken,
 			Type:      "reset_password",
-			ExpiresAt: time.Now().Add(15 * time.Minute),
+			ExpiresAt: time.Now().Add(config.Env.ResetPasswordLifetime),
 		}
 
 		if err := database.DB.Create(&actionToken).Error; err != nil {
