@@ -14,6 +14,25 @@ func GetUserProfile(userID uint) (*models.User, error) {
 	return &user, nil
 }
 
+func UpdateUserProfile(userID uint, req models.UpdateProfileRequest) error {
+	var user models.User
+
+	if err := database.DB.First(&user, userID).Error; err != nil {
+		return ErrUserNotFound
+	}
+
+	// update the financial profile
+	user.RiskTolerance = req.RiskTolerance
+	user.InvestmentHorizon = req.InvestmentHorizon
+
+	// save changes to db
+	if err := database.DB.Save(&user).Error; err != nil {
+		return ErrInternal
+	}
+
+	return nil
+}
+
 func DepositFunds(userID uint, amount float64) (float64, error) {
 	var user models.User
 	// find the authenticated user and their attached wallet

@@ -50,8 +50,8 @@ func RegisterUser(req models.RegisterRequest) error {
 	user := models.User{
 		Email:             req.Email,
 		Password:          string(hashedPassword),
-		RiskTolerance:     req.RiskTolerance,
-		InvestmentHorizon: req.InvestmentHorizon,
+		RiskTolerance:     0, // will be updated later by onboarding form
+		InvestmentHorizon: 0, // will be updated later by onboarding form
 		Wallet:            models.Wallet{Balance: 0.0},
 	}
 

@@ -33,6 +33,7 @@ func SetupRoutes(r *gin.Engine) {
 		protected := v1.Group("/", middleware.AuthMiddleware())
 		{
 			protected.GET("/user", handlers.GetUserHandler)
+			protected.PUT("/user/profile", handlers.UpdateProfileHandler)
 			protected.GET("/2fa/setup", handlers.Setup2FAHandler)
 			protected.POST("/2fa/enable", handlers.Enable2FAHandler)
 			protected.POST("/deposit", handlers.DepositHandler)

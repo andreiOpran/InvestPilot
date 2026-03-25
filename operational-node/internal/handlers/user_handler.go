@@ -72,6 +72,29 @@ func GetUserHandler(c *gin.Context) {
 	})
 }
 
+// UpdateProfileHandler processes the onboarding form for financial details
+func UpdateProfileHandler(c *gin.Context) {
+	var req models.UpdateProfileRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid risk tolerance (1-5) or investment horizon (1-50)"})
+		return
+	}
+
+	userID := c.MustGet("userID").(uint)
+
+	err := services.UpdateUserProfile(userID, req)
+	if err != nil {
+		if errors.Is(err, services.ErrUserNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Financial profile updated successfully."})
+}
+
 // DepositHandler adds simulated funds to user's wallet
 func DepositHandler(c *gin.Context) {
 	var req models.DepositRequest

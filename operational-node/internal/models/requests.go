@@ -8,10 +8,14 @@ type DepositRequest struct {
 }
 
 type RegisterRequest struct {
-	Email             string `json:"email" binding:"required,email"`
-	Password          string `json:"password" binding:"required,min=6"`
-	RiskTolerance     int    `json:"risk_tolerance"`
-	InvestmentHorizon int    `json:"investment_horizon"`
+	Email    string `json:"email" binding:"required,email"`
+	Password string `json:"password" binding:"required,min=6"`
+}
+
+// struct used for the onboarding form after the user registers
+type UpdateProfileRequest struct {
+	RiskTolerance     int `json:"risk_tolerance" binding:"required,min=1,max=5"`
+	InvestmentHorizon int `json:"investment_horizon" binding:"required,min=1,max=50"`
 }
 
 type LoginRequest struct {
