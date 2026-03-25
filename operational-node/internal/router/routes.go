@@ -1,14 +1,28 @@
 package router
 
 import (
+	"time"
+
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 
+	"github.com/andreiOpran/licenta/operational-node/internal/config"
 	"github.com/andreiOpran/licenta/operational-node/internal/handlers"
 	"github.com/andreiOpran/licenta/operational-node/internal/middleware"
 )
 
 // SetupRoutes registers all HTTP endpoints and maps them to handler functions
 func SetupRoutes(r *gin.Engine) {
+	// setup cors middleware for frontend communication
+	r.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{config.Env.FrontendBaseURL},
+		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
+		ExposeHeaders:    []string{"Content-Length"},
+		AllowCredentials: true,
+		MaxAge:           12 * time.Hour,
+	}))
+
 	r.GET("/ping", handlers.PingHandler)
 	r.GET("/status", handlers.StatusHandler)
 	r.GET("/test-email", handlers.TestEmailHandler)
