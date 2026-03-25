@@ -5,6 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"github.com/andreiOpran/licenta/operational-node/internal/config"
 	"github.com/andreiOpran/licenta/operational-node/internal/database"
 	"github.com/andreiOpran/licenta/operational-node/internal/jobs"
 	"github.com/andreiOpran/licenta/operational-node/internal/mailer"
@@ -12,6 +13,7 @@ import (
 )
 
 func main() {
+	config.LoadConfig()
 	database.InitDB()
 	mailer.InitEmailer()
 	jobs.StartTokenCleanupJob()

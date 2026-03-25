@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/andreiOpran/licenta/operational-node/internal/config"
 	"github.com/andreiOpran/licenta/operational-node/internal/models"
-	"github.com/andreiOpran/licenta/operational-node/utils/token"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
@@ -37,7 +37,7 @@ func AuthMiddleware() gin.HandlerFunc {
 			if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
 				return nil, fmt.Errorf("Unexpected signing method: %v", t.Header["alg"])
 			}
-			return token.JwtSecret, nil
+			return []byte(config.Env.JWTSecret), nil
 		})
 
 		if err != nil || !tokenObj.Valid {

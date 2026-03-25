@@ -11,6 +11,7 @@ import (
 	"github.com/pquerna/otp/totp"
 	"golang.org/x/crypto/bcrypt"
 
+	"github.com/andreiOpran/licenta/operational-node/internal/config"
 	"github.com/andreiOpran/licenta/operational-node/internal/database"
 	"github.com/andreiOpran/licenta/operational-node/internal/mailer"
 	"github.com/andreiOpran/licenta/operational-node/internal/models"
@@ -204,7 +205,7 @@ func LoginHandler(c *gin.Context) {
 	}
 
 	// if 2FA is not enabled, log in normally
-	accessToken, refreshToken, err := token.GenerateTokensAndSession(c, user.ID)
+	accessToken, refreshToken, err := token.GenerateTokensAndSession(c, user.ID, []byte(config.Env.JWTSecret))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not generate token"})
 		return
@@ -258,7 +259,7 @@ func Verify2FAHandler(c *gin.Context) {
 		return
 	}
 
-	plainSecret, err := crypto.DecryptAES(user.TwoFactorSecret, []byte(crypto.EncryptionKey))
+	plainSecret, err := crypto.DecryptAES(user.TwoFactorSecret, []byte(config.Env.AESMasterKey))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to decrypt secret"})
 		return
@@ -272,7 +273,7 @@ func Verify2FAHandler(c *gin.Context) {
 	}
 
 	// generate session
-	accessToken, refreshToken, err := token.GenerateTokensAndSession(c, user.ID)
+	accessToken, refreshToken, err := token.GenerateTokensAndSession(c, user.ID, []byte(config.Env.JWTSecret))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not generate token"})
 		return
@@ -349,7 +350,7 @@ func RefreshTokenHandler(c *gin.Context) {
 		},
 	}
 	newToken := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	newAccessToken, err := newToken.SignedString(token.JwtSecret)
+	newAccessToken, err := newToken.SignedString([]byte(config.Env.JWTSecret))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not generate new token"})
 		return

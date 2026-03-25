@@ -3,7 +3,8 @@ package mailer
 import (
 	"fmt"
 	"net/smtp"
-	"os"
+
+	"github.com/andreiOpran/licenta/operational-node/internal/config"
 )
 
 // EmailSender interface for sending emails, allowing dependency injection
@@ -42,27 +43,12 @@ func (s *SMTPEmailer) SendEmail(to string, subject string, body string) error {
 
 // read env vars and return SMTP emailer
 func NewSMTPConfig() *SMTPEmailer {
-	host := os.Getenv("SMTP_HOST")
-	if host == "" {
-		host = "smtp.gmail.com" // default to gmail
-	}
-	port := os.Getenv("SMTP_PORT")
-	if port == "" {
-		port = "587"
-	}
-	user := os.Getenv("SMTP_USER")
-	pass := os.Getenv("SMTP_PASS")
-	from := os.Getenv("SMTP_FROM")
-	if from == "" {
-		from = os.Getenv("SMTP_USER")
-	}
-
 	return &SMTPEmailer{
-		Host:     host,
-		Port:     port,
-		Username: user,
-		Password: pass,
-		From:     from,
+		Host:     config.Env.SMTPHost,
+		Port:     config.Env.SMTPPort,
+		Username: config.Env.SMTPUser,
+		Password: config.Env.SMTPPass,
+		From:     config.Env.SMTPFrom,
 	}
 }
 

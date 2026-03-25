@@ -3,10 +3,10 @@ package handlers
 import (
 	"io"
 	"net/http"
-	"os"
 
 	"github.com/gin-gonic/gin"
 
+	"github.com/andreiOpran/licenta/operational-node/internal/config"
 	"github.com/andreiOpran/licenta/operational-node/internal/database"
 	"github.com/andreiOpran/licenta/operational-node/internal/mailer"
 	"github.com/andreiOpran/licenta/operational-node/internal/models"
@@ -27,7 +27,7 @@ func StatusHandler(c *gin.Context) {
 
 // TestEmailHandler triggers a test email send
 func TestEmailHandler(c *gin.Context) {
-	testEmail := os.Getenv("SMTP_TEST_DESTINATION")
+	testEmail := config.Env.SMTPTestDestination
 
 	err := mailer.Client.SendEmail(
 		testEmail,

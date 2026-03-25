@@ -7,10 +7,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
-	"os"
 )
-
-var EncryptionKey = os.Getenv("AES_MASTER_KEY")
 
 // encrypt plain string into hex-encoded string useing AES-GCM
 func EncryptAES(plainText string, key []byte) (string, error) {

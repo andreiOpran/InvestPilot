@@ -12,9 +12,6 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-// TODO: in production should be retrieved from env var
-var JwtSecret = []byte("secret-key")
-
 // helper for generating random string
 func GenerateSecureToken(length int) (string, error) {
 	bytes := make([]byte, length)
@@ -25,7 +22,8 @@ func GenerateSecureToken(length int) (string, error) {
 }
 
 // helper for generating short-lived Access JWT and a long lived Refresh Token
-func GenerateTokensAndSession(c *gin.Context, userID uint) (string, string, error) {
+// jwtSecret is provided by callers to avoid package-level globals
+func GenerateTokensAndSession(c *gin.Context, userID uint, jwtSecret []byte) (string, string, error) {
 	// generate short-lived JWT (10 minutes)
 	claims := models.Claims{
 		UserID: userID,
@@ -35,7 +33,7 @@ func GenerateTokensAndSession(c *gin.Context, userID uint) (string, string, erro
 		},
 	}
 	tokenObj := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	accessToken, err := tokenObj.SignedString(JwtSecret)
+	accessToken, err := tokenObj.SignedString(jwtSecret)
 	if err != nil {
 		return "", "", err
 	}

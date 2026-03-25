@@ -9,6 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/pquerna/otp/totp"
 
+	"github.com/andreiOpran/licenta/operational-node/internal/config"
 	"github.com/andreiOpran/licenta/operational-node/internal/database"
 	"github.com/andreiOpran/licenta/operational-node/internal/models"
 	"github.com/andreiOpran/licenta/operational-node/utils/crypto"
@@ -38,7 +39,7 @@ func Setup2FAHandler(c *gin.Context) {
 		return
 	}
 
-	encryptedSecret, err := crypto.EncryptAES(key.Secret(), []byte(crypto.EncryptionKey))
+	encryptedSecret, err := crypto.EncryptAES(key.Secret(), []byte(config.Env.AESMasterKey))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to encrypt secret"})
 		return
@@ -87,7 +88,7 @@ func Enable2FAHandler(c *gin.Context) {
 		return
 	}
 
-	plainSecret, err := crypto.DecryptAES(user.TwoFactorSecret, []byte(crypto.EncryptionKey))
+	plainSecret, err := crypto.DecryptAES(user.TwoFactorSecret, []byte(config.Env.AESMasterKey))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to decrypt secret"})
 		return

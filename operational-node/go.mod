@@ -3,8 +3,10 @@ module github.com/andreiOpran/licenta/operational-node
 go 1.24.0
 
 require (
+	github.com/caarlos0/env/v10 v10.0.0
 	github.com/gin-gonic/gin v1.11.0
 	github.com/golang-jwt/jwt/v5 v5.3.1
+	github.com/joho/godotenv v1.5.1
 	github.com/pquerna/otp v1.5.0
 	github.com/robfig/cron/v3 v3.0.1
 	golang.org/x/crypto v0.48.0
