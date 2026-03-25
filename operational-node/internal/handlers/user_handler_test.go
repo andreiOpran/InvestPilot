@@ -21,17 +21,42 @@ func setupUserRouter(mockService *servicemocks.MockUserService) (*gin.Engine, *U
 	r := gin.Default()
 	handler := NewUserHandler(mockService)
 
+	// standalone routes
+	r.GET("/ping", PingHandler)
+	r.GET("/status", StatusHandler)
+
 	// mock middleware to inject userID into context
-	r.Use(func(c *gin.Context) {
+	authGroup := r.Group("/")
+	authGroup.Use(func(c *gin.Context) {
 		c.Set("userID", uint(1))
 		c.Next()
 	})
 
-	r.GET("/user", handler.GetUserHandler)
-	r.PUT("/user/profile", handler.UpdateProfileHandler)
-	r.POST("/deposit", handler.DepositHandler)
+	authGroup.GET("/user", handler.GetUserHandler)
+	authGroup.PUT("/user/profile", handler.UpdateProfileHandler)
+	authGroup.POST("/deposit", handler.DepositHandler)
 
 	return r, handler
+}
+
+func TestStandaloneHandlers(t *testing.T) {
+	r, _ := setupUserRouter(nil)
+
+	t.Run("PingHandler_returns200", func(t *testing.T) {
+		req, _ := http.NewRequest(http.MethodGet, "/ping", nil)
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+		assert.Equal(t, http.StatusOK, w.Code)
+		assert.Contains(t, w.Body.String(), "works")
+	})
+
+	t.Run("StatusHandler_returns200", func(t *testing.T) {
+		req, _ := http.NewRequest(http.MethodGet, "/status", nil)
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+		assert.Equal(t, http.StatusOK, w.Code)
+		assert.Contains(t, w.Body.String(), "Connected")
+	})
 }
 
 func TestGetUserHandler(t *testing.T) {
@@ -47,6 +72,16 @@ func TestGetUserHandler(t *testing.T) {
 
 		assert.Equal(t, http.StatusNotFound, w.Code)
 		assert.Contains(t, w.Body.String(), "User not found")
+	})
+
+	t.Run("GetUserHandler_internalError_returns500", func(t *testing.T) {
+		mockSvc.On("GetUserProfile", uint(1)).Return((*models.User)(nil), services.ErrInternal).Once()
+
+		req, _ := http.NewRequest(http.MethodGet, "/user", nil)
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusInternalServerError, w.Code)
 	})
 
 	t.Run("GetUserHandler_success_returns200", func(t *testing.T) {
@@ -77,6 +112,20 @@ func TestUpdateProfileHandler(t *testing.T) {
 		assert.Equal(t, http.StatusBadRequest, w.Code)
 	})
 
+	t.Run("UpdateProfileHandler_userNotFound_returns404", func(t *testing.T) {
+		payload := models.UpdateProfileRequest{RiskTolerance: 4, InvestmentHorizon: 20}
+		body, _ := json.Marshal(payload)
+
+		mockSvc.On("UpdateUserProfile", uint(1), payload).Return(services.ErrUserNotFound).Once()
+
+		req, _ := http.NewRequest(http.MethodPut, "/user/profile", bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusNotFound, w.Code)
+	})
+
 	t.Run("UpdateProfileHandler_success_returns200", func(t *testing.T) {
 		payload := models.UpdateProfileRequest{RiskTolerance: 4, InvestmentHorizon: 20}
 		body, _ := json.Marshal(payload)
@@ -98,6 +147,28 @@ func TestUpdateProfileHandler(t *testing.T) {
 func TestDepositHandler(t *testing.T) {
 	mockSvc := new(servicemocks.MockUserService)
 	r, _ := setupUserRouter(mockSvc)
+
+	t.Run("DepositHandler_badJSON_returns400", func(t *testing.T) {
+		req, _ := http.NewRequest(http.MethodPost, "/deposit", bytes.NewBuffer([]byte("{bad json}")))
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+	})
+
+	t.Run("DepositHandler_userNotFound_returns404", func(t *testing.T) {
+		payload := models.DepositRequest{Amount: 100.0}
+		body, _ := json.Marshal(payload)
+
+		mockSvc.On("DepositFunds", uint(1), 100.0).Return(0.0, services.ErrUserNotFound).Once()
+
+		req, _ := http.NewRequest(http.MethodPost, "/deposit", bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusNotFound, w.Code)
+	})
 
 	t.Run("DepositHandler_success_returns200", func(t *testing.T) {
 		payload := models.DepositRequest{Amount: 100.0}
