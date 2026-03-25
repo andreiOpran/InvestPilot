@@ -10,15 +10,25 @@ import (
 	"github.com/andreiOpran/licenta/operational-node/internal/services"
 )
 
+type AuthHandler struct {
+	authService services.AuthService
+}
+
+func NewAuthHandler(authService services.AuthService) *AuthHandler {
+	return &AuthHandler{
+		authService: authService,
+	}
+}
+
 // RegisterHandler handles user registration
-func RegisterHandler(c *gin.Context) {
+func (h *AuthHandler) RegisterHandler(c *gin.Context) {
 	var req models.RegisterRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	err := services.RegisterUser(req)
+	err := h.authService.RegisterUser(req)
 	if err != nil {
 		if errors.Is(err, services.ErrEmailExists) {
 			c.JSON(http.StatusConflict, gin.H{"error": "Email already registered"})
@@ -35,14 +45,14 @@ func RegisterHandler(c *gin.Context) {
 }
 
 // VerifyEmailHandler handles email verification via token
-func VerifyEmailHandler(c *gin.Context) {
+func (h *AuthHandler) VerifyEmailHandler(c *gin.Context) {
 	tokenString := c.Query("token")
 	if tokenString == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Token is required"})
 		return
 	}
 
-	err := services.VerifyEmail(tokenString)
+	err := h.authService.VerifyEmail(tokenString)
 	if err != nil {
 		if errors.Is(err, services.ErrTokenInvalid) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid or expired verification token"})
@@ -56,14 +66,14 @@ func VerifyEmailHandler(c *gin.Context) {
 }
 
 // LoginHandler handles user login
-func LoginHandler(c *gin.Context) {
+func (h *AuthHandler) LoginHandler(c *gin.Context) {
 	var req models.LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	result, err := services.AuthenticateUser(req.Email, req.Password, c.ClientIP(), c.Request.UserAgent())
+	result, err := h.authService.AuthenticateUser(req.Email, req.Password, c.ClientIP(), c.Request.UserAgent())
 	if err != nil {
 		if errors.Is(err, services.ErrInvalidCredentials) {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid email or password"})
@@ -73,7 +83,7 @@ func LoginHandler(c *gin.Context) {
 		return
 	}
 
-	// if the user has 2FA enabled, stop and tell client to prompt for code
+	// if the user has 2fa enabled, stop and tell client to prompt for code
 	if result.Requires2FA {
 		c.JSON(http.StatusOK, gin.H{
 			"status":  "2fa_required",
@@ -91,27 +101,27 @@ func LoginHandler(c *gin.Context) {
 }
 
 // LogoutHandler handles logout by revoking refresh token
-func LogoutHandler(c *gin.Context) {
+func (h *AuthHandler) LogoutHandler(c *gin.Context) {
 	var req models.RefreshRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Refresh token required for logout"})
 		return
 	}
 
-	_ = services.LogoutUser(req.RefreshToken)
+	_ = h.authService.LogoutUser(req.RefreshToken)
 
 	c.JSON(http.StatusOK, gin.H{"message": "Logged out successfully"})
 }
 
 // Verify2FAHandler verifies TOTP and generates session tokens
-func Verify2FAHandler(c *gin.Context) {
+func (h *AuthHandler) Verify2FAHandler(c *gin.Context) {
 	var req models.Verify2FARequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	accessToken, refreshToken, err := services.Verify2FA(req.Email, req.Password, req.Token, c.ClientIP(), c.Request.UserAgent())
+	accessToken, refreshToken, err := h.authService.Verify2FA(req.Email, req.Password, req.Token, c.ClientIP(), c.Request.UserAgent())
 	if err != nil {
 		if errors.Is(err, services.ErrInvalidCredentials) {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials or token"})
@@ -137,14 +147,14 @@ func Verify2FAHandler(c *gin.Context) {
 }
 
 // RefreshTokenHandler rotates refresh token
-func RefreshTokenHandler(c *gin.Context) {
+func (h *AuthHandler) RefreshTokenHandler(c *gin.Context) {
 	var req models.RefreshRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Refresh token required"})
 		return
 	}
 
-	accessToken, refreshToken, err := services.RefreshToken(req.RefreshToken, c.ClientIP(), c.Request.UserAgent())
+	accessToken, refreshToken, err := h.authService.RefreshToken(req.RefreshToken, c.ClientIP(), c.Request.UserAgent())
 	if err != nil {
 		if errors.Is(err, services.ErrTokenInvalid) || errors.Is(err, services.ErrTokenExpired) {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired refresh token. Please log in again."})
@@ -171,27 +181,27 @@ func RefreshTokenHandler(c *gin.Context) {
 }
 
 // ForgotPasswordHandler handles generating recovery token and sending email
-func ForgotPasswordHandler(c *gin.Context) {
+func (h *AuthHandler) ForgotPasswordHandler(c *gin.Context) {
 	var req models.ForgotPasswordRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	_ = services.ForgotPassword(req.Email)
+	_ = h.authService.ForgotPassword(req.Email)
 
 	c.JSON(http.StatusOK, gin.H{"message": "If an account with that email exists, a password reset link has been sent."})
 }
 
 // ResetPasswordHandler processes reset password requests
-func ResetPasswordHandler(c *gin.Context) {
+func (h *AuthHandler) ResetPasswordHandler(c *gin.Context) {
 	var req models.ResetPasswordRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	err := services.ResetPassword(req.Token, req.NewPassword)
+	err := h.authService.ResetPassword(req.Token, req.NewPassword)
 	if err != nil {
 		if errors.Is(err, services.ErrTokenInvalid) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid or expired recovery token"})

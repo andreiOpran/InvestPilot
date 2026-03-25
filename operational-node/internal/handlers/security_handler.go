@@ -10,11 +10,21 @@ import (
 	"github.com/andreiOpran/licenta/operational-node/internal/services"
 )
 
+type SecurityHandler struct {
+	securityService services.SecurityService
+}
+
+func NewSecurityHandler(securityService services.SecurityService) *SecurityHandler {
+	return &SecurityHandler{
+		securityService: securityService,
+	}
+}
+
 // Setup2FAHandler generates TOTP secret and QR code
-func Setup2FAHandler(c *gin.Context) {
+func (h *SecurityHandler) Setup2FAHandler(c *gin.Context) {
 	userID := c.MustGet("userID").(uint)
 
-	secret, uri, qrCodeB64, err := services.Setup2FA(userID)
+	secret, uri, qrCodeB64, err := h.securityService.Setup2FA(userID)
 	if err != nil {
 		if errors.Is(err, services.ErrUserNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
@@ -37,7 +47,7 @@ func Setup2FAHandler(c *gin.Context) {
 }
 
 // Enable2FAHandler confirms TOTP and enables 2FA for user
-func Enable2FAHandler(c *gin.Context) {
+func (h *SecurityHandler) Enable2FAHandler(c *gin.Context) {
 	var req models.Enable2FARequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -45,7 +55,7 @@ func Enable2FAHandler(c *gin.Context) {
 	}
 
 	userID := c.MustGet("userID").(uint)
-	err := services.Enable2FA(userID, req.Token)
+	err := h.securityService.Enable2FA(userID, req.Token)
 	if err != nil {
 		if errors.Is(err, services.ErrUserNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})

@@ -8,14 +8,35 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/pquerna/otp/totp"
 	"golang.org/x/crypto/bcrypt"
+	"gorm.io/gorm"
 
 	"github.com/andreiOpran/licenta/operational-node/internal/config"
-	"github.com/andreiOpran/licenta/operational-node/internal/database"
 	"github.com/andreiOpran/licenta/operational-node/internal/mailer"
 	"github.com/andreiOpran/licenta/operational-node/internal/models"
 	"github.com/andreiOpran/licenta/operational-node/utils/crypto"
 	"github.com/andreiOpran/licenta/operational-node/utils/token"
 )
+
+type AuthService interface {
+	RegisterUser(req models.RegisterRequest) error
+	VerifyEmail(tokenString string) error
+	AuthenticateUser(email, password, clientIP, userAgent string) (*LoginResult, error)
+	Verify2FA(email, password, totpToken, clientIP, userAgent string) (string, string, error)
+	RefreshToken(refreshTokenStr, clientIP, userAgent string) (string, string, error)
+	LogoutUser(refreshToken string) error
+	ForgotPassword(email string) error
+	ResetPassword(tokenStr, newPassword string) error
+}
+
+type authService struct {
+	db *gorm.DB
+}
+
+func NewAuthService(db *gorm.DB) AuthService {
+	return &authService{
+		db: db,
+	}
+}
 
 type LoginResult struct {
 	Requires2FA  bool
@@ -24,7 +45,7 @@ type LoginResult struct {
 	RefreshToken string
 }
 
-func RegisterUser(req models.RegisterRequest) error {
+func (s *authService) RegisterUser(req models.RegisterRequest) error {
 	// even if the user already exists, we do the heavy bcrypt hashing
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), config.Env.BcryptCost)
 	if err != nil {
@@ -34,7 +55,7 @@ func RegisterUser(req models.RegisterRequest) error {
 	// check if the user exists
 	var existingUser models.User
 	userExists := false
-	if err := database.DB.Where("email = ?", req.Email).First(&existingUser).Error; err == nil {
+	if err := s.db.Where("email = ?", req.Email).First(&existingUser).Error; err == nil {
 		userExists = true
 	}
 
@@ -42,11 +63,11 @@ func RegisterUser(req models.RegisterRequest) error {
 	if userExists {
 		// generate dummy token to simulate time taken by rand ops
 		_, _ = token.GenerateSecureToken(config.Env.SecureTokenBytes)
-		return nil // Success from the client's perspective
+		return nil // success from the client's perspective
 	}
 
 	// if user does not exist, procees with creation
-	// build user with an empty wallet and IsEmailVerified=false
+	// build user with an empty wallet and isemailverified=false
 	user := models.User{
 		Email:             req.Email,
 		Password:          string(hashedPassword),
@@ -55,12 +76,12 @@ func RegisterUser(req models.RegisterRequest) error {
 		Wallet:            models.Wallet{Balance: 0.0},
 	}
 
-	// save to DB (will fail if email already exists)
-	if err := database.DB.Create(&user).Error; err != nil {
+	// save to db (will fail if email already exists)
+	if err := s.db.Create(&user).Error; err != nil {
 		return ErrEmailExists
 	}
 
-	// generate ActionToken for email verification
+	// generate actiontoken for email verification
 	verificationToken, err := token.GenerateSecureToken(config.Env.SecureTokenBytes)
 	if err != nil {
 		return ErrInternal
@@ -73,8 +94,8 @@ func RegisterUser(req models.RegisterRequest) error {
 		ExpiresAt: time.Now().Add(config.Env.VerifyEmailLifetime), // time available to verify
 	}
 
-	// save ActionToken for email verification to database
-	if err := database.DB.Create(&actionToken).Error; err != nil {
+	// save actiontoken for email verification to database
+	if err := s.db.Create(&actionToken).Error; err != nil {
 		return ErrInternal
 	}
 
@@ -84,7 +105,7 @@ func RegisterUser(req models.RegisterRequest) error {
 
 	subject, body, tmplErr := mailer.BuildEmailContent("verify_email", data)
 	if tmplErr == nil {
-		// send email in goroutine so SMTP server network latency does not affect API response time
+		// send email in goroutine so smtp server network latency does not affect api response time
 		go func() {
 			_ = mailer.Client.SendEmail(user.Email, subject, body)
 		}()
@@ -93,23 +114,23 @@ func RegisterUser(req models.RegisterRequest) error {
 	return nil
 }
 
-func VerifyEmail(tokenString string) error {
+func (s *authService) VerifyEmail(tokenString string) error {
 	var actionToken models.ActionToken
 
 	// find token and preload user
-	if err := database.DB.Where("token = ? AND type = ?", tokenString, "verify_email").First(&actionToken).Error; err != nil {
+	if err := s.db.Where("token = ? AND type = ?", tokenString, "verify_email").First(&actionToken).Error; err != nil {
 		return ErrTokenInvalid
 	}
 
 	// check expiration
 	if time.Now().After(actionToken.ExpiresAt) {
 		// cleanup expired token
-		database.DB.Delete(&actionToken)
+		s.db.Delete(&actionToken)
 		return ErrTokenInvalid
 	}
 
 	// transaction - update user and delete token
-	tx := database.DB.Begin()
+	tx := s.db.Begin()
 
 	// update user to verified
 	if err := tx.Model(&models.User{}).Where("id = ?", actionToken.UserID).Update("is_email_verified", true).Error; err != nil {
@@ -127,11 +148,11 @@ func VerifyEmail(tokenString string) error {
 	return nil
 }
 
-func AuthenticateUser(email, password, clientIP, userAgent string) (*LoginResult, error) {
+func (s *authService) AuthenticateUser(email, password, clientIP, userAgent string) (*LoginResult, error) {
 	// look up user by email
 	var user models.User
 	userExists := true
-	if err := database.DB.Where("email = ?", email).First(&user).Error; err != nil {
+	if err := s.db.Where("email = ?", email).First(&user).Error; err != nil {
 		userExists = false
 		// do not return here, continue to dummy bcrypt comparison to avoid timing attacks
 	}
@@ -156,12 +177,12 @@ func AuthenticateUser(email, password, clientIP, userAgent string) (*LoginResult
 		return nil, ErrInvalidCredentials
 	}
 
-	// if the user has 2FA enabled, stop and tell client to prompt for code
+	// if the user has 2fa enabled, stop and tell client to prompt for code
 	if user.IsTwoFactorEnable {
 		return &LoginResult{Requires2FA: true, Email: user.Email}, nil
 	}
 
-	// if 2FA is not enabled, log in normally
+	// if 2fa is not enabled, log in normally
 	accessToken, refreshToken, err := token.GenerateTokensAndSession(
 		user.ID,
 		clientIP,
@@ -179,10 +200,10 @@ func AuthenticateUser(email, password, clientIP, userAgent string) (*LoginResult
 	}, nil
 }
 
-func Verify2FA(email, password, totpToken, clientIP, userAgent string) (string, string, error) {
+func (s *authService) Verify2FA(email, password, totpToken, clientIP, userAgent string) (string, string, error) {
 	// re-authenticate user (stateless flow)
 	var user models.User
-	if err := database.DB.Where("email = ?", email).First(&user).Error; err != nil {
+	if err := s.db.Where("email = ?", email).First(&user).Error; err != nil {
 		return "", "", ErrInvalidCredentials
 	}
 
@@ -199,7 +220,7 @@ func Verify2FA(email, password, totpToken, clientIP, userAgent string) (string, 
 		return "", "", ErrInternal
 	}
 
-	// validate TOTP code
+	// validate totp code
 	valid := totp.Validate(totpToken, plainSecret)
 	if !valid {
 		return "", "", ErrInvalid2FAToken
@@ -219,33 +240,33 @@ func Verify2FA(email, password, totpToken, clientIP, userAgent string) (string, 
 	return accessToken, refreshToken, nil
 }
 
-func RefreshToken(refreshTokenStr, clientIP, userAgent string) (string, string, error) {
-	// look up session in the DB, preload user to make sure he hasn't been deleted
+func (s *authService) RefreshToken(refreshTokenStr, clientIP, userAgent string) (string, string, error) {
+	// look up session in the db
 	var session models.Session
-	if err := database.DB.Preload("User").Where("refresh_token = ?", refreshTokenStr).First(&session).Error; err != nil {
+	if err := s.db.Where("refresh_token = ?", refreshTokenStr).First(&session).Error; err != nil {
 		return "", "", ErrTokenInvalid
 	}
-	// remember the last UpdatedAt when we retrieve the session, to prevent race conditions (optimistic locking)
+	// remember the last updatedat when we retrieve the session, to prevent race conditions (optimistic locking)
 	originalUpdatedAt := session.UpdatedAt
 
 	// token reuse detection
 	// if someone tries to use a token that has already been changed by the legitimate user, we invalidate all sessions
 	if session.IsUsed {
-		database.DB.Where("family_id = ?", session.FamilyID).Delete(&models.Session{})
+		s.db.Where("family_id = ?", session.FamilyID).Delete(&models.Session{})
 		return "", "", ErrTokenReuseDetected
 	}
 
 	// check expiration
 	if time.Now().After(session.ExpiresAt) {
 		// cleanup expired session
-		database.DB.Delete(&session)
+		s.db.Delete(&session)
 		return "", "", ErrTokenExpired
 	}
 
 	// refresh token rotation with optimistic concurrency control
 	// mark current token as being used, and keep it in the db as a trap for potential attackers
 	// only if it hasn't been modified by another conucrrent request
-	result := database.DB.Model(&models.Session{}).
+	result := s.db.Model(&models.Session{}).
 		Where("id = ? AND updated_at = ?", session.ID, originalUpdatedAt).
 		Update("is_used", true)
 	// if 0 rows were affected, means another request just updated this token
@@ -283,27 +304,27 @@ func RefreshToken(refreshTokenStr, clientIP, userAgent string) (string, string, 
 		UserAgent:    userAgent,
 		ExpiresAt:    time.Now().Add(config.Env.RefreshTokenLifetime),
 	}
-	database.DB.Create(&newSession)
+	s.db.Create(&newSession)
 
 	return newAccessToken, newRefreshToken, nil
 }
 
-func LogoutUser(refreshToken string) error {
+func (s *authService) LogoutUser(refreshToken string) error {
 	// delete session from the db (access token is nto deleted because it has short lifetime)
 	// return succes even if we have an error here
 	// client will clear local state anyway
-	database.DB.Where("refresh_token = ?", refreshToken).Delete(&models.Session{})
+	s.db.Where("refresh_token = ?", refreshToken).Delete(&models.Session{})
 	return nil
 }
 
-func ForgotPassword(email string) error {
+func (s *authService) ForgotPassword(email string) error {
 	// record actual logic computing time to standardize response times to avoid timing attacks
 	startTime := time.Now()
 
 	// look up user
 	var user models.User
 	userExists := true
-	if err := database.DB.Where("email = ?", email).First(&user).Error; err != nil {
+	if err := s.db.Where("email = ?", email).First(&user).Error; err != nil {
 		userExists = false
 	}
 
@@ -322,14 +343,14 @@ func ForgotPassword(email string) error {
 			ExpiresAt: time.Now().Add(config.Env.ResetPasswordLifetime),
 		}
 
-		if err := database.DB.Create(&actionToken).Error; err == nil {
+		if err := s.db.Create(&actionToken).Error; err == nil {
 			// send recovery email using embedded templates
 			recoveryURL := fmt.Sprintf("%s/reset-password?token=%s", config.Env.FrontendBaseURL, recoveryToken)
 			data := struct{ RecoveryURL string }{RecoveryURL: recoveryURL}
 
 			subject, body, tmplErr := mailer.BuildEmailContent("reset_password", data)
 			if tmplErr == nil {
-				// send email in goroutine so SMTP server network latency does not affect API response time
+				// send email in goroutine so smtp server network latency does not affect api response time
 				go func() {
 					_ = mailer.Client.SendEmail(user.Email, subject, body)
 				}()
@@ -357,18 +378,18 @@ func ForgotPassword(email string) error {
 	return nil
 }
 
-func ResetPassword(tokenStr, newPassword string) error {
+func (s *authService) ResetPassword(tokenStr, newPassword string) error {
 	var actionToken models.ActionToken
 
 	// find token and check type
-	if err := database.DB.Where("token = ? AND type = ?", tokenStr, "reset_password").First(&actionToken).Error; err != nil {
+	if err := s.db.Where("token = ? AND type = ?", tokenStr, "reset_password").First(&actionToken).Error; err != nil {
 		return ErrTokenInvalid
 	}
 
 	// check expiration
 	if time.Now().After(actionToken.ExpiresAt) {
 		// cleanup expired token
-		database.DB.Delete(&actionToken)
+		s.db.Delete(&actionToken)
 		return ErrTokenExpired
 	}
 
@@ -379,8 +400,7 @@ func ResetPassword(tokenStr, newPassword string) error {
 	}
 
 	// transaction - update user pass and delete token
-	// transaction is used in case of token deletion failure, then the password will not be updated
-	tx := database.DB.Begin()
+	tx := s.db.Begin()
 	if err := tx.Model(&models.User{}).Where("id = ?", actionToken.UserID).Update("password", string(hashedPassword)).Error; err != nil {
 		tx.Rollback()
 		return ErrInternal

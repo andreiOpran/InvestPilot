@@ -1,24 +1,39 @@
 package services
 
 import (
-	"github.com/andreiOpran/licenta/operational-node/internal/database"
 	"github.com/andreiOpran/licenta/operational-node/internal/models"
 	"gorm.io/gorm"
 )
 
-func GetUserProfile(userID uint) (*models.User, error) {
+type UserService interface {
+	GetUserProfile(userID uint) (*models.User, error)
+	UpdateUserProfile(userID uint, req models.UpdateProfileRequest) error
+	DepositFunds(userID uint, amount float64) (float64, error)
+}
+
+type userService struct {
+	db *gorm.DB
+}
+
+func NewUserService(db *gorm.DB) UserService {
+	return &userService{
+		db: db,
+	}
+}
+
+func (s *userService) GetUserProfile(userID uint) (*models.User, error) {
 	var user models.User
-	// Preload("Wallet") tells GORM to also fetch the attached Wallet data
-	if err := database.DB.Preload("Wallet").First(&user, userID).Error; err != nil {
+	// Preload("Wallet") tells GORM to also fetch the attached wallet data
+	if err := s.db.Preload("Wallet").First(&user, userID).Error; err != nil {
 		return nil, ErrUserNotFound
 	}
 	return &user, nil
 }
 
-func UpdateUserProfile(userID uint, req models.UpdateProfileRequest) error {
+func (s *userService) UpdateUserProfile(userID uint, req models.UpdateProfileRequest) error {
 	var user models.User
 
-	if err := database.DB.First(&user, userID).Error; err != nil {
+	if err := s.db.First(&user, userID).Error; err != nil {
 		return ErrUserNotFound
 	}
 
@@ -27,18 +42,18 @@ func UpdateUserProfile(userID uint, req models.UpdateProfileRequest) error {
 	user.InvestmentHorizon = req.InvestmentHorizon
 
 	// save changes to db
-	if err := database.DB.Save(&user).Error; err != nil {
+	if err := s.db.Save(&user).Error; err != nil {
 		return ErrInternal
 	}
 
 	return nil
 }
 
-func DepositFunds(userID uint, amount float64) (float64, error) {
+func (s *userService) DepositFunds(userID uint, amount float64) (float64, error) {
 	var wallet models.Wallet
 
-	// atomic update to prevent race conditions
-	err := database.DB.Model(&wallet).
+	// atomic update to prevent race conditions (lost update anomaly)
+	err := s.db.Model(&wallet).
 		Where("user_id = ?", userID).
 		Update("balance", gorm.Expr("balance + ?", amount)).Error
 
@@ -47,7 +62,7 @@ func DepositFunds(userID uint, amount float64) (float64, error) {
 	}
 
 	// fetch updated wallet to return new balance
-	if err := database.DB.Where("user_id = ?", userID).First(&wallet).Error; err != nil {
+	if err := s.db.Where("user_id = ?", userID).First(&wallet).Error; err != nil {
 		return 0, ErrUserNotFound
 	}
 

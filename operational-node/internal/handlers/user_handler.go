@@ -13,6 +13,16 @@ import (
 	"github.com/andreiOpran/licenta/operational-node/internal/services"
 )
 
+type UserHandler struct {
+	userService services.UserService
+}
+
+func NewUserHandler(userService services.UserService) *UserHandler {
+	return &UserHandler{
+		userService: userService,
+	}
+}
+
 // PingHandler simple health check
 func PingHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Go node works"})
@@ -39,7 +49,7 @@ func TestEmailHandler(c *gin.Context) {
 
 // SimulateInvestmentHandler proxies a request to python-engine service
 func SimulateInvestmentHandler(c *gin.Context) {
-	// delegate HTTP call to dedicated python client
+	// delegate http call to dedicated python client
 	body, err := clients.SimulateInvestment()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -50,10 +60,10 @@ func SimulateInvestmentHandler(c *gin.Context) {
 }
 
 // GetUserHandler returns basic profile and wallet balance
-func GetUserHandler(c *gin.Context) {
+func (h *UserHandler) GetUserHandler(c *gin.Context) {
 	userID := c.MustGet("userID").(uint)
 
-	user, err := services.GetUserProfile(userID)
+	user, err := h.userService.GetUserProfile(userID)
 	if err != nil {
 		if errors.Is(err, services.ErrUserNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
@@ -73,7 +83,7 @@ func GetUserHandler(c *gin.Context) {
 }
 
 // UpdateProfileHandler processes the onboarding form for financial details
-func UpdateProfileHandler(c *gin.Context) {
+func (h *UserHandler) UpdateProfileHandler(c *gin.Context) {
 	var req models.UpdateProfileRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid risk tolerance (1-5) or investment horizon (1-50)"})
@@ -82,7 +92,7 @@ func UpdateProfileHandler(c *gin.Context) {
 
 	userID := c.MustGet("userID").(uint)
 
-	err := services.UpdateUserProfile(userID, req)
+	err := h.userService.UpdateUserProfile(userID, req)
 	if err != nil {
 		if errors.Is(err, services.ErrUserNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
@@ -96,7 +106,7 @@ func UpdateProfileHandler(c *gin.Context) {
 }
 
 // DepositHandler adds simulated funds to user's wallet
-func DepositHandler(c *gin.Context) {
+func (h *UserHandler) DepositHandler(c *gin.Context) {
 	var req models.DepositRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Please provide a valid amount greater than 0"})
@@ -104,7 +114,7 @@ func DepositHandler(c *gin.Context) {
 	}
 
 	userID := c.MustGet("userID").(uint)
-	newBalance, err := services.DepositFunds(userID, req.Amount)
+	newBalance, err := h.userService.DepositFunds(userID, req.Amount)
 	if err != nil {
 		if errors.Is(err, services.ErrUserNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
