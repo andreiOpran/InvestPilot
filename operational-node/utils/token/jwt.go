@@ -9,7 +9,6 @@ import (
 	"github.com/andreiOpran/licenta/operational-node/internal/database"
 	"github.com/andreiOpran/licenta/operational-node/internal/models"
 
-	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 )
 
@@ -24,8 +23,8 @@ func GenerateSecureToken(length int) (string, error) {
 
 // helper for generating short-lived Access JWT and a long lived Refresh Token
 // jwtSecret is provided by callers to avoid package-level globals
-func GenerateTokensAndSession(c *gin.Context, userID uint, jwtSecret []byte) (string, string, error) {
-	// generate short-lived JWT (10 minutes)
+func GenerateTokensAndSession(userID uint, clientIP, userAgent string, jwtSecret []byte) (string, string, error) {
+	// generate short-lived JWT
 	claims := models.Claims{
 		UserID: userID,
 		RegisteredClaims: jwt.RegisteredClaims{
@@ -57,8 +56,8 @@ func GenerateTokensAndSession(c *gin.Context, userID uint, jwtSecret []byte) (st
 		FamilyID:     familyID,
 		RefreshToken: refreshToken,
 		IsUsed:       false,
-		ClientIP:     c.ClientIP(),
-		UserAgent:    c.Request.UserAgent(),
+		ClientIP:     clientIP,
+		UserAgent:    userAgent,
 		ExpiresAt:    time.Now().Add(config.Env.RefreshTokenLifetime),
 	}
 

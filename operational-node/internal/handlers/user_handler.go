@@ -1,15 +1,16 @@
 package handlers
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 
 	"github.com/andreiOpran/licenta/operational-node/internal/clients"
 	"github.com/andreiOpran/licenta/operational-node/internal/config"
-	"github.com/andreiOpran/licenta/operational-node/internal/database"
 	"github.com/andreiOpran/licenta/operational-node/internal/mailer"
 	"github.com/andreiOpran/licenta/operational-node/internal/models"
+	"github.com/andreiOpran/licenta/operational-node/internal/services"
 )
 
 // PingHandler simple health check
@@ -28,18 +29,11 @@ func StatusHandler(c *gin.Context) {
 // TestEmailHandler triggers a test email send
 func TestEmailHandler(c *gin.Context) {
 	testEmail := config.Env.SMTPTestDestination
-
-	err := mailer.Client.SendEmail(
-		testEmail,
-		"Test",
-		"Test for SMTP",
-	)
-
+	err := mailer.Client.SendEmail(testEmail, "Test", "Test for SMTP")
 	if err != nil {
 		c.JSON(500, gin.H{"error": err.Error()})
 		return
 	}
-
 	c.JSON(200, gin.H{"message": "Test email sent successfully"})
 }
 
@@ -51,19 +45,21 @@ func SimulateInvestmentHandler(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-
 	// forward response to frontend
 	c.Data(http.StatusOK, "application/json", body)
 }
 
 // GetUserHandler returns basic profile and wallet balance
 func GetUserHandler(c *gin.Context) {
-	var user models.User
 	userID := c.MustGet("userID").(uint)
 
-	// Preload("Wallet") tells GORM to also fetch the attached Wallet data
-	if err := database.DB.Preload("Wallet").First(&user, userID).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+	user, err := services.GetUserProfile(userID)
+	if err != nil {
+		if errors.Is(err, services.ErrUserNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 		return
 	}
 
@@ -79,33 +75,25 @@ func GetUserHandler(c *gin.Context) {
 // DepositHandler adds simulated funds to user's wallet
 func DepositHandler(c *gin.Context) {
 	var req models.DepositRequest
-	userID := c.MustGet("userID").(uint)
-
-	// 1. read and validate the JSON body from the request
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Please provide a valid amount greater than 0"})
 		return
 	}
 
-	var user models.User
-	// 2. find the authenticated user and their attached wallet
-	if err := database.DB.Preload("Wallet").First(&user, userID).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+	userID := c.MustGet("userID").(uint)
+	newBalance, err := services.DepositFunds(userID, req.Amount)
+	if err != nil {
+		if errors.Is(err, services.ErrUserNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 		return
 	}
 
-	// 3. add simulated money to the wallet
-	user.Wallet.Balance += req.Amount
-
-	user.Wallet.UserId = user.ID
-
-	// 4. save updated walet to the database
-	database.DB.Save(&user.Wallet)
-
-	// 5. send a succes response back
 	c.JSON(http.StatusOK, gin.H{
 		"message":     "Paper trading deposit successful.",
 		"added":       req.Amount,
-		"new_balance": user.Wallet.Balance,
+		"new_balance": newBalance,
 	})
 }
