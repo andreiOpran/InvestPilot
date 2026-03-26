@@ -190,6 +190,8 @@ A deliberate design decision was made to persist all ETF price data in the local
 - [ ] Expose `POST /generate-models` in FastAPI (replaces the per-user `/optimize`). It reads historical prices from the DB, runs Markowitz for each of the 15 risk/horizon buckets, and returns a JSON dictionary mapping each bucket key to its optimal ETF weights (e.g., `{"risk_4_horizon_long": {"SPY": 0.80, "BND": 0.20}, "risk_2_horizon_short": {"BND": 0.60, "GLD": 0.25, "SPY": 0.15}, ...}`).
 - [ ] Implement a RabbitMQ Consumer in Python using the `pika` library to listen for incoming background jobs.
 - [ ] Refactor `sync` and `generate-models` logic to be triggerable via RabbitMQ messages (e.g., `CMD_SYNC`, `CMD_GENERATE`) instead of just HTTP endpoints.
+- [ ] Implement Monte Carlo Simulation for portfolio forecasting (e.g., 10,000 scenarios using Geometric Brownian Motion based on historical drift and volatility).
+- [ ] Refactor the Python RabbitMQ consumer to handle `CMD_FORECAST` messages. The worker will run the simulation and save the final percentiles (Pessimistic, Expected, Optimistic) directly into the database indexed by the provided `task_id`.
 
 **Phase 4: Orchestration (Go + Python) & Stripe Integration**
 
@@ -202,6 +204,9 @@ A deliberate design decision was made to persist all ETF price data in the local
   3. For each user, Go derives the bucket key from their `RiskTolerance` (1–5) and `InvestmentHorizon` (mapped to short/medium/long), then looks up the matching weights in the received dictionary — no further Python calls needed.
   4. Go calculates exact share counts using: `shares = (weight * total_value) / latest_close_price` where `latest_close_price` is read from the `HistoricalMarketData` table.
   5. New `Portfolio` rows are saved and the old `InvestmentRound` is marked `IsActive=false`.
+- [ ] **Asynchronous Forecast Orchestration (Task ID + Polling Pattern):**
+  1. Implement `POST /forecast` in Go. It accepts user parameters, generates a unique UUID (`task_id`), publishes a `CMD_FORECAST` message to RabbitMQ, and immediately returns `HTTP 202 Accepted` with the `task_id`.
+  2. Implement `GET /forecast/status/:task_id` in Go. This allows the frontend to poll the database. It returns `{"status": "pending"}` if Python is still calculating, or the final JSON payload once the task is complete.
 
 **Phase 5: Frontend Dashboard**
 
@@ -215,6 +220,9 @@ A deliberate design decision was made to persist all ETF price data in the local
 - [ ] **Frontend XSS Awareness:** Ensure all dynamic user data is rendered safely using `textContent` (or framework equivalents) rather than `innerHTML` to prevent Cross-Site Scripting attacks from stealing tokens (especially critical if opting for the `localStorage` strategy).
 - [ ] **Frontend Logout Flow:** Bind a logout button to `POST /logout` (sending the refresh token or invalidating the session cookie), followed by clearing the local state and redirecting to the login screen.
 - [ ] **Anti-Bot UI:** Integrate the Cloudflare Turnstile widget into authentication forms and handle the `cf-turnstile-response` token in the Fetch API payloads.
+- [ ] Build the "Monte Carlo Forecast" UI. Send the user's forecast parameters to `POST /forecast` and capture the `task_id`.
+- [ ] Implement a Frontend Polling mechanism (e.g., using `setInterval`) to periodically ping `GET /forecast/status/:task_id` without blocking the user interface. Show a loading indicator while `status` is `pending`.
+- [ ] Render the "Cone of Uncertainty" using Plotly.js to display the Pessimistic (5th), Expected (50th), and Optimistic (95th) percentiles once the polling receives the finalized data.
 
 **Phase 6: Cloud Deployment (Digital Ocean)**
 
