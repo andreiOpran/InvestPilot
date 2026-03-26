@@ -12,6 +12,8 @@ This project is an Automated Wealth Management (Robo-Advisory) platform using a 
 
 **Database:** PostgreSQL. Stores users, balances, asset holdings, and historical market data.
 
+**Message Broker:** RabbitMQ (AMQP). Orchestrates asynchronous tasks (e.g., Sync and Rebalance), decoupling the Go operational node from the Python math engine.
+
 **External Systems:** Stripe API (Sandbox) for simulating user deposits (Paper Trading).
 
 **Frontend:** HTML, Bootstrap, Vanilla JS (Fetch API), Plotly.js (for charts).
@@ -123,7 +125,8 @@ type HistoricalMarketData struct {
 
 **Phase 1: Foundation**
 
-- [x] Set up Docker Compose with Go, Python, and PostgreSQL in a private VPC.
+- [ ] Set up Docker Compose with Go, Python, RabbitMQ, and PostgreSQL in a private VPC. (RabbitMQ is missing now)
+- [ ] Configure RabbitMQ exchanges and queues for task distribution (e.g., `task_queue`).
 - [x] Connect Go to PostgreSQL using GORM.
 - [x] Define database models and run AutoMigrate.
 - [x] Create dummy user seeding for initial testing.
@@ -185,13 +188,16 @@ A deliberate design decision was made to persist all ETF price data in the local
 - [ ] Write the Markowitz Optimization algorithm using scipy.optimize, reading historical data from the DB.
 - [ ] **Architectural decision — Model Portfolios:** Instead of optimizing per-user, pre-compute a fixed set of "Model Portfolios" covering every combination of Risk Level (1–5) and Investment Horizon (Short: 1–3 yrs, Medium: 4–7 yrs, Long: 8+ yrs) — 15 buckets total. This is computationally O(K) where K=15, rather than O(N) per user.
 - [ ] Expose `POST /generate-models` in FastAPI (replaces the per-user `/optimize`). It reads historical prices from the DB, runs Markowitz for each of the 15 risk/horizon buckets, and returns a JSON dictionary mapping each bucket key to its optimal ETF weights (e.g., `{"risk_4_horizon_long": {"SPY": 0.80, "BND": 0.20}, "risk_2_horizon_short": {"BND": 0.60, "GLD": 0.25, "SPY": 0.15}, ...}`).
+- [ ] Implement a RabbitMQ Consumer in Python using the `pika` library to listen for incoming background jobs.
+- [ ] Refactor `sync` and `generate-models` logic to be triggerable via RabbitMQ messages (e.g., `CMD_SYNC`, `CMD_GENERATE`) instead of just HTTP endpoints.
 
 **Phase 4: Orchestration (Go + Python) & Stripe Integration**
 
+- [ ] Implement a RabbitMQ Producer in Go (using `robfig/cron` for scheduling) to dispatch tasks asynchronously to the Decisional Node.
 - [ ] Integrate Stripe Sandbox API in Go for POST /deposit (bank -> wallet) and POST /cashout (wallet -> bank).
 - [ ] Implement POST /invest in Go: moves wallet balance to portfolio as USD ticker, creates InvestmentRound.
 - [ ] Implement POST /rebalance in Go (cron, every 30 days) using the Model Portfolios approach:
-  1. Go makes a **single** call to Python's `POST /generate-models`, receiving the full dictionary of 15 pre-computed Model Portfolios. This reduces the Python node's computational load from O(N users) to O(K=15 models).
+  1. Go's cron job publishes a `GENERATE_MODELS` message to RabbitMQ. Python consumes it, runs the HRP optimization for the 15 buckets, and returns the weights via a reply queue (RPC pattern) or saves them directly to the DB.
   2. Go queries PostgreSQL for all users with an active InvestmentRound.
   3. For each user, Go derives the bucket key from their `RiskTolerance` (1–5) and `InvestmentHorizon` (mapped to short/medium/long), then looks up the matching weights in the received dictionary — no further Python calls needed.
   4. Go calculates exact share counts using: `shares = (weight * total_value) / latest_close_price` where `latest_close_price` is read from the `HistoricalMarketData` table.
@@ -230,5 +236,5 @@ To scale the platform to handle enterprise-level traffic and improve maintainabi
 
 - [ ] **Core (Go) — Modular Monolith with Vertical Slices:** Transition the Go codebase from a technical Layered Architecture (`handlers/`, `services/`, `repositories/`) to Business Domains/Vertical Slices (e.g., `features/auth/`, `features/ledger/`, `features/portfolio/`). This maximizes cohesion and allows independent teams to work on isolated features without merge conflicts.
 - [ ] **Brain (Python) — gRPC Communication:** Replace the current HTTP/JSON REST API between the Go node and the Python node with **gRPC (Protobuf)**. This enforces strictly typed contracts and enables ~10x faster binary data transfer, which is critical when transmitting large matrices of ETF weights and historical prices.
-- [ ] **Nervous System — Event-Driven Architecture (RabbitMQ/Kafka):** Introduce a Message Broker to achieve ultimate decoupling. Instead of the `Auth` service directly calling the `Mailer` (which can block or fail), it will publish a `user.registered` event to RabbitMQ. A standalone `Notifications` consumer will listen to this queue and handle email delivery asynchronously, ensuring zero data loss during crashes.
+- [ ] **Nervous System Evolution:** Extend the existing RabbitMQ infrastructure to handle other system events beyond math calculations (e.g., publish a `user.registered` event). A standalone `Notifications` consumer will listen to this queue and handle email delivery asynchronously, ensuring zero data loss during crashes.
 - [ ] **Persistence — Redis Caching Strategy:** Add **Redis** alongside PostgreSQL. Since the 15 Model Portfolios generated by Python only change upon monthly rebalancing, Go will cache these weights in Redis RAM. On every user login or dashboard refresh, Go reads the weights from the sub-millisecond cache instead of performing expensive network calls to the Python math engine (Cache-Aside pattern).
