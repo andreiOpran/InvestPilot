@@ -6,3 +6,5 @@ yfinance==1.2.0
 numpy==1.26.4
 psycopg2-binary==2.9.11
 SQLAlchemy==2.0.48
+matplotlib==3.10.8
+seaborn==0.13.2

@@ -20,6 +20,8 @@ services:
       - "5000:5000"
     env_file:
       - .env-python-node
+    volumes:
+      - ./python-node:/app
     networks:
       - vpc-network
     depends_on:
