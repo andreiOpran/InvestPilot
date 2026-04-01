@@ -355,7 +355,151 @@ def sync():
 
 @app.post('/generate-models')
 def compute_and_store_model_portfolios(verbose: bool = False):
-    pass
+    """
+    HRP MODEL GENERATION - step 2 of daily background job
+    
+    Reads historical prices from db, runs HRP separately on
+    equities and bonds, combines them using the macro
+    allocation table, and writes 15 pre-computed model
+    portfolio buckets to the model_portfolios table
+    (for various risk + investment horizon combinations).
+    
+    Go reads these buckets from the db on rebalance day
+    """
+    
+    # load price data from the db, resultin a tall table
+    query = "SELECT ticker, date, close_price FROM historical_market_data ORDER BY date ASC"
+    price_data_tall = pd.read_sql(query, engine)
+    
+    if price_data_tall.empty:
+        return {"error": "No data in the database. Run /sync first."}
+    
+    # pivot the table so we havbe a wide one,
+    # with each day mapping to a singular row
+    prices_wide = price_data_tall.pivot(
+        index="date", columns="ticker", values="close_price"
+    ).dropna(axis=1)
+    
+    # convert absolute pices to daily returns (percentages)
+    # return = (today - yesterday) / yesterday
+    # we cast to returns so we have absolute comparison,
+    # not regarding actual price of an asset
+    daily_returns = prices_wide.pct_change().dropna()
+    
+    # lates price of all tickers to return at the end
+    latest_price = prices_wide.iloc[-1].to_dict()
+    
+    if verbose:
+        save_debug_csv(prices_wide, "0_prices_wide.csv")
+        save_debug_csv(daily_returns, "1_daily_returns.csv")
+        
+    # filter out non existent tickers
+    valid_equities = [t for t in EQUITY_TICKERS if t in daily_returns.columns]
+    valid_bonds    = [t for t in BOND_TICKERS   if t in daily_returns.columns]
+    
+    # EQUITY SELECTION: keep only top N (N preconfigured) by sharpe ratio
+    # running HRP on all equities prices tiny allocations which are useless
+    equity_returns = daily_returns[valid_equities]
+    if not equity_returns.empty:
+        # sharpe ratio = annualized return / annualized volatility
+        # (return earned per unit of risk taken, higher is better)
+        #   annualize return by multiplying daily mean with 252 (trading days)
+        #   annualize volatility by multiplying with sqrt(252) because
+        #   volatility scales with square root of time (not linearly)
+        #   (daily returns are approx independent, their variances add,
+        #   and volatility is square root of variance)
+        sharpe_ratios = (
+            (equity_returns.mean() * 252) /
+            (equity_returns.std() * np.sqrt(252))
+        )
+        
+        # TODO: get hardcoded N from go config
+        top_equity_tickers = sharpe_ratios.nlargest(6).index.tolist()
+        filtered_equity_retuns = daily_returns[top_equity_tickers]
+    else:
+        filtered_equity_retuns = pd.DataFrame()
+        
+    # compute HRP weights for top equity universe
+    hrp_equity_weights = compute_hrp_weights(
+        filtered_equity_retuns, verbose=verbose, prefix="equity"
+    )
+    
+    # compute HRP weights for all bonds
+    bond_returns = daily_returns[valid_bonds]
+    hrp_bond_weights = compute_hrp_weights(
+        bond_returns, verbose=verbose, prefix="bond"
+    )
+    
+    # MACRO ALLOCATION: blend equity and bond weights using macro alloc table
+    # TODO: move macro allocation table to go config
+    
+    # {risk: equity allocation}, higher risk, more equities
+    base_equity_alocation = {1: 0.20, 2: 0.40, 3: 0.60, 4: 0.80, 5: 0.90}
+    
+    # horizon multiplier adjusts equity ration based on time horizon
+    # longer horizon, more equities
+    horizon_multiplier = {"short": 0.7, "medium": 1.0, "long": 1.1}
+    
+    all_buckets = {}
+    
+    for risk_level in range(1, 6):
+        for horizon_name, horizon_mult in horizon_multiplier.items():
+            bucket_key = f"risk_{risk_level}_horizon_{horizon_name}"
+            
+            # apply horizon multiplier to equities
+            equity_ratio = base_equity_alocation[risk_level] * horizon_mult
+            
+            # cap equities at 95%
+            equity_ratio = min(equity_ratio, 0.95)
+            
+            # bond fills remainder
+            bond_ratio = 1.0 - equity_ratio
+            
+            # scale each HRP weight by the macro allocation
+            # after loop all weights combined sum to 1.0
+            raw_weights = {}
+            for ticker, hrp_weight in hrp_equity_weights.items():
+                raw_weights[ticker] = float(hrp_weight * equity_ratio)
+            for ticker, hrp_weight in hrp_bond_weights.items():
+                raw_weights[ticker] = float(hrp_weight * bond_ratio)
+                
+            # weight cleanup: remove assets below minimum threshold
+            
+            # TODO: get weight_threshold from go config
+            weight_threshold = 0.02
+            clean_weights    = {}
+            discarded_weight = 0.0
+            
+            for ticker, weight in raw_weights.items():
+                if weight >= weight_threshold:
+                    clean_weights[ticker] = weight
+                else:
+                    discarded_weight += weight
+                    
+            # redistribute discarded weight proportionally among survivors
+            if len(clean_weights) > 0 and discarded_weight > 0:
+                total_surviving_weight = sum(clean_weights.values())
+                for ticker in clean_weights.keys():
+                    # what fraction of surviving weight this ticker has
+                    proportion = clean_weights[ticker] / total_surviving_weight
+                    # give back same fraction of discarded weight
+                    clean_weights[ticker] += (discarded_weight * proportion)
+                    
+            # round to 4 decimal for clean output
+            final_weights = {k: round (v, 4) for k, v in clean_weights.items()}
+            
+            # attack latest market data for reach ticker in this bucket
+            prices_for_bucket = {t: latest_price.get(t, 0) for t in final_weights.keys()}
+            
+            all_buckets[bucket_key] = {
+                "weights": final_weights,
+                "prices": prices_for_bucket
+            }
+    
+    # TODO: phase 3, put buckets to model_portfolios table instead of returning via http
+    # go will read from db on rebalance day
+    return all_buckets
+    
 
 @app.post('/forecast')
 def run_portfolio_forecast(req: ForecastRequest, verbose: bool = False):
