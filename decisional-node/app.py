@@ -451,6 +451,12 @@ def sync():
                     row
                 )
                 
+                # delete rows for data older than 5 years
+                conn.execute(text("""
+                    DELETE FROM historical_market_data
+                    WHERE date < NOW() - INTERVAL '5 years'
+                """))
+                
         return {
             "message":       "Sync complete",
             "rows_inserted": len(rows_to_insert),
@@ -570,7 +576,6 @@ def compute_and_store_model_portfolios(verbose: bool = False):
                 raw_weights[ticker] = float(hrp_weight * bond_ratio)
                 
             # weight cleanup: remove assets below minimum threshold
-            
             # TODO: get weight_threshold from go config
             weight_threshold = 0.02
             clean_weights    = {}
