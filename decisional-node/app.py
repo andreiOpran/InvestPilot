@@ -351,7 +351,52 @@ def run_monte_carlo(mean_return, volatility, initial_amount, monthly_contrib, ye
 
 @app.post('/sync')
 def sync():
-    pass
+    """
+    DATA INGESTION PIPELINE - step 1 of daily background job
+    
+    Fetches 5 years of daily closing prices from Yahoo Finance
+    for all tickers and puts them in historical_market_data
+    table in the db
+    """
+    
+    try:
+        # close gets the price at the end of trading day
+        raw_download = yf.download(ALL_TICKERS, period="5y", interval="1d")["Close"]
+        
+        rows_to_insert = []
+        for ticker in ALL_TICKERS:
+            if ticker not in raw_download.columns:
+                continue
+            
+            for date_timestamp, close_price in raw_download[ticker].dropna().items():
+                rows_to_insert.append({
+                    "ticker":      ticker,
+                    "date":        date_timestamp.date(),  # strip time, keep only date
+                    "close_price": float(close_price)      # convert numpy float64 to python float
+                })
+        
+        # open transaction with auto-commit/rollback
+        with engine.begin() as conn:
+            for row in rows_to_insert:
+                conn.execute(
+                    text("""
+                        INSERT INTO historical_market_data (ticker, date, close_price, created_at)
+                        VALUES (:ticker, :date, :close_price, NOW())
+                        ON CONFLICT (ticker, date)
+                        DO UPDATE SET close_price = EXCLUDED.close_price
+                    """),
+                    # ON CONFLICT: if a row for this (ticker, date) already exists,
+                    # update its price instead of throwing a duplicate key error
+                    row
+                )
+                
+        return {
+            "message":       "Sync complete",
+            "rows_inserted": len(rows_to_insert),
+            "tickers":       len(ALL_TICKERS)
+        }
+    except Exception as e:
+        return {"error": str(e)}
 
 @app.post('/generate-models')
 def compute_and_store_model_portfolios(verbose: bool = False):
