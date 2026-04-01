@@ -117,7 +117,7 @@ def plot_heatmap_chart(matrix, tickers, filename, title):
     plt.close()
     print(f"[DEBUG] Chart saved: {filepath}")
 
-def reorder_assets_by_cluster_similarity(linkage_matrix):
+def _reorder_assets_by_cluster_similarity(linkage_matrix):
     """
     HRP STEP 1 OF 3: REORDER ASSET LIST BY SIMILARITY (QUASI-DIAGONALIZATION)
     
@@ -182,7 +182,7 @@ def reorder_assets_by_cluster_similarity(linkage_matrix):
     return cluster_order.toList()
         
 
-def compute_cluster_variance(cov_matrix, cluster_tickers):
+def _compute_cluster_variance(cov_matrix, cluster_tickers):
     """
     HRP STEP 2 OF 3: CLUSTER VARIANCE
     
@@ -212,6 +212,52 @@ def compute_cluster_variance(cov_matrix, cluster_tickers):
         np.dot(cluster_cov, inverse_variance_weights)
     )
     return cluster_variance
+
+def _bisect_and_allocate_weights(cov_matrix, ordered_tickers):
+    """
+    HRP STEP 3 OF 3: RECURSIVE BISECTION
+    
+    Allocation of weights, where all weights are initialized
+    to 1.0, and will get multiplied by a fraction at each
+    level of bisection. Final weights are the product of
+    all fractions.
+    """
+    
+    weight_budgets = pd.Series(1.0, index=ordered_tickers)
+    # start with all assets
+    current_clusters = [ordered_tickers]
+    
+    while len(current_clusters) > 0:
+        # for each cluster we produce 2 sub-clusters (left and right half)
+        # clusters with only 1 asset means it is final
+        current_clusters = [
+            half 
+            for cluster in current_clusters
+            for half in (cluster[:len(cluster) // 2], cluster[len(cluster) // 2:])
+            if len(cluster) > 1
+        ]
+        
+        # process pairs of clusters (left, right) that came from the same bisection
+        for pair_index in range(0, len(current_clusters), 2):
+            left_cluster  = current_clusters[pair_index]
+            right_cluster = current_clusters[pair_index + 1]
+            
+            # compute Inverse Variance Portfolio for each half
+            # we get how risky is the left group vs right group
+            var_left  = _compute_cluster_variance(cov_matrix, left_cluster)
+            var_right = _compute_cluster_variance(cov_matrix, right_cluster)
+            
+            # alpha = fraction of current budget allocated to left cluster
+            # (riskier clusters receive less weight)
+            # var_left == var_right -> alpha = 0.5 (equal split)
+            # var_left  > var_right -> alpha < 0.5 (less to riskier left)
+            # var_left  < var_right -> alpha > 0.5 (more to safer left)
+            # goal: evenly distribute risk across portfolio
+            alpha = 1.0 - (var_left / (var_left + var_right))
+            weight_budgets[left_cluster]  *= alpha
+            weight_budgets[right_cluster] *= (1.0 - alpha)
+            
+    return weight_budgets
 
 def compute_hrp_weights(returns, verbose: bool = False, prefix: str = ""):
     """
@@ -284,7 +330,7 @@ def compute_hrp_weights(returns, verbose: bool = False, prefix: str = ""):
 
     # traverse cluster tree to reorder the assets so that similar
     # ones are adjacent
-    sorted_asset_indices = reorder_assets_by_cluster_similarity(cluster_tree)
+    sorted_asset_indices = _reorder_assets_by_cluster_similarity(cluster_tree)
     
     # map numeric indices back to ticker names
     ordered_tickers = returns.colums[sorted_asset_indices].tolist()
@@ -302,43 +348,8 @@ def compute_hrp_weights(returns, verbose: bool = False, prefix: str = ""):
         )
         
     # PHASE C: RECURSIVE BISECTION TO ALLOCATE WEIGHTS
-    # all weights are initialized to 1.0, and will get multiplied
-    # by a fraction at each level of bisection
-    weight_budgets = pd.Series(1.0, index=ordered_tickers)
+    weight_budgets = _bisect_and_allocate_weights(cov_matrix, ordered_tickers)
     
-    # start with all assets
-    current_clusters = [ordered_tickers]
-    
-    while len(current_clusters) > 0:
-        # for each cluster we produce 2 sub-clusters (left and right half)
-        # clusters with only 1 asset means it is final
-        current_clusters = [
-            half 
-            for cluster in current_clusters
-            for half in (cluster[:len(cluster) // 2], cluster[len(cluster) // 2:])
-            if len(cluster) > 1
-        ]
-        
-        # process pairs of clusters (left, right) that came from the same bisection
-        for pair_index in range(0, len(current_clusters), 2):
-            left_cluster  = current_clusters[pair_index]
-            right_cluster = current_clusters[pair_index + 1]
-            
-            # compute Inverse Variance Portfolio for each half
-            # we get how risky is the left group vs right group
-            var_left  = compute_cluster_variance(cov_matrix, left_cluster)
-            var_right = compute_cluster_variance(cov_matrix, right_cluster)
-            
-            # alpha = fraction of current budget allocated to left cluster
-            # (riskier clusters receive less weight)
-            # var_left == var_right -> alpha = 0.5 (equal split)
-            # var_left  > var_right -> alpha < 0.5 (less to riskier left)
-            # var_left  < var_right -> alpha > 0.5 (more to safer left)
-            # goal: evenly distribute risk across portfolio
-            alpha = 1.0 - (var_left / (var_left + var_right))
-            weight_budgets[left_cluster]  *= alpha
-            weight_budgets[right_cluster] *= (1.0 - alpha)
-            
     if verbose:
         save_debug_csv(weight_budgets, f"{prefix}_7_hrp_final_weights.csv")
         
