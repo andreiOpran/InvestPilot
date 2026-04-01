@@ -179,7 +179,7 @@ def _reorder_assets_by_cluster_similarity(linkage_matrix):
         cluster_order = cluster_order.sort_index()
         
     # we have only asset index leaves (0..N-1) so we cast to list and return
-    return cluster_order.toList()
+    return cluster_order.tolist()
         
 
 def _compute_cluster_variance(cov_matrix, cluster_tickers):
@@ -333,7 +333,7 @@ def compute_hrp_weights(returns, verbose: bool = False, prefix: str = ""):
     sorted_asset_indices = _reorder_assets_by_cluster_similarity(cluster_tree)
     
     # map numeric indices back to ticker names
-    ordered_tickers = returns.colums[sorted_asset_indices].tolist()
+    ordered_tickers = returns.columns[sorted_asset_indices].tolist()
     
     if verbose:
         save_debug_csv(ordered_tickers, f"{prefix}_6_sorted_tickers_list.csv")
