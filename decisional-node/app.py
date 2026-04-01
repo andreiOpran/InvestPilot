@@ -346,8 +346,69 @@ def compute_hrp_weights(returns, verbose: bool = False, prefix: str = ""):
     # the budget without creating or losing weight
     return weight_budgets.to_dict()
 
-def run_monte_carlo(mean_return, volatility, initial_amount, monthly_contrib, years, num_simulations=10000, verbose=False):
-    pass
+def run_monte_carlo(
+    mean_return,
+    volatility,
+    initial_amount,
+    monthly_contrib,
+    years,
+    num_simulations=10000,
+    verbose=False
+):
+    """
+    MONTE CARLO SIMULATION: runs scenarios of portfolio growth
+    
+    Each scenario applies a randomly drawn annual return from
+    a normal distribution parameterized by historical mean and
+    volatility, plus an annual contribution, compounding year by year
+    
+    Returns 5th, 50th and 95th percentile outcomes per year
+    """
+    # create 2D array of zeros, rows = years, columns = simulations
+    simulation_grid = np.zeros((years + 1, num_simulations))
+    
+    # year 0, all simulations start with same initial investment amount
+    simulation_grid[0] = initial_amount
+    
+    # convert monthly contribution to annual
+    annual_contrib = monthly_contrib * 12
+    
+    for year in range(1, years + 1):
+        # draw one random annual return per simulation from a normal distribution
+        # loc = center of distribuition = historical expected annual return
+        # scale = std deviation = historical annual volatility
+        # size = number of values to generate = one per simulation
+        random_annual_returns = np.random.normal(
+            loc=mean_return,
+            scale=volatility,
+            size=num_simulations
+        )
+            
+        # apply Geometric Brownian Motion (grow last year's vaue by this
+        # year's return, then add annual contribution)
+        simulation_grid[year] = (
+            simulation_grid[year - 1] * (1 + random_annual_returns) + annual_contrib
+        )
+        
+    if verbose:
+        save_debug_csv(simulation_grid, "mc_1_all_simulations.csv")
+        
+    # for each year (row), compute various percentiles across all sim values (columns)
+    # axis=1 means one percentile value per row (year)
+    pessimistic = np.percentile(simulation_grid, 5,  axis=1)
+    expected    = np.percentile(simulation_grid, 50, axis=1)
+    optimistic  = np.percentile(simulation_grid, 95, axis=1)
+    
+    if verbose:
+        summary = pd.DataFrame({
+            "Year": range(years + 1),
+            "Pessimistic_5th":  pessimistic,
+            "Expected_50th":    expected,
+            "Optimistic_95th":  optimistic
+        })
+        save_debug_csv(summary, "mc_2_final_percentiles.csv")
+        
+    return pessimistic.tolist(), expected.tolist(), optimistic.tolist()
 
 @app.post('/sync')
 def sync():
@@ -412,14 +473,14 @@ def compute_and_store_model_portfolios(verbose: bool = False):
     Go reads these buckets from the db on rebalance day
     """
     
-    # load price data from the db, resultin a tall table
+    # load price data from the db, resulting in a tall table
     query = "SELECT ticker, date, close_price FROM historical_market_data ORDER BY date ASC"
     price_data_tall = pd.read_sql(query, engine)
     
     if price_data_tall.empty:
         return {"error": "No data in the database. Run /sync first."}
     
-    # pivot the table so we havbe a wide one,
+    # pivot the table so we have a wide one,
     # with each day mapping to a singular row
     prices_wide = price_data_tall.pivot(
         index="date", columns="ticker", values="close_price"
@@ -548,7 +609,79 @@ def compute_and_store_model_portfolios(verbose: bool = False):
 
 @app.post('/forecast')
 def run_portfolio_forecast(req: ForecastRequest, verbose: bool = False):
-    pass
+    """
+    MONTE CARLO FORECAST: called by Go when a user requests a projection
+    
+    Reads historical returns for the user's specific portfolio tickers,
+    computes portfolio's expected return and volatility, then runs
+    simulated scenarios to produce the forecast
+    
+    TODO: results shoudl be written to forecast_results table by task_id
+    """
+    
+    # load price data from the db, resulting in a tall table
+    query = "SELECT ticker, date, close_price FROM historical_market_data ORDER BY date ASC"
+    price_data_tall = pd.read_sql(query, engine)
+    
+    if price_data_tall.empty:
+        return {"error": "No data in the database. Run /sync first."}
+    
+    # pivot the table so we have a wide one,
+    # with each day mapping to a singular row
+    prices_wide = price_data_tall.pivot(
+        index="date", columns="ticker", values="close_price"
+    ).dropna(axis=1)
+    
+    # convert absolute pices to daily returns (percentages)
+    # return = (today - yesterday) / yesterday
+    # we cast to returns so we have absolute comparison,
+    # not regarding actual price of an asset
+    daily_returns = prices_wide.pct_change().dropna()
+    
+    # filter to only the tickers in the user's portfolio
+    tickers_in_portfolio = list(req.weights.keys())
+    portfolio_returns    = daily_returns[tickers_in_portfolio]
+    
+    # annualize mean daily return and covariance matrix
+    # both scale linearly, so to annualize we muliply
+    # by 252 trading days
+    mean_returns_annual = portfolio_returns.mean() * 252
+    cov_matrix_annual   = portfolio_returns.cov()  * 252
+    
+    # build weight array in the same order as tickers_in_portfolio
+    weight_array = np.array([req.weights[t] for t in tickers_in_portfolio])
+    
+    # portfolio expected return = weighted average of inividual asset returns
+    # np.sum(mean_returns_annual * weight_array) = sum(weight_i * return_i)
+    portfolio_expected_return = np.sum(mean_returns_annual * weight_array)
+    
+    # portfolio volatility = sqrt(variance)
+    # where variance = w' * Σ * w, w = weights array, Σ = covariance matrix
+    # this accounts for individual asset variances and their co-movements
+    portfolio_volatility = np.sqrt(
+        np.dot(weight_array.T, np.dot(cov_matrix_annual, weight_array))
+    )
+    
+    pessimistic, expected, optimistic = run_monte_carlo(
+        mean_return     = portfolio_expected_return,
+        volatility      = portfolio_volatility,
+        initial_amount  = req.initial_investment,
+        monthly_contrib = req.monthly_contribution,
+        years           =req.years,
+        verbose         =verbose
+    )
+    
+    return {
+        "years":                       list(range(req.years + 1)),
+        "pessimistic_5th_percentile":  pessimistic,
+        "expected_50th_percentile":    expected,
+        "optimistic_95th_percentile":  optimistic,
+        "stats": {
+            # inputs that were given to monte carlo
+            "historical_annual_return":     round(portfolio_expected_return, 4),
+            "historical_annual_volatility": round(portfolio_volatility, 4)
+        }
+    }
 
 if __name__ == '__main__':
     import uvicorn
