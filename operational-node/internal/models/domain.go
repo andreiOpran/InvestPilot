@@ -93,3 +93,24 @@ type HistoricalMarketData struct {
 	ClosePrice float64   `gorm:"not null"`                             // adjusted price at closing
 	CreatedAt  time.Time
 }
+
+// pre-computed HRP bucket weights, written daily by
+// decisional-node, read by operational-node on rebalance day
+type ModelPortfolio struct {
+	ID         uint      `gorm:"primaryKey"`
+	BucketKey  string    `gorm:"not null;index"` // "risk_3_horizon_medium"
+	Weights    string    `gorm:"not null"`       // JSON: {"SPY": 0.42, "BND": 0.30, ...}
+	ComputedAt time.Time `gorm:"not null"`
+	CreatedAt  time.Time
+}
+
+// async Monte Carlo forecast results,
+// written by decisional-node, polled by operational-node
+type ForecastResult struct {
+	ID        uint   `gorm:"primaryKey"`
+	TaskID    string `gorm:"unique;not null;index"`      // UUID issued by operational-node
+	Status    string `gorm:"not null;default:'pending'"` // "pending", "complete", "error"
+	Payload   string // JSON with percentile arrays, nil until complete
+	CreatedAt time.Time
+	UpdatedAt time.Time
+}
