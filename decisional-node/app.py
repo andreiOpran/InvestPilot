@@ -1,10 +1,13 @@
-from fastapi import FastAPI
-from pydantic import BaseModel
 import yfinance as yf
 from sqlalchemy import create_engine, text
 import os
 import pandas as pd
 import numpy as np
+import pika
+import json
+import logging
+import time
+from datetime import datetime, timezone
 from scipy.cluster.hierarchy import linkage
 from scipy.spatial.distance import squareform
 from typing import Dict
@@ -15,41 +18,10 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from scipy.cluster.hierarchy import dendrogram
 
-app = FastAPI(title="Robo-Advisory Decisional Node", version="1.0")
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 DATABASE_URL = os.environ.get("DATABASE_URL", "postgresql://admin:pass@db:5432/robo_advisory")
 engine = create_engine(DATABASE_URL)  # connection pool for the db
-
-# TODO: in production these asset universes should be send via RabbitMQ message
-# payload from Go
-
-# growth assets (higher risk, higher expected return over long horizons)
-EQUITY_TICKERS = [
-    "VTI", "VOO", "QQQ", "VTV", "VUG", "IWM", # US broad market equities
-    "VEA", "VWO",                             # International equities
-    "VNQ", "VNQI",                            # Real estate (REITs)
-    "XLF", "XLV", "XLE", "XLK"                # US sector ETFs
-]
-
-# safety assets (lower risk to act as a portfolio stabilizer)
-BOND_TICKERS = [
-    "BND",  # Total US bond market
-    "TLT",  # long-term US government bonds (>20 years)
-    "LQD",  # Investment-grade corporate bonds
-    "HYG",  # High-yield (junk) corporate bonds (higher risk within bonds)
-    "BNDX"  # International bonds
-]
-
-# combine all assets in a single var, to streamline yfinance download call
-ALL_TICKERS = EQUITY_TICKERS + BOND_TICKERS
-
-# ForecastRequest represents what the operational-node sends for a forecast
-class ForecastRequest(BaseModel):
-    weights: Dict[str, float]    # e.g. {"VTI": 0.42, "BND": 0.30, ...}
-    initial_investment: float    # starting portfolio value in dollars
-    monthly_contribution: float  # dollars added per month
-    years: int                   # forecast horizon
-
 
 def save_debug_csv(data, filename: str):
     """Saves any common data structure to a CSV file in the debug_output/ folder."""
@@ -144,7 +116,7 @@ def _reorder_assets_by_cluster_similarity(linkage_matrix):
     
     # total number of original assets = col 3 of the last row
     # any index >= num_assets is a merged cluster (non-leaf) 
-    # that still needs to be expanded into its childer
+    # that still needs to be expanded into its children
     num_assets = linkage_matrix[-1, 3]
     
     # expand non-leaf clusters until only original indices remain (leafs)
@@ -221,6 +193,14 @@ def _bisect_and_allocate_weights(cov_matrix, ordered_tickers):
     to 1.0, and will get multiplied by a fraction at each
     level of bisection. Final weights are the product of
     all fractions.
+    
+    Risk Parity Logic (alpha):
+    alpha = fraction of current budget allocated to left cluster
+    Riskier clusters receive less weight:
+        var_left == var_right -> alpha = 0.5 (equal split)
+        var_left  > var_right -> alpha < 0.5 (less to riskier left)
+        var_left  < var_right -> alpha > 0.5 (more to safer left)
+        goal: evenly distribute risk across portfolio
     """
     
     weight_budgets = pd.Series(1.0, index=ordered_tickers)
@@ -247,12 +227,7 @@ def _bisect_and_allocate_weights(cov_matrix, ordered_tickers):
             var_left  = _compute_cluster_variance(cov_matrix, left_cluster)
             var_right = _compute_cluster_variance(cov_matrix, right_cluster)
             
-            # alpha = fraction of current budget allocated to left cluster
-            # (riskier clusters receive less weight)
-            # var_left == var_right -> alpha = 0.5 (equal split)
-            # var_left  > var_right -> alpha < 0.5 (less to riskier left)
-            # var_left  < var_right -> alpha > 0.5 (more to safer left)
-            # goal: evenly distribute risk across portfolio
+            # evenly distribute risk across portfolio
             alpha = 1.0 - (var_left / (var_left + var_right))
             weight_budgets[left_cluster]  *= alpha
             weight_budgets[right_cluster] *= (1.0 - alpha)
@@ -261,14 +236,32 @@ def _bisect_and_allocate_weights(cov_matrix, ordered_tickers):
 
 def compute_hrp_weights(returns, verbose: bool = False, prefix: str = ""):
     """
-    HRP STEP 3 OF 3: FULL HRP ALGORITHM
+    FULL HRP ALGORITHM: combines building cluster tree, sorting assets and weight alloc
     
     Compute weights via Hierarchical Risk Parity algorithm on a returns DataFrame
     Returns a dict of {ticker: weight} where all weights sum to 1.0.
     
     Combines all three phases:
         Phase A: build covariance and correlation matrices
+            We use covariance to measure how much each pair of assets move together.
+            Covariance matrix:
+                * diagonal = each asset's own variance (volatility squared)
+                * off-diagonal = how asset A and B co-move (positive = same direction)
+            We use correlation and not covariance for clustering because it's
+            scale-independent (refering to a ETF's value).
+            Correlation matrix:
+                * covariance normalized to [-1, +1]
+                * +1 = always move together, -1 = always move opposite, 0 = unrelated
         Phase B: cluster assets by similarity (via distance matrix + linkage)
+            We can't use correlations directly as distance
+                corr=+1 needs to be mapped to distance=0
+                corr=-1 needs to be mapped to distance=1
+                Then we use the formula distance = sqrt(0.5 * (1 - corr))
+            linkage() builds hierarchical cluster tree by linking two closest
+            clusters of assets until we have one big cluster
+            squareform() casts the matrix into a 1D format of the upper triangle
+            method="single" chaining assets that are highly correlated together
+            even if some cluster members are less correlated with each other
         Phase C: bisect the tree and allocate weights to evenly distribute risk
         
     "prefix" is used to avoid overwriting debug files when function is called twice
@@ -278,15 +271,8 @@ def compute_hrp_weights(returns, verbose: bool = False, prefix: str = ""):
         return {}
     
     # PHASE A: STATISTICAL BASE
-    # measures how much eack pair of assets move together
-    # diagonal = each asset's own variance (volatility squared)
-    # off-diagonal = how asset A and B co-move (positive = same direction)
+    # generate covariance and correlation matrices
     cov_matrix = returns.cov()
-    
-    # covariance normalized to [-1, +1]
-    # +1 = always move together, -1 = always move opposite, 0 = unrelated
-    # we use correlation and not covariance for clustering because it's
-    # scale-independent (refering to a ETF's value)
     corr_matrix = returns.corr()
     
     # used in debug diagrams
@@ -303,20 +289,14 @@ def compute_hrp_weights(returns, verbose: bool = False, prefix: str = ""):
         )
         
     # PHASE B: BUILDING THE CLUSTER TREE
-    # we can't use correlations directly as distance
-    # corr=+1 needs to be mapped to distance=0
-    # corr=-1 needs to be mapped to distance=1
-    # we use the formula distace = sqrt(0.5 * (1 - corr))
+    # compute distance matrix using formula distance = sqrt(0.5 * (1 - corr))
     distance_matrix = np.sqrt(0.5 * (1 - corr_matrix))
     
     if verbose:
         save_debug_csv(distance_matrix, f"{prefix}_4_distance_matrix.csv")
         
-    # linkage builds hierarchical cluster tree by linking two closest
+    # build hierarchical cluster tree by linking two closest
     # clusters of assets until we have one big cluster
-    # squareform() casts the matrix into a 1D format of the upper triangle
-    # method="single" chaining assets that are highly correlated together
-    # even if some cluster members are less correlated with each other
     cluster_tree = linkage(squareform(distance_matrix), method="single")
     
     if verbose:
@@ -328,8 +308,7 @@ def compute_hrp_weights(returns, verbose: bool = False, prefix: str = ""):
             title=f"HRP Dendrogram ({prefix.strip('_').upper()})"
         )
 
-    # traverse cluster tree to reorder the assets so that similar
-    # ones are adjacent
+    # traverse cluster tree to reorder the assets so that similar ones are adjacent
     sorted_asset_indices = _reorder_assets_by_cluster_similarity(cluster_tree)
     
     # map numeric indices back to ticker names
@@ -386,13 +365,10 @@ def run_monte_carlo(
     
     for year in range(1, years + 1):
         # draw one random annual return per simulation from a normal distribution
-        # loc = center of distribuition = historical expected annual return
-        # scale = std deviation = historical annual volatility
-        # size = number of values to generate = one per simulation
         random_annual_returns = np.random.normal(
-            loc=mean_return,
-            scale=volatility,
-            size=num_simulations
+            loc=mean_return,     # center of distribuition = historical expected annual return
+            scale=volatility,    # std deviation = historical annual volatility
+            size=num_simulations # number of values to generate = one per simulation
         )
             
         # apply Geometric Brownian Motion (grow last year's vaue by this
@@ -421,8 +397,7 @@ def run_monte_carlo(
         
     return pessimistic.tolist(), expected.tolist(), optimistic.tolist()
 
-@app.post('/sync')
-def sync():
+def handle_sync(payload):
     """
     DATA INGESTION PIPELINE - step 1 of daily background job
     
@@ -432,11 +407,13 @@ def sync():
     """
     
     try:
+        all_tickers = payload.get("equity_tickers", []) + payload.get("bond_tickers", [])
+
         # close gets the price at the end of trading day
-        raw_download = yf.download(ALL_TICKERS, period="5y", interval="1d")["Close"]
+        raw_download = yf.download(all_tickers, period="5y", interval="1d")["Close"]
         
         rows_to_insert = []
-        for ticker in ALL_TICKERS:
+        for ticker in all_tickers:
             if ticker not in raw_download.columns:
                 continue
             
@@ -471,13 +448,12 @@ def sync():
         return {
             "message":       "Sync complete",
             "rows_inserted": len(rows_to_insert),
-            "tickers":       len(ALL_TICKERS)
+            "tickers":       len(all_tickers)
         }
     except Exception as e:
         return {"error": str(e)}
 
-@app.post('/generate-models')
-def compute_and_store_model_portfolios(verbose: bool = False):
+def handle_generate_models(payload):
     """
     HRP MODEL GENERATION - step 2 of daily background job
     
@@ -486,6 +462,18 @@ def compute_and_store_model_portfolios(verbose: bool = False):
     allocation table, and writes 15 pre-computed model
     portfolio buckets to the model_portfolios table
     (for various risk + investment horizon combinations).
+    
+    We cast to returns so we have absolute comparison,
+    not regarding actual price of an asset
+        * return = (today - yesterday) / yesterday
+    
+    Sharpe ratio = annualized return / annualized volatility
+    (return earned per unit of risk taken, higher is better)
+        * annualize return by multiplying daily mean with 252 (trading days)
+        * annualize volatility by multiplying with sqrt(252) because
+        volatility scales with square root of time (not linearly)
+            (daily returns are approx independent, their variances
+            add, and volatility is square root of variance)
     
     Go reads these buckets from the db on rebalance day
     """
@@ -504,40 +492,35 @@ def compute_and_store_model_portfolios(verbose: bool = False):
     ).dropna(axis=1)
     
     # convert absolute pices to daily returns (percentages)
-    # return = (today - yesterday) / yesterday
-    # we cast to returns so we have absolute comparison,
-    # not regarding actual price of an asset
     daily_returns = prices_wide.pct_change().dropna()
     
     # lates price of all tickers to return at the end
     latest_price = prices_wide.iloc[-1].to_dict()
     
+    verbose = payload.get("verbose", False)
     if verbose:
         save_debug_csv(prices_wide, "0_prices_wide.csv")
         save_debug_csv(daily_returns, "1_daily_returns.csv")
         
     # filter out non existent tickers
-    valid_equities = [t for t in EQUITY_TICKERS if t in daily_returns.columns]
-    valid_bonds    = [t for t in BOND_TICKERS   if t in daily_returns.columns]
+    equity_tickers = payload.get("equity_tickers", [])
+    bond_tickers = payload.get("bond_tickers", [])
+    valid_equities = [t for t in equity_tickers if t in daily_returns.columns]
+    valid_bonds    = [t for t in bond_tickers   if t in daily_returns.columns]
     
-    # EQUITY SELECTION: keep only top N (N preconfigured) by sharpe ratio
+    # EQUITY SELECTION: keep only top N by sharpe ratio
     # running HRP on all equities prices tiny allocations which are useless
     equity_returns = daily_returns[valid_equities]
     if not equity_returns.empty:
-        # sharpe ratio = annualized return / annualized volatility
-        # (return earned per unit of risk taken, higher is better)
-        #   annualize return by multiplying daily mean with 252 (trading days)
-        #   annualize volatility by multiplying with sqrt(252) because
-        #   volatility scales with square root of time (not linearly)
-        #   (daily returns are approx independent, their variances add,
-        #   and volatility is square root of variance)
+        # sharpe ratio = annualized return / annualized volatility =
+        # = return earned per unit of risk taken, higher is better
         sharpe_ratios = (
             (equity_returns.mean() * 252) /
             (equity_returns.std() * np.sqrt(252))
         )
         
-        # TODO: get hardcoded N from go config
-        top_equity_tickers = sharpe_ratios.nlargest(6).index.tolist()
+        top_n_equities = payload.get("top_n_equities", 6)
+        top_equity_tickers = sharpe_ratios.nlargest(top_n_equities).index.tolist()
         filtered_equity_retuns = daily_returns[top_equity_tickers]
     else:
         filtered_equity_retuns = pd.DataFrame()
@@ -554,26 +537,30 @@ def compute_and_store_model_portfolios(verbose: bool = False):
     )
     
     # MACRO ALLOCATION: blend equity and bond weights using macro alloc table
-    # TODO: move macro allocation table to go config
-    
     # {risk: equity allocation}, higher risk, more equities
-    base_equity_alocation = {1: 0.20, 2: 0.40, 3: 0.60, 4: 0.80, 5: 0.90}
+    base_equity_allocation_raw = payload.get(
+        "base_equity_allocation",
+        {1: 0.20, 2: 0.40, 3: 0.60, 4: 0.80, 5: 0.90}
+    )
+    # JSON decoding casts ints to string, so we cast them back
+    base_equity_allocation = {int(k): float(v) for k, v in base_equity_allocation_raw.items()}
     
     # horizon multiplier adjusts equity ration based on time horizon
     # longer horizon, more equities
-    horizon_multiplier = {"short": 0.7, "medium": 1.0, "long": 1.1}
+    horizon_multipliers = payload.get("horizon_multipliers", {"short": 0.7, "medium": 1.0, "long": 1.1})
     
     all_buckets = {}
     
     for risk_level in range(1, 6):
-        for horizon_name, horizon_mult in horizon_multiplier.items():
+        for horizon_name, horizon_mult in horizon_multipliers.items():
             bucket_key = f"risk_{risk_level}_horizon_{horizon_name}"
             
             # apply horizon multiplier to equities
-            equity_ratio = base_equity_alocation[risk_level] * horizon_mult
+            equity_ratio = base_equity_allocation[risk_level] * horizon_mult
             
-            # cap equities at 95%
-            equity_ratio = min(equity_ratio, 0.95)
+            # cap equities at configured threshold
+            max_equity_cap = payload.get("max_equity_cap", 0.95)
+            equity_ratio = min(equity_ratio, max_equity_cap)
             
             # bond fills remainder
             bond_ratio = 1.0 - equity_ratio
@@ -587,8 +574,7 @@ def compute_and_store_model_portfolios(verbose: bool = False):
                 raw_weights[ticker] = float(hrp_weight * bond_ratio)
                 
             # weight cleanup: remove assets below minimum threshold
-            # TODO: get weight_threshold from go config
-            weight_threshold = 0.02
+            weight_threshold = payload.get("weight_threshold", 0.02)
             clean_weights    = {}
             discarded_weight = 0.0
             
@@ -610,37 +596,53 @@ def compute_and_store_model_portfolios(verbose: bool = False):
             # round to 4 decimal for clean output
             final_weights = {k: round (v, 4) for k, v in clean_weights.items()}
             
-            # attack latest market data for reach ticker in this bucket
+            # attach latest market data for each ticker in this bucket
+            # TODO: do we still attach the prices?
             prices_for_bucket = {t: latest_price.get(t, 0) for t in final_weights.keys()}
             
-            all_buckets[bucket_key] = {
-                "weights": final_weights,
-                "prices": prices_for_bucket
-            }
+            all_buckets[bucket_key] = final_weights # storing only weights
     
-    # TODO: phase 3, put buckets to model_portfolios table instead of returning via http
+    # put buckets to model_portfolios table
     # go will read from db on rebalance day
-    return all_buckets
-    
+    logging.info(f"Generated {len(all_buckets)} portfolio buckets, saving to DB...")
+    with engine.begin() as conn:
+        for bucket_key, weights in all_buckets.items():
+            conn.execute(
+                text("""
+                INSERT INTO model_portfolios (bucket_key, weights, computed_at, created_at)
+                VALUES (:key, :w, :now, :now)
+                """),
+                {"key": bucket_key, "w": json.dumps(weights), "now": datetime.now(timezone.utc)}
+            )
+            
+    return {"status": "success", "buckets_generated": len(all_buckets)}
 
-@app.post('/forecast')
-def run_portfolio_forecast(req: ForecastRequest, verbose: bool = False):
+def handle_forecast(payload):
     """
     MONTE CARLO FORECAST: called by Go when a user requests a projection
     
     Reads historical returns for the user's specific portfolio tickers,
     computes portfolio's expected return and volatility, then runs
     simulated scenarios to produce the forecast
-    
-    TODO: results shoudl be written to forecast_results table by task_id
     """
+    
+    task_id = payload.get("task_id")
+    if not task_id:
+        logging.error("No task_id provided in CMD_FORECAST payload")
+        return
     
     # load price data from the db, resulting in a tall table
     query = "SELECT ticker, date, close_price FROM historical_market_data ORDER BY date ASC"
     price_data_tall = pd.read_sql(query, engine)
     
     if price_data_tall.empty:
-        return {"error": "No data in the database. Run /sync first."}
+        logging.error(f"Cannot run forecast for task {task_id}: No historical data.")
+        with engine.begin() as conn:
+            conn.execute(
+                text("UPDATE forecast_results SET status = 'error', updated_at = NOW() WHERE task_id = :task_id"),
+                {"task_id": task_id}
+            )
+        return
     
     # pivot the table so we have a wide one,
     # with each day mapping to a singular row
@@ -649,23 +651,20 @@ def run_portfolio_forecast(req: ForecastRequest, verbose: bool = False):
     ).dropna(axis=1)
     
     # convert absolute pices to daily returns (percentages)
-    # return = (today - yesterday) / yesterday
-    # we cast to returns so we have absolute comparison,
-    # not regarding actual price of an asset
+    # so we have do absolute comparison of assets
     daily_returns = prices_wide.pct_change().dropna()
-    
+
     # filter to only the tickers in the user's portfolio
-    tickers_in_portfolio = list(req.weights.keys())
+    weights_payload = payload.get("weights", {})
+    tickers_in_portfolio = list(weights_payload.keys())
     portfolio_returns    = daily_returns[tickers_in_portfolio]
     
     # annualize mean daily return and covariance matrix
-    # both scale linearly, so to annualize we muliply
-    # by 252 trading days
     mean_returns_annual = portfolio_returns.mean() * 252
     cov_matrix_annual   = portfolio_returns.cov()  * 252
     
     # build weight array in the same order as tickers_in_portfolio
-    weight_array = np.array([req.weights[t] for t in tickers_in_portfolio])
+    weight_array = np.array([weights_payload[t] for t in tickers_in_portfolio])
     
     # portfolio expected return = weighted average of inividual asset returns
     # np.sum(mean_returns_annual * weight_array) = sum(weight_i * return_i)
@@ -678,17 +677,18 @@ def run_portfolio_forecast(req: ForecastRequest, verbose: bool = False):
         np.dot(weight_array.T, np.dot(cov_matrix_annual, weight_array))
     )
     
+    years_forecast = payload.get("years", 0)
     pessimistic, expected, optimistic = run_monte_carlo(
         mean_return     = portfolio_expected_return,
         volatility      = portfolio_volatility,
-        initial_amount  = req.initial_investment,
-        monthly_contrib = req.monthly_contribution,
-        years           =req.years,
-        verbose         =verbose
+        initial_amount  = payload.get("initial_investment", 0),
+        monthly_contrib = payload.get("monthly_contribution", 0),
+        years           = years_forecast,
+        verbose         = payload.get("verbose", False)
     )
     
-    return {
-        "years":                       list(range(req.years + 1)),
+    result_payload = {
+        "years":                       list(range(years_forecast + 1)),
         "pessimistic_5th_percentile":  pessimistic,
         "expected_50th_percentile":    expected,
         "optimistic_95th_percentile":  optimistic,
@@ -698,7 +698,68 @@ def run_portfolio_forecast(req: ForecastRequest, verbose: bool = False):
             "historical_annual_volatility": round(portfolio_volatility, 4)
         }
     }
+    
+    logging.info(f"Forecast complete for task {task_id}, saving to DB...")
+    try:
+        with engine.begin() as conn:
+            conn.execute(
+                text("""
+                UPDATE forecast_results 
+                SET status = 'complete', payload = :payload, updated_at = :now
+                WHERE task_id = :task_id
+                """),
+                {
+                    "payload": json.dumps(result_payload), 
+                    "task_id": task_id, 
+                    "now": datetime.now(timezone.utc)
+                }
+            )
+    except Exception as e:
+        logging.error(f"Failed to save forecast task {task_id} to DB: {e}")
+
+def handle_rebalance_user(payload):
+    logging.info("handle_rebalance_user not yet implemented")
+
+def main():
+    # delay to ensure rabbitmq is up
+    time.sleep(5)
+    
+    # wait for rabbitmq to start
+    connection = pika.BlockingConnection(pika.ConnectionParameters(host="rabbitmq", port=5672))
+    channel = connection.channel()
+    channel.queue_declare(queue="cmd_queue", durable=True)
+    
+    def callback(ch,method, properties, body):
+        try:
+            message = json.loads(body)
+            command = message.get("command")
+            payload = message.get("payload")
+            
+            logging.info(f"Received command: {command}")
+            
+            if command == "CMD_SYNC":
+                handle_sync(payload)
+            elif command == "CMD_GENERATE":
+                handle_generate_models(payload)
+            elif command == "CMD_REBALANCE_USER":
+                handle_rebalance_user(payload)
+            elif command == "CMD_FORECAST":
+                handle_forecast(payload)
+            else:
+                logging.warning(f"Unknown command: {command}")
+        
+        except Exception as e:
+            logging.error(f"Error processing message: {e}")
+        finally:
+            # acknowledge message succesfully processed
+            ch.basic_ack(delivery_tag=method.delivery_tag)
+        
+    # process one message at a time per worker
+    channel.basic_qos(prefetch_count=1)
+    channel.basic_consume(queue="cmd_queue", on_message_callback=callback)
+    
+    logging.info("Python Decisional Node started. Waiting for messages...")
+    channel.start_consuming()
 
 if __name__ == '__main__':
-    import uvicorn
-    uvicorn.run(app, host='0.0.0.0', port=5000)
+    main()
