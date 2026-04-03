@@ -1,13 +1,20 @@
-import logging
 import json
+import logging
 import time
+
 import pika
 
 from config import settings
+from handlers.command_handlers import (
+    process_forecast,
+    process_generate_models,
+    process_rebalance_user,
+    process_sync,
+)
 from repositories.db_repository import DataRepository
-from handlers.command_handlers import process_sync, process_generate_models, process_forecast, process_rebalance_user
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
+
 
 def main():
     repo = DataRepository(settings.DATABASE_URL)

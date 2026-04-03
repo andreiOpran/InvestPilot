@@ -1,23 +1,10 @@
-import yfinance as yf
-from sqlalchemy import create_engine, text
-import os
-import pandas as pd
 import numpy as np
-import pika
-import json
-import logging
-import time
-from datetime import datetime, timezone
+import pandas as pd
 from scipy.cluster.hierarchy import linkage
 from scipy.spatial.distance import squareform
-from typing import Dict
 
-import matplotlib
-matplotlib.use('Agg')  # render images directly to file system
-import matplotlib.pyplot as plt
-import seaborn as sns
-from scipy.cluster.hierarchy import dendrogram
-from utils.debug import save_debug_csv, plot_dendrogram_chart, plot_heatmap_chart
+from utils.debug import plot_dendrogram_chart, plot_heatmap_chart, save_debug_csv
+
 
 def _reorder_assets_by_cluster_similarity(linkage_matrix):
     """

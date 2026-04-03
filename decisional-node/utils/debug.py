@@ -1,22 +1,14 @@
-import yfinance as yf
-from sqlalchemy import create_engine, text
 import os
-import pandas as pd
-import numpy as np
-import pika
-import json
-import logging
-import time
-from datetime import datetime, timezone
-from scipy.cluster.hierarchy import linkage
-from scipy.spatial.distance import squareform
-from typing import Dict
 
 import matplotlib
-matplotlib.use('Agg')  # render images directly to file system
 import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
 import seaborn as sns
 from scipy.cluster.hierarchy import dendrogram
+
+matplotlib.use('Agg')  # render images directly to file system
+
 
 def save_debug_csv(data, filename: str):
     """Saves any common data structure to a CSV file in the debug_output/ folder."""

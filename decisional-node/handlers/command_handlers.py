@@ -1,12 +1,14 @@
 import logging
-import yfinance as yf
-import pandas as pd
+
 import numpy as np
+import pandas as pd
+import yfinance as yf
 
 from repositories.db_repository import DataRepository
 from services.hrp_service import compute_hrp_weights
 from services.monte_carlo_service import run_monte_carlo
-from utils.debug import save_debug_csv, plot_dendrogram_chart, plot_heatmap_chart
+from utils.debug import save_debug_csv
+
 
 def process_sync(payload: dict, repo: DataRepository):
     """
@@ -21,14 +23,15 @@ def process_sync(payload: dict, repo: DataRepository):
         all_tickers = payload.get("equity_tickers", []) + payload.get("bond_tickers", [])
 
         # close gets the price at the end of trading day
-        raw_download = yf.download(all_tickers, period="5y", interval="1d")["Close"]
+        raw_download = yf.download(all_tickers, period="5y", interval="1d")
+        raw_download_close = raw_download["Close"] if raw_download is not None else pd.DataFrame()
         
         rows_to_insert = []
         for ticker in all_tickers:
-            if ticker not in raw_download.columns:
+            if ticker not in raw_download_close.columns:
                 continue
             
-            for date_timestamp, close_price in raw_download[ticker].dropna().items():
+            for date_timestamp, close_price in raw_download_close[ticker].dropna().items():
                 rows_to_insert.append({
                     "ticker":      ticker,
                     "date":        date_timestamp.date(),  # strip time, keep only date
