@@ -12,6 +12,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"github.com/andreiOpran/licenta/operational-node/internal/clients"
 	"github.com/andreiOpran/licenta/operational-node/internal/config"
 	"github.com/andreiOpran/licenta/operational-node/internal/database"
 	"github.com/andreiOpran/licenta/operational-node/internal/jobs"
@@ -23,6 +24,7 @@ func main() {
 	config.LoadConfig()
 	database.InitDB()
 	mailer.InitEmailer()
+	clients.InitRabbitMQ()
 	jobs.StartTokenCleanupJob()
 
 	r := gin.Default()

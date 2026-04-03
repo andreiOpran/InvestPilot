@@ -6,8 +6,11 @@ import (
 	"log"
 	"time"
 
+	"github.com/andreiOpran/licenta/operational-node/internal/config"
 	"github.com/rabbitmq/amqp091-go"
 )
+
+var Publisher *RMQClient
 
 type RMQClient struct {
 	conn    *amqp091.Connection
@@ -20,34 +23,36 @@ type CommandMessage struct {
 }
 
 // InitRabbitMQ connects to RabbitMQ and declares queues
-func InitRabbitMQ(url string) (*RMQClient, error) {
+func InitRabbitMQ() {
+	url := config.Env.RabbitMQURL
 	conn, err := amqp091.Dial(url)
 	if err != nil {
-		return nil, err
+		log.Fatalf("RabbitMQ: Failed to connect: %v", err)
 	}
 
 	ch, err := conn.Channel()
 	if err != nil {
-		return nil, err
+		log.Fatalf("RabbitMQ: Failed to open channel: %v", err)
 	}
 
 	// declare the queue
 	_, err = ch.QueueDeclare(
 		"cmd_queue", // name
-		true,        //durable
+		true,        // durable
 		false,       // delete when unused
 		false,       // exclusve
-		false,       //no-wait
+		false,       // no-wait
 		nil,         // arguments
 	)
 	if err != nil {
-		return nil, err
+		log.Fatalf("RabbitMQ: Failed to declare queue: %v", err)
 	}
 
-	return &RMQClient{conn: conn, channel: ch}, nil
+	Publisher = &RMQClient{conn: conn, channel: ch}
+	log.Println("RabbitMQ initialized and cmd_queue declared")
 }
 
-// PublishCommand sen a command and its JSON payload to the queue
+// PublishCommand sends a command and its JSON payload to the queue
 func (r *RMQClient) PublishCommad(command string, payload interface{}) error {
 	msg := CommandMessage{
 		Command: command,

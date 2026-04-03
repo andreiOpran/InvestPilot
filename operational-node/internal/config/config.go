@@ -35,6 +35,7 @@ type AppSettings struct {
 	FrontendBaseURL       string           `env:"FRONTEND_BASE_URL" envDefault:"http://localhost:8081"`
 	PythonNodeURL         string           `env:"PYTHON_NODE_URL" envDefault:"http://python-engine:5000"`
 	PythonClientTimeout   time.Duration    `env:"PYTHON_CLIENT_TIMEOUT" envDefault:"5s"`
+	RabbitMQURL           string           `env:"RABBITMQ_URL,required"`
 	Investment            InvestmentConfig `envPrefix:""`
 }
 
