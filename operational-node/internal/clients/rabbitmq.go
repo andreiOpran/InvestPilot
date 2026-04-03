@@ -25,9 +25,23 @@ type CommandMessage struct {
 // InitRabbitMQ connects to RabbitMQ and declares queues
 func InitRabbitMQ() {
 	url := config.Env.RabbitMQURL
-	conn, err := amqp091.Dial(url)
+
+	var conn *amqp091.Connection
+	var err error
+	maxRetries := 10
+
+	// connection retry with backoff
+	for i := 1; i <= maxRetries; i++ {
+		conn, err = amqp091.Dial(url)
+		if err == nil {
+			break
+		}
+		log.Printf("RabbitMQ: Failed to connect (attempt %d/%d): %v", i, maxRetries, err)
+		time.Sleep(time.Duration(i*2) * time.Second)
+	}
+
 	if err != nil {
-		log.Fatalf("RabbitMQ: Failed to connect: %v", err)
+		log.Fatalf("RabbitMQ: Failed to connect after %d attempts: %v", maxRetries, err)
 	}
 
 	ch, err := conn.Channel()
@@ -53,7 +67,7 @@ func InitRabbitMQ() {
 }
 
 // PublishCommand sends a command and its JSON payload to the queue
-func (r *RMQClient) PublishCommad(command string, payload interface{}) error {
+func (r *RMQClient) PublishCommand(command string, payload interface{}) error {
 	msg := CommandMessage{
 		Command: command,
 		Payload: payload,

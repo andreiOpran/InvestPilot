@@ -47,16 +47,24 @@ func TestEmailHandler(c *gin.Context) {
 	c.JSON(200, gin.H{"message": "Test email sent successfully"})
 }
 
-// SimulateInvestmentHandler proxies a request to python-engine service
+// SimulateInvestmentHandler triggered via command queue
 func SimulateInvestmentHandler(c *gin.Context) {
-	// delegate http call to dedicated python client
-	body, err := clients.SimulateInvestment()
+	// Task: Trigger a sync as a test
+	payload := map[string]interface{}{
+		"equity_tickers": config.Env.Investment.EquityTickers,
+		"bond_tickers":   config.Env.Investment.BondTickers,
+	}
+
+	err := clients.Publisher.PublishCommand("CMD_SYNC", payload)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to queue sync command"})
 		return
 	}
-	// forward response to frontend
-	c.Data(http.StatusOK, "application/json", body)
+
+	c.JSON(http.StatusAccepted, gin.H{
+		"message": "Sync command has been queued to RabbitMQ",
+		"status":  "Check Python logs for progress",
+	})
 }
 
 // GetUserHandler returns basic profile and wallet balance

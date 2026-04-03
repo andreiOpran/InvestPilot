@@ -721,15 +721,30 @@ def handle_rebalance_user(payload):
     logging.info("handle_rebalance_user not yet implemented")
 
 def main():
-    # delay to ensure rabbitmq is up
-    time.sleep(5)
     
-    # wait for rabbitmq to start
-    connection = pika.BlockingConnection(pika.ConnectionParameters(host="rabbitmq", port=5672))
+    max_retries = 10
+    connection = None
+    
+    rmq_url = os.environ.get("RABBITMQ_URL", "amqp://guest:guest@rabbitmq:5672/")
+    params = pika.URLParameters(rmq_url)
+    
+    # wait for rabbitmq to start with backoff
+    for i in range(1, max_retries + 1):
+        try:
+            connection = pika.BlockingConnection(params)
+            break
+        except Exception as e:
+            logging.warning(f"RabbitMQ connection failed (attempt {i}/{max_retries}): {e}")
+            time.sleep(i * 2)
+            
+    if not connection:
+        logging.error(f"Could not connect to RabbitMQ after {max_retries} attempts.")
+        return
+        
     channel = connection.channel()
     channel.queue_declare(queue="cmd_queue", durable=True)
     
-    def callback(ch,method, properties, body):
+    def callback(ch, method, properties, body):
         try:
             message = json.loads(body)
             command = message.get("command")
