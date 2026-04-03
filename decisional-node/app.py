@@ -4,8 +4,8 @@ import time
 import pika
 
 from config import settings
-from repositories import DataRepository
-from handlers import process_sync, process_generate_models, process_forecast, process_rebalance_user
+from repositories.db_repository import DataRepository
+from handlers.command_handlers import process_sync, process_generate_models, process_forecast, process_rebalance_user
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
 

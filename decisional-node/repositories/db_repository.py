@@ -43,7 +43,7 @@ class DataRepository:
                     {"key": bucket_key, "w": json.dumps(weights), "now": datetime.now(timezone.utc)}
                 )
 
-    def update_forecast_status(self, task_id: str, status: str, payload: dict = None):
+    def update_forecast_status(self, task_id: str, status: str, payload: dict | None = None):
         with self.engine.begin() as conn:
             if payload:
                 conn.execute(
