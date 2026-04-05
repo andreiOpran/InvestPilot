@@ -1,4 +1,4 @@
-def compute_rebalance(current_allocation: dict, target_weights: dict, threshold: float, cash_first: bool)
+def compute_rebalance(current_allocation: dict, target_weights: dict, threshold: float, cash_first: bool):
     """
     Computes an adjusted portfolio to be as close
     as possible to the model portfolio while minimizing

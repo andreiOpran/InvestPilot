@@ -191,10 +191,6 @@ def process_generate_models(payload: dict, repo: DataRepository):
             # round to 4 decimal for clean output
             final_weights = {k: round (v, 4) for k, v in clean_weights.items()}
             
-            # attach latest market data for each ticker in this bucket
-            # TODO: do we still attach the prices?
-            prices_for_bucket = {t: latest_price.get(t, 0) for t in final_weights.keys()}
-            
             all_buckets[bucket_key] = final_weights # storing only weights
     
     # put buckets to model_portfolios table
@@ -311,7 +307,6 @@ def process_rebalance_user(payload: dict, repo: DataRepository):
         "skipped": skipped
     }
     
-    # TODO: return response via RPC Reply-To queue
     logging.info(f"Rebalance {req_id} summary: {len(skipped)} assets skipped.")
     
     return reply

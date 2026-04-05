@@ -47,16 +47,33 @@ def main():
             
             logging.info(f"Received command: {command}")
             
+            # capture result dict
+            response = None
+            
             if command == "CMD_SYNC":
-                process_sync(payload, repo)
+                response = process_sync(payload, repo)
             elif command == "CMD_GENERATE":
-                process_generate_models(payload, repo)
+                response = process_generate_models(payload, repo)
             elif command == "CMD_REBALANCE_USER":
-                process_rebalance_user(payload, repo)
+                response = process_rebalance_user(payload, repo)
             elif command == "CMD_FORECAST":
-                process_forecast(payload, repo)
+                response = process_forecast(payload, repo)
             else:
                 logging.warning(f"Unknown command: {command}")
+                response = {"error": f"Unknown command: {command}"}
+        
+            # check if operational-node expects an RPC reply
+            if properties.reply_to and response is not None:
+                ch.basic_publish(
+                    exchange='',
+                    routing_key = properties.reply_to,
+                    properties=pika.BasicProperties(
+                        correlation_id=properties.correlation_id,
+                        content_type="application/json"
+                    ),
+                    body=json.dumps({"command": command, "payload": response})
+                )
+                logging.info(f"RPC Reply sent to {properties.reply_to}")
         
         except Exception as e:
             logging.error(f"Error processing message: {e}")
