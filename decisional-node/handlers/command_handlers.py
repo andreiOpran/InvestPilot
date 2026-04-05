@@ -7,6 +7,7 @@ import yfinance as yf
 from repositories.db_repository import DataRepository
 from services.hrp_service import compute_hrp_weights
 from services.monte_carlo_service import run_monte_carlo
+from services.rebalance_service import compute_rebalance
 from utils.debug import save_debug_csv
 
 
@@ -284,4 +285,33 @@ def process_forecast(payload: dict, repo: DataRepository):
     repo.update_forecast_status(task_id, "complete", result_payload)
 
 def process_rebalance_user(payload: dict, repo: DataRepository):
-    logging.info("process_rebalance_user not yet implemented")
+    req_id = payload.get("request_id")
+    current_alloc = payload.get("current_allocation", {})
+    target_weights = payload.get("target_weights", {})
+    threshold = payload.get("threshold", 0.02)
+    cash_first = payload.get("cash_first", True)
+    
+    if not req_id or not target_weights:
+        logging.error("Missing required fields for Rebalance")
+        return {"error": "request_id and target_weights required"}
+    
+    logging.info(f"Processing rebalance for {req_id}")
+    
+    # pass to service
+    adjusted, skipped = compute_rebalance(
+        current_alloc,
+        target_weights,
+        threshold,
+        cash_first
+    )
+    
+    reply = {
+        "request_id": req_id,
+        "adjusted_targets": adjusted,
+        "skipped": skipped
+    }
+    
+    # TODO: return response via RPC Reply-To queue
+    logging.info(f"Rebalance {req_id} summary: {len(skipped)} assets skipped.")
+    
+    return reply

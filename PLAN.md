@@ -403,26 +403,26 @@ An `EmailSender` interface decouples email logic from business logic.
 - [x] Upsert prices into PostgreSQL using ON CONFLICT (ticker, date) DO UPDATE
 - [x] Expose POST /sync in FastAPI as a standalone data ingestion endpoint
 - [x] Implement HRP (Hierarchical Risk Parity) algorithm using scipy, pandas
-- [ ] Refactor /sync to accept ticker lists from the incoming RabbitMQ message payload (not hardcoded in Python)
-- [ ] Refactor /generate-models to accept all policy parameters from the incoming message payload:
+- [x] Refactor /sync to accept ticker lists from the incoming RabbitMQ message payload (not hardcoded in Python)
+- [x] Refactor /generate-models to accept all policy parameters from the incoming message payload:
   - macro_allocations table
   - horizon_multipliers table
   - max_equity_cap, top_n_equities, weight_threshold
-- [ ] After computing all 15 bucket weights, persist each to `model_portfolios` table (INSERT, not just HTTP return)
+- [x] After computing all 15 bucket weights, persist each to `model_portfolios` table (INSERT, not just HTTP return)
 - [ ] Implement `CMD_REBALANCE_USER` consumer in Python:
   - Receives: current_allocation, target_weights, threshold, cash_first flag
   - Applies cash-first rule: deplete USD allocation before selling any ETF
   - Applies threshold filter: skip tickers where |current - target| < threshold
   - Returns: adjusted_targets + skipped list
   - No DB reads during this operation — pure math on inputs
-- [ ] Implement RabbitMQ consumer in Python using `pika` to handle CMD_SYNC, CMD_GENERATE, CMD_REBALANCE_USER, CMD_FORECAST
-- [ ] Implement Monte Carlo Simulation (10,000 scenarios, Geometric Brownian Motion):
+- [x] Implement RabbitMQ consumer in Python using `pika` to handle CMD_SYNC, CMD_GENERATE, CMD_REBALANCE_USER, CMD_FORECAST
+- [x] Implement Monte Carlo Simulation (10,000 scenarios, Geometric Brownian Motion):
   - Reads historical_market_data to compute portfolio mean return and volatility
   - Writes percentile results to `forecast_results` table keyed by task_id
 
 ### Phase 4: Orchestration (Go + Python) & Stripe Integration
 
-- [ ] Implement Go config loader for InvestmentConfig (YAML or env vars) — this is the single source of truth for all policy parameters
+- [x] Implement Go config loader for InvestmentConfig (YAML or env vars) — this is the single source of truth for all policy parameters
 - [ ] Implement RabbitMQ Producer in Go to dispatch CMD_SYNC and CMD_GENERATE daily via cron
 - [ ] Integrate Stripe Sandbox API for POST /deposit (bank → wallet) and POST /cashout (wallet → bank)
 - [ ] **POST /invest:** Move wallet balance to portfolio as USD ticker, create InvestmentRound
