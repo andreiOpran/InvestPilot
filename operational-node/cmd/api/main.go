@@ -26,6 +26,7 @@ func main() {
 	mailer.InitEmailer()
 	clients.InitRabbitMQ()
 	jobs.StartTokenCleanupJob()
+	jobs.StartDataPipelineJob()
 
 	r := gin.Default()
 	router.SetupRoutes(r)

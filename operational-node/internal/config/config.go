@@ -10,33 +10,35 @@ import (
 
 // AppSettings holds application configuration populated from environment
 type AppSettings struct {
-	DatabaseURL           string           `env:"DATABASE_URL,required"`
-	AESMasterKey          string           `env:"AES_MASTER_KEY,required"`
-	JWTSecret             string           `env:"JWT_SECRET" envDefault:"secret-key"`
-	SMTPHost              string           `env:"SMTP_HOST"`
-	SMTPPort              string           `env:"SMTP_PORT"`
-	SMTPUser              string           `env:"SMTP_USER,required"`
-	SMTPPass              string           `env:"SMTP_PASS,required"`
-	SMTPFrom              string           `env:"SMTP_FROM"`
-	SMTPTestDestination   string           `env:"SMTP_TEST_DESTINATION"`
-	AccessTokenLifetime   time.Duration    `env:"ACCESS_TOKEN_LIFETIME" envDefault:"10m"`
-	RefreshTokenLifetime  time.Duration    `env:"REFRESH_TOKEN_LIFETIME" envDefault:"168h"`
-	VerifyEmailLifetime   time.Duration    `env:"VERIFY_EMAIL_LIFETIME" envDefault:"24h"`
-	ResetPasswordLifetime time.Duration    `env:"RESET_PASSWORD_LIFETIME" envDefault:"15m"`
-	CleanupBatchSize      int              `env:"CLEANUP_BATCH_SIZE" envDefault:"1000"`
-	ServerPort            string           `env:"PORT" envDefault:"8080"`
-	BcryptCost            int              `env:"BCRYPT_COST" envDefault:"14"`
-	SecureTokenBytes      int              `env:"SECURE_TOKEN_BYTES" envDefault:"32"`
-	FamilyIDBytes         int              `env:"FAMILY_ID_BYTES" envDefault:"16"`
-	TimingAttackTarget    time.Duration    `env:"TIMING_ATTACK_TARGET" envDefault:"100ms"`
-	TimingAttackNoise     int              `env:"TIMING_ATTACK_NOISE" envDefault:"20"`
-	CronBatchSleep        time.Duration    `env:"CRON_BATCH_SLEEP" envDefault:"100ms"`
-	APIBaseURL            string           `env:"API_BASE_URL" envDefault:"http://localhost:8080/api/v1"`
-	FrontendBaseURL       string           `env:"FRONTEND_BASE_URL" envDefault:"http://localhost:8081"`
-	PythonNodeURL         string           `env:"PYTHON_NODE_URL" envDefault:"http://python-engine:5000"`
-	PythonClientTimeout   time.Duration    `env:"PYTHON_CLIENT_TIMEOUT" envDefault:"5s"`
-	RabbitMQURL           string           `env:"RABBITMQ_URL,required"`
-	Investment            InvestmentConfig `envPrefix:""`
+	DatabaseURL              string           `env:"DATABASE_URL,required"`
+	AESMasterKey             string           `env:"AES_MASTER_KEY,required"`
+	JWTSecret                string           `env:"JWT_SECRET" envDefault:"secret-key"`
+	SMTPHost                 string           `env:"SMTP_HOST"`
+	SMTPPort                 string           `env:"SMTP_PORT"`
+	SMTPUser                 string           `env:"SMTP_USER,required"`
+	SMTPPass                 string           `env:"SMTP_PASS,required"`
+	SMTPFrom                 string           `env:"SMTP_FROM"`
+	SMTPTestDestination      string           `env:"SMTP_TEST_DESTINATION"`
+	AccessTokenLifetime      time.Duration    `env:"ACCESS_TOKEN_LIFETIME" envDefault:"10m"`
+	RefreshTokenLifetime     time.Duration    `env:"REFRESH_TOKEN_LIFETIME" envDefault:"168h"`
+	VerifyEmailLifetime      time.Duration    `env:"VERIFY_EMAIL_LIFETIME" envDefault:"24h"`
+	ResetPasswordLifetime    time.Duration    `env:"RESET_PASSWORD_LIFETIME" envDefault:"15m"`
+	CleanupCronSchedule      string           `env:"CLEANUP_CRON" envDefault:"0 3 * * *"`
+	CleanupBatchSize         int              `env:"CLEANUP_BATCH_SIZE" envDefault:"1000"`
+	ServerPort               string           `env:"PORT" envDefault:"8080"`
+	BcryptCost               int              `env:"BCRYPT_COST" envDefault:"14"`
+	SecureTokenBytes         int              `env:"SECURE_TOKEN_BYTES" envDefault:"32"`
+	FamilyIDBytes            int              `env:"FAMILY_ID_BYTES" envDefault:"16"`
+	TimingAttackTarget       time.Duration    `env:"TIMING_ATTACK_TARGET" envDefault:"100ms"`
+	TimingAttackNoise        int              `env:"TIMING_ATTACK_NOISE" envDefault:"20"`
+	CronBatchSleep           time.Duration    `env:"CRON_BATCH_SLEEP" envDefault:"100ms"`
+	DataPipelineCronSchedule string           `env:"DATA_PIPELINE_CRON" envDefault:"0 22 * * *"`
+	APIBaseURL               string           `env:"API_BASE_URL" envDefault:"http://localhost:8080/api/v1"`
+	FrontendBaseURL          string           `env:"FRONTEND_BASE_URL" envDefault:"http://localhost:8081"`
+	PythonNodeURL            string           `env:"PYTHON_NODE_URL" envDefault:"http://python-engine:5000"`
+	PythonClientTimeout      time.Duration    `env:"PYTHON_CLIENT_TIMEOUT" envDefault:"5s"`
+	RabbitMQURL              string           `env:"RABBITMQ_URL,required"`
+	Investment               InvestmentConfig `envPrefix:""`
 }
 
 type InvestmentConfig struct {
@@ -50,6 +52,7 @@ type InvestmentConfig struct {
 	RebalanceDeltaThreshold float64            `json:"rebalance_delta_threshold" env:"INVEST_REBALANCE_DELTA" envDefault:"0.02"`
 	CashFirstEnabled        bool               `json:"cash_first_enabled" env:"INVEST_CASH_FIRST_ENABLED" envDefault:"true"`
 	PriceStalenessDays      int                `json:"price_staleness_days" env:"INVEST_PRICE_STALENESS_DAYS" envDefault:"2"`
+	Verbose                 bool               `json:"verbose" env:"VERBOSE_DECISIONAL_NODE" envDefault:"false"`
 }
 
 // Env is the global configuration instance

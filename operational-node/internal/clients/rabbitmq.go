@@ -36,17 +36,17 @@ func InitRabbitMQ() {
 		if err == nil {
 			break
 		}
-		log.Printf("RabbitMQ: Failed to connect (attempt %d/%d): %v", i, maxRetries, err)
+		log.Printf("[ERROR-PUBLISHER] RabbitMQ: Failed to connect (attempt %d/%d): %v", i, maxRetries, err)
 		time.Sleep(time.Duration(i*2) * time.Second)
 	}
 
 	if err != nil {
-		log.Fatalf("RabbitMQ: Failed to connect after %d attempts: %v", maxRetries, err)
+		log.Fatalf("[ERROR-PUBLISHER] RabbitMQ: Failed to connect after %d attempts: %v", maxRetries, err)
 	}
 
 	ch, err := conn.Channel()
 	if err != nil {
-		log.Fatalf("RabbitMQ: Failed to open channel: %v", err)
+		log.Fatalf("[ERROR-PUBLISHER] RabbitMQ: Failed to open channel: %v", err)
 	}
 
 	// declare the queue
@@ -59,11 +59,11 @@ func InitRabbitMQ() {
 		nil,         // arguments
 	)
 	if err != nil {
-		log.Fatalf("RabbitMQ: Failed to declare queue: %v", err)
+		log.Fatalf("[ERROR-PUBLISHER] RabbitMQ: Failed to declare queue: %v", err)
 	}
 
 	Publisher = &RMQClient{conn: conn, channel: ch}
-	log.Println("RabbitMQ initialized and cmd_queue declared")
+	log.Println("[PUBLISHER] RabbitMQ initialized and cmd_queue declared")
 }
 
 // PublishCommand sends a command and its JSON payload to the queue
@@ -93,11 +93,11 @@ func (r *RMQClient) PublishCommand(command string, payload interface{}) error {
 			Body:         body,
 		})
 	if err != nil {
-		log.Printf("Failed to publish %s: %v", command, err)
+		log.Printf("[ERROR-PUBLISHER] Failed to publish %s: %v", command, err)
 		return err
 	}
 
-	log.Printf("Published command: %s", command)
+	log.Printf("[PUBLISHER] Published command: %s", command)
 	return nil
 }
 

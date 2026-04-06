@@ -15,9 +15,8 @@ import (
 func StartTokenCleanupJob() {
 	// init scheduler
 	c := cron.New()
-
-	// "0 3 * * *" - minute 0, hour 3, every day, every month, every day of the week
-	_, err := c.AddFunc("0 3 * * *", ExecuteTokenCleanup)
+	schedule := config.Env.CleanupCronSchedule
+	_, err := c.AddFunc(schedule, ExecuteTokenCleanup)
 
 	if err != nil {
 		log.Fatalf("Error initializing CRON job: %v", err)

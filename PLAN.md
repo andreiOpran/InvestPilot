@@ -409,7 +409,7 @@ An `EmailSender` interface decouples email logic from business logic.
   - horizon_multipliers table
   - max_equity_cap, top_n_equities, weight_threshold
 - [x] After computing all 15 bucket weights, persist each to `model_portfolios` table (INSERT, not just HTTP return)
-- [ ] Implement `CMD_REBALANCE_USER` consumer in Python:
+- [x] Implement `CMD_REBALANCE_USER` consumer in Python:
   - Receives: current_allocation, target_weights, threshold, cash_first flag
   - Applies cash-first rule: deplete USD allocation before selling any ETF
   - Applies threshold filter: skip tickers where |current - target| < threshold
@@ -423,7 +423,7 @@ An `EmailSender` interface decouples email logic from business logic.
 ### Phase 4: Orchestration (Go + Python) & Stripe Integration
 
 - [x] Implement Go config loader for InvestmentConfig (YAML or env vars) — this is the single source of truth for all policy parameters
-- [ ] Implement RabbitMQ Producer in Go to dispatch CMD_SYNC and CMD_GENERATE daily via cron
+- [x] Implement RabbitMQ Producer in Go to dispatch CMD_SYNC and CMD_GENERATE daily via cron
 - [ ] Integrate Stripe Sandbox API for POST /deposit (bank → wallet) and POST /cashout (wallet → bank)
 - [ ] **POST /invest:** Move wallet balance to portfolio as USD ticker, create InvestmentRound
 - [ ] **POST /rebalance (cron, every 30 days):**
