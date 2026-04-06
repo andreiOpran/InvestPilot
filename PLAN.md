@@ -425,7 +425,7 @@ An `EmailSender` interface decouples email logic from business logic.
 - [x] Implement Go config loader for InvestmentConfig (YAML or env vars) — this is the single source of truth for all policy parameters
 - [x] Implement RabbitMQ Producer in Go to dispatch CMD_SYNC and CMD_GENERATE daily via cron
 - [ ] Integrate Stripe Sandbox API for POST /deposit (bank → wallet) and POST /cashout (wallet → bank)
-- [ ] **POST /invest:** Move wallet balance to portfolio as USD ticker, create InvestmentRound
+- [x] **POST /invest:** Move wallet balance to portfolio as USD ticker, create InvestmentRound
 - [ ] **POST /rebalance (cron, every 30 days):**
   1. Staleness check: abort if any ticker's latest price in `historical_market_data` is older than `PriceStalenessDays` trading days
   2. Read latest pre-computed weights from `model_portfolios` for all 15 bucket keys

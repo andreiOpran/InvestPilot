@@ -7,6 +7,11 @@ type DepositRequest struct {
 	Amount float64 `json:"amount" binding:"required,gt=0"` // greater than 0
 }
 
+// request to move money from wallet to InvestmentRound
+type InvestRequest struct {
+	Amount float64 `json:"amount" binding:"required,gt=0"`
+}
+
 type RegisterRequest struct {
 	Email    string `json:"email" binding:"required,email"`
 	Password string `json:"password" binding:"required,min=6"`

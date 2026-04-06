@@ -15,4 +15,5 @@ var (
 	ErrTokenReuseDetected = errors.New("token reuse detected")
 	ErrInternal           = errors.New("internal server error")
 	ErrBadRequest         = errors.New("bad request parameters")
+	ErrInsufficientBalnce = errors.New("insufficient wallet balance")
 )

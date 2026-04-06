@@ -19,16 +19,19 @@ func SetupRoutes(r *gin.Engine) {
 	// init repositories
 	authRepo := repositories.NewAuthRepository(database.DB)
 	userRepo := repositories.NewUserRepository(database.DB)
+	portfolioRepo := repositories.NewPortfolioRepository(database.DB)
 
 	// init services with repository deps
 	authService := services.NewAuthService(authRepo)
 	userService := services.NewUserService(userRepo)
 	securityService := services.NewSecurityService(userRepo)
+	portfolioService := services.NewPortfolioService(portfolioRepo, userRepo)
 
 	// init handlers with service deps
 	authHandler := handlers.NewAuthHandler(authService)
 	userHandler := handlers.NewUserHandler(userService)
 	securityHandler := handlers.NewSecurityHandler(securityService)
+	portfolioHandler := handlers.NewPortfolioHandler(portfolioService)
 
 	// standalone routes (no db required)
 	r.GET("/ping", handlers.PingHandler)
@@ -55,6 +58,7 @@ func SetupRoutes(r *gin.Engine) {
 			protected.GET("/2fa/setup", securityHandler.Setup2FAHandler)
 			protected.POST("/2fa/enable", securityHandler.Enable2FAHandler)
 			protected.POST("/deposit", userHandler.DepositHandler)
+			protected.POST("/invest", portfolioHandler.InvestHandler)
 		}
 	}
 }
