@@ -281,6 +281,15 @@ def process_forecast(payload: dict, repo: DataRepository):
     repo.update_forecast_status(task_id, "complete", result_payload)
 
 def process_rebalance_user(payload: dict, repo: DataRepository):
+    """
+    REBALANCE SINGLE ANONYMOUS USER
+    
+    Rebalance anonymously using the model portfolio
+    and the user portfolio (both have only weights)
+    received from the payload, while applying business
+    logic via service (threshold, cash_first)
+    """
+    
     req_id = payload.get("request_id")
     current_alloc = payload.get("current_allocation", {})
     target_weights = payload.get("target_weights", {})
@@ -310,3 +319,45 @@ def process_rebalance_user(payload: dict, repo: DataRepository):
     logging.info(f"Rebalance {req_id} summary: {len(skipped)} assets skipped.")
     
     return reply
+
+def process_rebalance_batch(payload: dict, repo: DataRepository):
+    """
+    REBALANCE BATCH OF ANONYMOUS USERS
+    
+    This is called monthly by the operational node.
+    Parses an array of user portfolios and runs
+    rebalance from service file on each portfolio
+    """
+    
+    threshold = payload.get("threshold", 0.02)
+    cash_first = payload.get("cash_first", True)
+    users = payload.get("users", [])
+    
+    logging.info(f"Processing batch rebalance for {len(users)} users.")
+    
+    results = []
+    
+    for u_req in users:
+        request_id = u_req.get("request_id")
+        current_alloc = u_req.get("current_allocation", {})
+        target_weights = u_req.get("target_weights", {})
+        
+        if not target_weights:
+            continue
+        
+        # pass to service
+        adjusted, skipped = compute_rebalance(
+            current_alloc,
+            target_weights,
+            threshold,
+            cash_first
+        )
+        
+        results.append({
+            "request_id": request_id,
+            "adjusted_targets": adjusted,
+            "skipped": skipped
+        })
+        
+    logging.info(f"Batch rebalance complete. Returning {len(results)} results.")
+    return {"results": results}

@@ -9,6 +9,7 @@ from handlers.command_handlers import (
     process_forecast,
     process_generate_models,
     process_rebalance_user,
+    process_rebalance_batch,
     process_sync,
 )
 from repositories.db_repository import DataRepository
@@ -56,6 +57,8 @@ def main():
                 response = process_generate_models(payload, repo)
             elif command == "CMD_REBALANCE_USER":
                 response = process_rebalance_user(payload, repo)
+            elif command == "CMD_REBALANCE_BATCH":
+                response = process_rebalance_batch(payload, repo)
             elif command == "CMD_FORECAST":
                 response = process_forecast(payload, repo)
             else:
