@@ -20,23 +20,34 @@ func SetupRoutes(r *gin.Engine) {
 	authRepo := repositories.NewAuthRepository(database.DB)
 	userRepo := repositories.NewUserRepository(database.DB)
 	portfolioRepo := repositories.NewPortfolioRepository(database.DB)
+	rebalanceRepo := repositories.NewRebalanceRepository(database.DB) // for debug endpoint
 
 	// init services with repository deps
 	authService := services.NewAuthService(authRepo)
 	userService := services.NewUserService(userRepo)
 	securityService := services.NewSecurityService(userRepo)
 	portfolioService := services.NewPortfolioService(portfolioRepo, userRepo)
+	rebalanceService := services.NewRebalanceService(rebalanceRepo, userRepo) // for debug endpoint
+	dataPipelineService := services.NewDataPipelineService()                  // for debug endpoint
 
 	// init handlers with service deps
 	authHandler := handlers.NewAuthHandler(authService)
 	userHandler := handlers.NewUserHandler(userService)
 	securityHandler := handlers.NewSecurityHandler(securityService)
 	portfolioHandler := handlers.NewPortfolioHandler(portfolioService)
+	rebalanceHandler := handlers.NewRebalanceHandler(rebalanceService)          // for debug endpoint
+	dataPipelineHandler := handlers.NewDataPipelineHandler(dataPipelineService) // for debug endpoint
 
 	// standalone routes (no db required)
 	r.GET("/ping", handlers.PingHandler)
 	r.GET("/status", handlers.StatusHandler)
 	r.GET("/test-email", handlers.TestEmailHandler)
+
+	debug := r.Group("/debug")
+	{
+		debug.POST("/data-pipeline", dataPipelineHandler.RunDataPipeline)
+		debug.POST("/rebalance", rebalanceHandler.Rebalance)
+	}
 
 	v1 := r.Group("/api/v1")
 	{
