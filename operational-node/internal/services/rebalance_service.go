@@ -73,16 +73,15 @@ func (s *rebalanceService) RunMonthlyRebalance() error {
 
 		// prepare payload for decisional node
 		for _, round := range activeRounds {
-			user, _ := s.userRepo.FindByID(round.UserID)
 
 			// derive bucket key logic, with casting from int to string for the horizon
 			horizonStr := "long"
-			if user.InvestmentHorizon <= config.Env.Investment.HorizonShortMax {
+			if round.User.InvestmentHorizon <= config.Env.Investment.HorizonShortMax {
 				horizonStr = "short"
-			} else if user.InvestmentHorizon <= config.Env.Investment.HorizonMediumMax {
+			} else if round.User.InvestmentHorizon <= config.Env.Investment.HorizonMediumMax {
 				horizonStr = "medium"
 			}
-			bucketKey := fmt.Sprintf("risk_%d_horizon_%s", user.RiskTolerance, horizonStr)
+			bucketKey := fmt.Sprintf("risk_%d_horizon_%s", round.User.RiskTolerance, horizonStr)
 
 			targetWeights := latestModels[bucketKey]
 			if targetWeights == nil {

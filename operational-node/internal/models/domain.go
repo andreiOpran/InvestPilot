@@ -69,6 +69,7 @@ type InvestmentRound struct {
 	IsActive   bool    `gorm:"not null;default:true"` // false after a newer round replaces it
 	CreatedAt  time.Time
 	Holdings   []Holding // one-to-many relationship with holdings
+	User       User      // to avoid costly queries for rebalancing
 }
 
 // a single holding within an investment round

@@ -65,7 +65,9 @@ func (r *rebalanceRepository) GetLatestModelPortfolios() (map[string]map[string]
 
 func (r *rebalanceRepository) GetActiveInvestmentRoundsBatch(lastID uint, batchSize int) ([]models.InvestmentRound, error) {
 	var rounds []models.InvestmentRound
-	err := r.db.Preload("Holdings").
+	err := r.db.
+		Preload("Holdings").
+		Preload("User").
 		Where("is_active = ? AND id > ?", true, lastID).
 		Order("id ASC"). // for cursor pagination
 		Limit(batchSize).
