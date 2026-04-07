@@ -26,6 +26,7 @@ func main() {
 	rebalanceRepo := repositories.NewRebalanceRepository(database.DB)
 	userRepo := repositories.NewUserRepository(database.DB)
 
+	dataPipelineService := services.NewDataPipelineService()
 	rebalanceService := services.NewRebalanceService(rebalanceRepo, userRepo)
 
 	config.LoadConfig()
@@ -33,7 +34,7 @@ func main() {
 	mailer.InitEmailer()
 	clients.InitRabbitMQ()
 	jobs.StartTokenCleanupJob()
-	jobs.StartDataPipelineJob()
+	jobs.StartDataPipelineJob(dataPipelineService)
 	jobs.StartRebalanceJob(rebalanceService)
 
 	r := gin.Default()
