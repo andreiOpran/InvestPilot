@@ -28,7 +28,7 @@ func (s *portfolioService) Invest(userID uint, amount float64) error {
 		return err
 	}
 	if wallet.Balance < amount {
-		return ErrInsufficientBalnce
+		return ErrInsufficientBalance
 	}
 
 	// domain action: deduct money locally

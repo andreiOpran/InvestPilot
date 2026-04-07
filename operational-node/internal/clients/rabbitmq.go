@@ -6,6 +6,8 @@ import (
 	"log"
 	"time"
 
+	"github.com/google/uuid"
+
 	"github.com/andreiOpran/licenta/operational-node/internal/config"
 	"github.com/rabbitmq/amqp091-go"
 )
@@ -99,6 +101,74 @@ func (r *RMQClient) PublishCommand(command string, payload interface{}) error {
 
 	log.Printf("[PUBLISHER] Published command: %s", command)
 	return nil
+}
+
+// PublishRPC sends a command and blocks until decisional node responds on the reply_to queue
+func (r *RMQClient) PublishRPC(command string, payload interface{}) ([]byte, error) {
+	// declare exclusive temporary reply queue
+	q, err := r.channel.QueueDeclare(
+		"",    // name
+		false, // durable
+		false, // auto-deletion
+		true,  // exclusive
+		false, // noWait
+		nil,   // table
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	// consume from reply queue
+	msgs, err := r.channel.Consume(
+		q.Name, // queue
+		"",     // consumer
+		true,   // autoAck
+		false,  // exclusive
+		false,  // noLocal
+		false,  // noWait
+		nil,    // table
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	corrId := uuid.New().String()
+
+	msg := CommandMessage{Command: command, Payload: payload}
+	body, _ := json.Marshal(msg)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second) // 30s timeout for RPC
+	defer cancel()
+
+	// publish with ReplyTo and CorrelationID
+	err = r.channel.PublishWithContext(
+		ctx,         // context
+		"",          // exchange
+		"cmd_queue", // key
+		false,       // mandatory
+		false,       // immediate
+		amqp091.Publishing{
+			ContentType:   "application/json",
+			CorrelationId: corrId,
+			ReplyTo:       q.Name,
+			Body:          body,
+		}, // msg
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	// wait for correlation ID match
+	for {
+		select {
+		case <-ctx.Done():
+			return nil, context.DeadlineExceeded
+		case d := <-msgs:
+			if d.CorrelationId == corrId {
+				return d.Body, nil
+			}
+		}
+	}
 }
 
 func (r *RMQClient) Close() {

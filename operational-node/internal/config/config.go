@@ -45,6 +45,8 @@ type InvestmentConfig struct {
 	EquityTickers           []string           `json:"equity_tickers" env:"INVEST_EQUITY_TICKERS" envDefault:"VTI,VOO,QQQ,VTV,VUG,IWM,VEA,VWO,VNQ,VNQI,XLF,XLV,XLE,XLK"`
 	BondTickers             []string           `json:"bond_tickers" env:"INVEST_BOND_TICKERS" envDefault:"BND,TLT,LQD,HYG,BNDX"`
 	BaseEquityAllocation    map[int]float64    `json:"base_equity_allocation" env:"INVEST_BASE_EQUITY_ALLOC" envDefault:"1:0.20,2:0.40,3:0.60,4:0.80,5:0.90"`
+	HorizonShortMax         int                `json:"horizon_short_max" env:"HORIZON_SHORT_MAX" envDefault:"2"`
+	HorizonMediumMax        int                `json:"horizon_medium_max" env:"HORIZON_MEDIUM_MAX" envDefault:"6"`
 	HorizonMultipliers      map[string]float64 `json:"horizon_multipliers" env:"INVEST_HORIZON_MULTIPLIERS" envDefault:"short:0.70,medium:1.00,long:1.10"`
 	MaxEquityCap            float64            `json:"max_equity_cap" env:"INVEST_MAX_EQUITY_CAP" envDefault:"0.95"`
 	TopNEquities            int                `json:"top_n_equities" env:"INVEST_TOP_N_EQUITIES" envDefault:"6"`

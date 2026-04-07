@@ -37,7 +37,7 @@ func (h *PortfolioHandler) InvestHandler(c *gin.Context) {
 
 	// route into service
 	if err := h.portfolioService.Invest(userID, req.Amount); err != nil {
-		if errors.Is(err, services.ErrInsufficientBalnce) {
+		if errors.Is(err, services.ErrInsufficientBalance) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
