@@ -74,7 +74,7 @@ def main():
                         correlation_id=properties.correlation_id,
                         content_type="application/json"
                     ),
-                    body=json.dumps({"command": command, "payload": response})
+                    body = json.dumps(response)
                 )
                 logging.info(f"RPC Reply sent to {properties.reply_to}")
         
