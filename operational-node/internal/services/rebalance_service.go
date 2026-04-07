@@ -47,12 +47,20 @@ func (s *rebalanceService) RunMonthlyRebalance() error {
 		return err
 	}
 
+	// get maximum InvestmentRound ID currently in the DB
+	// to be used as a ceiling for deactivating old rounds
+	maxID, err := s.rebalanceRepo.GetMaxRoundID()
+	if err != nil {
+		return err
+	}
+
 	// process users in batches
 	var lastID uint = 0
 
 	for {
 		activeRounds, err := s.rebalanceRepo.GetActiveInvestmentRoundsBatch(
 			lastID,
+			maxID,
 			config.Env.RebalanceBatchSize,
 		)
 		if err != nil {
