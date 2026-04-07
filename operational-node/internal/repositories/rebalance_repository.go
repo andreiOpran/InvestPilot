@@ -11,7 +11,7 @@ import (
 type RebalanceRepository interface {
 	CheckPriceStaleness(maxDays int) error
 	GetLatestModelPortfolios() (map[string]map[string]float64, error)
-	GetActiveInvestmentRounds() ([]models.InvestmentRound, error)
+	GetActiveInvestmentRoundsBatch(lastID uint, batchSize int) ([]models.InvestmentRound, error)
 	GetLatestPrices() (map[string]float64, error)
 	ExecuteBatchRebalanceTransaction(newRounds []models.InvestmentRound, oldRoundIDs []uint) error
 }
@@ -63,9 +63,14 @@ func (r *rebalanceRepository) GetLatestModelPortfolios() (map[string]map[string]
 	return result, nil
 }
 
-func (r *rebalanceRepository) GetActiveInvestmentRounds() ([]models.InvestmentRound, error) {
+func (r *rebalanceRepository) GetActiveInvestmentRoundsBatch(lastID uint, batchSize int) ([]models.InvestmentRound, error) {
 	var rounds []models.InvestmentRound
-	err := r.db.Preload("Holdings").Where("is_active = ?", true).Find(&rounds).Error
+	err := r.db.Preload("Holdings").
+		Where("is_active = ? AND id > ?", true, lastID).
+		Order("id ASC"). // for cursor pagination
+		Limit(batchSize).
+		Find(&rounds).Error
+
 	return rounds, err
 }
 

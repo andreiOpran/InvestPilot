@@ -37,110 +37,128 @@ func (s *rebalanceService) RunMonthlyRebalance() error {
 		return err
 	}
 
-	// load latest mopdel portfolios and active rouinds
+	// load latest model portfolios and prices
 	latestModels, err := s.rebalanceRepo.GetLatestModelPortfolios()
 	if err != nil {
 		return err
 	}
-
-	activeRounds, err := s.rebalanceRepo.GetActiveInvestmentRounds()
-	if err != nil {
-		return err
-	}
-
-	if len(activeRounds) == 0 {
-		return nil // nothing to do
-	}
-
-	// prepare batch request
-	var batchRequest models.RebalanceBatchRequest
-	batchRequest.Threshold = config.Env.Investment.RebalanceDeltaThreshold
-	batchRequest.CashFirst = config.Env.Investment.CashFirstEnabled
-
-	// map to link decisional node anonymous request_id back to actual node data
-	roundMap := make(map[string]models.InvestmentRound)
-
-	for _, round := range activeRounds {
-		user, _ := s.userRepo.FindByID(round.UserID)
-
-		// derive bucket key logic, with casting from int to string for the horizon
-		horizonStr := "long"
-		if user.InvestmentHorizon <= config.Env.Investment.HorizonShortMax {
-			horizonStr = "short"
-		} else if user.InvestmentHorizon <= config.Env.Investment.HorizonMediumMax {
-			horizonStr = "medium"
-		}
-		bucketKey := fmt.Sprintf("risk_%d_horizon_%s", user.RiskTolerance, horizonStr)
-
-		targetWeights := latestModels[bucketKey]
-		if targetWeights == nil {
-			continue // no model exists for this profile
-		}
-
-		currentAllocation := make(map[string]float64)
-		for _, h := range round.Holdings {
-			currentAllocation[h.Ticker] = h.AllocatedAmount / round.TotalValue
-		}
-
-		reqID := fmt.Sprintf("%d", round.UserID)
-		roundMap[reqID] = round
-
-		batchRequest.Users = append(batchRequest.Users, models.RebalanceUserRequest{
-			RequestID:         reqID,
-			CurrentAllocation: currentAllocation,
-			TargetWeights:     targetWeights,
-		})
-	}
-
-	// RPC Call to decisional node
-	responseBytes, err := clients.Publisher.PublishRPC("CMD_REBALANCE_BATCH", batchRequest)
-	if err != nil {
-		return err
-	}
-
-	var batchResponse models.RebalanceBatchResponse
-	if err := json.Unmarshal(responseBytes, &batchResponse); err != nil {
-		return err
-	}
-
-	// read latest prices for Share math
 	latestPrices, err := s.rebalanceRepo.GetLatestPrices()
 	if err != nil {
 		return err
 	}
 
-	// compute new share allocations
-	var newRounds []models.InvestmentRound
-	var oldRoundIDs []uint
+	// process users in batches
+	var lastID uint = 0
 
-	for _, result := range batchResponse.Results {
-		oldRound := roundMap[result.RequestID]
-		oldRoundIDs = append(oldRoundIDs, oldRound.ID)
+	for {
+		activeRounds, err := s.rebalanceRepo.GetActiveInvestmentRoundsBatch(
+			lastID,
+			config.Env.RebalanceBatchSize,
+		)
+		if err != nil {
+			return err
+		}
 
-		var newHoldings []models.Holding
-		for ticker, targetWeight := range result.AdjustedTargets {
-			allocatedAmount := targetWeight * oldRound.TotalValue
-			price := latestPrices[ticker]
-			shares := allocatedAmount / price
+		if len(activeRounds) == 0 {
+			break // no more users to process
+		}
 
-			newHoldings = append(newHoldings, models.Holding{
-				UserID:          oldRound.UserID,
-				Ticker:          ticker,
-				Weight:          targetWeight,
-				Shares:          shares,
-				PurchasePrice:   price,
-				AllocatedAmount: allocatedAmount,
+		// prepare batch request
+		var batchRequest models.RebalanceBatchRequest
+		batchRequest.Threshold = config.Env.Investment.RebalanceDeltaThreshold
+		batchRequest.CashFirst = config.Env.Investment.CashFirstEnabled
+
+		// map to link decisional node anonymous request_id back to actual node data
+		roundMap := make(map[string]models.InvestmentRound)
+
+		// prepare payload for decisional node
+		for _, round := range activeRounds {
+			user, _ := s.userRepo.FindByID(round.UserID)
+
+			// derive bucket key logic, with casting from int to string for the horizon
+			horizonStr := "long"
+			if user.InvestmentHorizon <= config.Env.Investment.HorizonShortMax {
+				horizonStr = "short"
+			} else if user.InvestmentHorizon <= config.Env.Investment.HorizonMediumMax {
+				horizonStr = "medium"
+			}
+			bucketKey := fmt.Sprintf("risk_%d_horizon_%s", user.RiskTolerance, horizonStr)
+
+			targetWeights := latestModels[bucketKey]
+			if targetWeights == nil {
+				continue // no model exists for this profile
+			}
+
+			currentAllocation := make(map[string]float64)
+			for _, h := range round.Holdings {
+				currentAllocation[h.Ticker] = h.AllocatedAmount / round.TotalValue
+			}
+
+			reqID := fmt.Sprintf("%d", round.UserID)
+			roundMap[reqID] = round
+
+			batchRequest.Users = append(batchRequest.Users, models.RebalanceUserRequest{
+				RequestID:         reqID,
+				CurrentAllocation: currentAllocation,
+				TargetWeights:     targetWeights,
 			})
 		}
 
-		newRounds = append(newRounds, models.InvestmentRound{
-			UserID:     oldRound.UserID,
-			TotalValue: oldRound.TotalValue,
-			IsActive:   true,
-			Holdings:   newHoldings,
-		})
+		// RPC Call to decisional node (skip if this batch had active rounds but none matched a model)
+		if len(batchRequest.Users) > 0 {
+			responseBytes, err := clients.Publisher.PublishRPC("CMD_REBALANCE_BATCH", batchRequest)
+			if err != nil {
+				return err
+			}
+
+			var batchResponse models.RebalanceBatchResponse
+			if err := json.Unmarshal(responseBytes, &batchResponse); err != nil {
+				return err
+			}
+
+			// compute new share allocations for this batch
+			var newRounds []models.InvestmentRound
+			var oldRoundIDs []uint
+
+			for _, result := range batchResponse.Results {
+				oldRound := roundMap[result.RequestID]
+				oldRoundIDs = append(oldRoundIDs, oldRound.ID)
+
+				var newHoldings []models.Holding
+				for ticker, targetWeight := range result.AdjustedTargets {
+					allocatedAmount := targetWeight * oldRound.TotalValue
+					price := latestPrices[ticker]
+					shares := allocatedAmount / price
+
+					newHoldings = append(newHoldings, models.Holding{
+						UserID:          oldRound.UserID,
+						Ticker:          ticker,
+						Weight:          targetWeight,
+						Shares:          shares,
+						PurchasePrice:   price,
+						AllocatedAmount: allocatedAmount,
+					})
+				}
+
+				newRounds = append(newRounds, models.InvestmentRound{
+					UserID:     oldRound.UserID,
+					TotalValue: oldRound.TotalValue,
+					IsActive:   true,
+					Holdings:   newHoldings,
+				})
+			}
+
+			// atomic DB transaction swap for this chunk
+			err = s.rebalanceRepo.ExecuteBatchRebalanceTransaction(newRounds, oldRoundIDs)
+			if err != nil {
+				return err
+			}
+
+			log.Printf("[REBALANCE] Successfully processed batch of %d users", len(newRounds))
+		}
+
+		lastID = activeRounds[len(activeRounds)-1].ID
 	}
 
-	// atomic DB transaction swap
-	return s.rebalanceRepo.ExecuteBatchRebalanceTransaction(newRounds, oldRoundIDs)
+	return nil
 }
