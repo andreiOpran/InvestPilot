@@ -33,6 +33,7 @@ type AppSettings struct {
 	TimingAttackNoise        int              `env:"TIMING_ATTACK_NOISE" envDefault:"20"`
 	CronBatchSleep           time.Duration    `env:"CRON_BATCH_SLEEP" envDefault:"100ms"`
 	DataPipelineCronSchedule string           `env:"DATA_PIPELINE_CRON" envDefault:"0 22 * * *"`
+	RebalanceSchedule        string           `env:"REBALANCE_CRON" envDefault:"0 2 1 * *"`
 	APIBaseURL               string           `env:"API_BASE_URL" envDefault:"http://localhost:8080/api/v1"`
 	FrontendBaseURL          string           `env:"FRONTEND_BASE_URL" envDefault:"http://localhost:8081"`
 	PythonNodeURL            string           `env:"PYTHON_NODE_URL" envDefault:"http://python-engine:5000"`

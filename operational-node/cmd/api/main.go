@@ -17,16 +17,24 @@ import (
 	"github.com/andreiOpran/licenta/operational-node/internal/database"
 	"github.com/andreiOpran/licenta/operational-node/internal/jobs"
 	"github.com/andreiOpran/licenta/operational-node/internal/mailer"
+	"github.com/andreiOpran/licenta/operational-node/internal/repositories"
 	"github.com/andreiOpran/licenta/operational-node/internal/router"
+	"github.com/andreiOpran/licenta/operational-node/internal/services"
 )
 
 func main() {
+	rebalanceRepo := repositories.NewRebalanceRepository(database.DB)
+	userRepo := repositories.NewUserRepository(database.DB)
+
+	rebalanceService := services.NewRebalanceService(rebalanceRepo, userRepo)
+
 	config.LoadConfig()
 	database.InitDB()
 	mailer.InitEmailer()
 	clients.InitRabbitMQ()
 	jobs.StartTokenCleanupJob()
 	jobs.StartDataPipelineJob()
+	jobs.StartRebalanceJob(rebalanceService)
 
 	r := gin.Default()
 	router.SetupRoutes(r)
