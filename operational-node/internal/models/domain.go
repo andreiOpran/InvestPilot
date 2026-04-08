@@ -109,6 +109,7 @@ type ModelPortfolio struct {
 // written by decisional-node, polled by operational-node
 type ForecastResult struct {
 	ID        uint   `gorm:"primaryKey"`
+	UserID    uint   `gorm:"not null;index"`             // for ownership check
 	TaskID    string `gorm:"unique;not null;index"`      // UUID issued by operational-node
 	Status    string `gorm:"not null;default:'pending'"` // "pending", "complete", "error"
 	Payload   string // JSON with percentile arrays, nil until complete

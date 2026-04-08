@@ -48,22 +48,25 @@ func (h *ForecastHandler) RequestForecastHandler(c *gin.Context) {
 // GET /forecast/status/:task_id
 
 func (h *ForecastHandler) GetForecastStatusHandler(c *gin.Context) {
-	// auth check to ensure only logged in uesers query task IDs
-	_, exists := c.Get("userID")
+	// extract verified user ID from context
+	userIDRaw, exists := c.Get("userID")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
 		return
 	}
+	userID := userIDRaw.(uint)
 
+	// extract given task mapping ID
 	taskID := c.Param("task_id")
 	if taskID == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Task ID is required"})
 		return
 	}
 
-	result, err := h.forecastService.GetForecastByTaskID(taskID)
+	// request forecast mapped to this user
+	result, err := h.forecastService.GetForecast(taskID, userID)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Forecast task not found"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "Forecast task not found or you do lack permission to view it"})
 		return
 	}
 

@@ -10,7 +10,7 @@ import (
 
 type ForecastService interface {
 	RequestForecast(userID uint, req models.ForecastRequest) (string, error)
-	GetForecastByTaskID(taskID string) (*models.ForecastResult, error)
+	GetForecast(taskID string, userID uint) (*models.ForecastResult, error)
 }
 
 type forecastService struct {
@@ -59,7 +59,7 @@ func (s *forecastService) RequestForecast(userID uint, req models.ForecastReques
 	taskID := uuid.New().String()
 
 	// create pending db record first
-	if err := s.forecastRepo.CreatePendingForecast(taskID); err != nil {
+	if err := s.forecastRepo.CreatePendingForecast(taskID, userID); err != nil {
 		return "", err
 	}
 
@@ -81,6 +81,6 @@ func (s *forecastService) RequestForecast(userID uint, req models.ForecastReques
 	return taskID, nil
 }
 
-func (s *forecastService) GetForecastByTaskID(taskID string) (*models.ForecastResult, error) {
-	return s.forecastRepo.GetForecastByTaskID(taskID)
+func (s *forecastService) GetForecast(taskID string, userID uint) (*models.ForecastResult, error) {
+	return s.forecastRepo.GetForecast(taskID, userID)
 }
