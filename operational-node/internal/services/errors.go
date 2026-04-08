@@ -16,6 +16,7 @@ var (
 	ErrInternal                       = errors.New("internal server error")
 	ErrBadRequest                     = errors.New("bad request parameters")
 	ErrInsufficientBalance            = errors.New("insufficient wallet balance")
+	ErrAmountNegative                 = errors.New("amount must be positive")
 	ErrRebalancePausedStaleMarketData = errors.New("rebalance paused because market data is stale")
 	ErrForecastUserNoActivePortfolio  = errors.New("user has no active portfolio to forecast")
 	ErrForecastNoAssetsOnlyCash       = errors.New("portfolio consists entirely of uninvested cash; cannot forecast")

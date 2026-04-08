@@ -3,6 +3,7 @@ package services
 import (
 	"github.com/andreiOpran/licenta/operational-node/internal/models"
 	"github.com/andreiOpran/licenta/operational-node/internal/repositories"
+	"github.com/google/uuid"
 )
 
 type UserService interface {
@@ -52,9 +53,16 @@ func (s *userService) UpdateUserProfile(userID uint, req models.UpdateProfileReq
 // This is now unused, as deposit is made by stripe webhooks, which calls the DepositTx()
 func (s *userService) DepositFunds(userID uint, amount float64) (float64, error) {
 	stripeID := "sim_paper_trading_deposit"
+	funding := &models.Funding{
+		UserID:          userID,
+		Type:            "DEPOSIT",
+		Amount:          amount,
+		StripePaymentID: stripeID,
+		Status:          "COMPLETED",
+	}
 
 	// atomic update to prevent race conditions and log the funding via transaction
-	if err := s.userRepo.DepositTx(userID, amount, stripeID); err != nil {
+	if err := s.userRepo.DepositTx(userID, amount, funding); err != nil {
 		return 0, ErrInternal
 	}
 
@@ -67,8 +75,34 @@ func (s *userService) DepositFunds(userID uint, amount float64) (float64, error)
 	return wallet.Balance, nil
 }
 
+func (s *userService) ProcessWebhookDeposit(userID uint, amount float64, stripeID string) error {
+	// generate funding ledger log
+	funding := &models.Funding{
+		UserID:          userID,
+		Type:            "DEPOSIT",
+		Amount:          amount,
+		StripePaymentID: stripeID,
+		Status:          "COMPLETED",
+	}
+	return s.userRepo.DepositTx(userID, amount, funding)
+}
+
 func (s *userService) Cashout(userID uint, amount float64) (float64, error) {
-	if err := s.userRepo.CashoutTx(userID, amount); err != nil {
+	if amount <= 0 {
+		return 0, ErrAmountNegative
+	}
+
+	// generate cashout log with mock Stripe ID
+	mockStripeID := "sim_out_" + uuid.New().String()
+	funding := &models.Funding{
+		UserID:          userID,
+		Type:            "WITHDRAWAL",
+		Amount:          amount,
+		StripePaymentID: mockStripeID,
+		Status:          "COMPLETED",
+	}
+
+	if err := s.userRepo.CashoutTx(userID, amount, funding); err != nil {
 		return 0, err
 	}
 
@@ -78,8 +112,4 @@ func (s *userService) Cashout(userID uint, amount float64) (float64, error) {
 		return 0, err
 	}
 	return wallet.Balance, nil
-}
-
-func (s *userService) ProcessWebhookDeposit(userID uint, amount float64, stripeID string) error {
-	return s.userRepo.DepositTx(userID, amount, stripeID)
 }

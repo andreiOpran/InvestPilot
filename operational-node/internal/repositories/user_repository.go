@@ -1,12 +1,9 @@
 package repositories
 
 import (
-	"errors"
-
 	"gorm.io/gorm"
 
 	"github.com/andreiOpran/licenta/operational-node/internal/models"
-	"github.com/google/uuid"
 )
 
 // UserRepository handles database logic for the user domain
@@ -15,8 +12,8 @@ type UserRepository interface {
 	FindByIDWithWallet(userID uint) (*models.User, error)
 	Save(user *models.User) error
 	FindWalletByUserID(userID uint) (*models.Wallet, error)
-	DepositTx(userID uint, amount float64, stripeID string) error
-	CashoutTx(userID uint, amount float64) error
+	DepositTx(userID uint, amount float64, fundingLog *models.Funding) error
+	CashoutTx(userID uint, amount float64, fundingLog *models.Funding) error
 }
 
 type userRepository struct {
@@ -50,7 +47,7 @@ func (r *userRepository) FindWalletByUserID(userID uint) (*models.Wallet, error)
 	return &wallet, err
 }
 
-func (r *userRepository) DepositTx(userID uint, amount float64, stripeID string) error {
+func (r *userRepository) DepositTx(userID uint, amount float64, fundingLog *models.Funding) error {
 	// begin gorm transaction
 	return r.db.Transaction(func(tx *gorm.DB) error {
 		// atomically update wallet balance
@@ -61,57 +58,26 @@ func (r *userRepository) DepositTx(userID uint, amount float64, stripeID string)
 			return err
 		}
 
-		// create immutable funding ledger record
-		funding := models.Funding{
-			UserID:          userID,
-			Type:            "DEPOSIT",
-			Amount:          amount,
-			StripePaymentID: stripeID,
-			Status:          "COMPLETED",
-		}
-		if err := tx.Create(&funding).Error; err != nil {
-			return err
-		}
-
-		// return nil to trigger COMMIT
-		return nil
+		return tx.Create(fundingLog).Error
 	})
 }
 
-func (r *userRepository) CashoutTx(userID uint, amount float64) error {
+func (r *userRepository) CashoutTx(userID uint, amount float64, fundingLog *models.Funding) error {
 	// begin gorm transaction
 	return r.db.Transaction(func(tx *gorm.DB) error {
-		// check if user has enough balance
-		var wallet models.Wallet
-		if err := tx.Where("user_id = ?", userID).First(&wallet).Error; err != nil {
-			return err
+		// atomically update wallet balance only if there are enough funds
+		result := tx.Model(&models.Wallet{}).
+			Where("user_id = ? AND balance >= ?", userID, amount).
+			Update("balance", gorm.Expr("balance - ?", amount))
+		if result.Error != nil {
+			return result.Error
 		}
 
-		if wallet.Balance < amount {
-			return errors.New("insufficient funds")
+		// if no rows affected, means balance >= amount did not pass
+		if result.RowsAffected == 0 {
+			return ErrUserCashoutInsufficientFunds
 		}
 
-		// atomically update wallet balance
-		err := tx.Model(&models.Wallet{}).
-			Where("user_id = ?", userID).
-			Update("balance", gorm.Expr("balance - ?", amount)).Error
-		if err != nil {
-			return err
-		}
-
-		// create immutable withdrawal record
-		funding := models.Funding{
-			UserID:          userID,
-			Type:            "WITHDRAWAL",
-			Amount:          amount,
-			StripePaymentID: "sim_out_" + uuid.New().String(), // mock id
-			Status:          "COMPLETED",
-		}
-		if err := tx.Create(&funding).Error; err != nil {
-			return err
-		}
-
-		// return nil to trigger COMMIT
-		return nil
+		return tx.Create(fundingLog).Error
 	})
 }
