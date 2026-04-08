@@ -138,3 +138,28 @@ func (h *UserHandler) DepositHandler(c *gin.Context) {
 		"new_balance": newBalance,
 	})
 }
+
+// Add the CashoutHandler:
+func (h *UserHandler) CashoutHandler(c *gin.Context) {
+	var req models.CashoutRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request: " + err.Error()})
+		return
+	}
+
+	userID := c.MustGet("userID").(uint)
+	newBalance, err := h.userService.Cashout(userID, req.Amount)
+	if err != nil {
+		if err.Error() == "insufficient funds" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Insufficient wallet balance."})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to process withdrawal: " + err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message":     "Withdrawal processed successfully",
+		"new_balance": newBalance,
+	})
+}

@@ -61,3 +61,11 @@ type ForecastRequest struct {
 	MonthlyContribution float64 `json:"monthly_contribution" binding:"min=0"`
 	Years               int     `json:"years" binding:"required,min=1,max=50"`
 }
+
+type DepositIntentRequest struct {
+	Amount float64 `json:"amount" binding:"required,gt=0"`
+}
+
+type CashoutRequest struct {
+	Amount float64 `json:"amount" binding:"required,gt=0"`
+}

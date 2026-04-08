@@ -9,6 +9,8 @@ type UserService interface {
 	GetUserProfile(userID uint) (*models.User, error)
 	UpdateUserProfile(userID uint, req models.UpdateProfileRequest) error
 	DepositFunds(userID uint, amount float64) (float64, error)
+	Cashout(userID uint, amount float64) (float64, error)
+	ProcessWebhookDeposit(userID uint, amount float64, stripeID string) error
 }
 
 type userService struct {
@@ -47,8 +49,8 @@ func (s *userService) UpdateUserProfile(userID uint, req models.UpdateProfileReq
 	return nil
 }
 
+// This is now unused, as deposit is made by stripe webhooks, which calls the DepositTx()
 func (s *userService) DepositFunds(userID uint, amount float64) (float64, error) {
-	// TODO: get from Stripe Webhook handler
 	stripeID := "sim_paper_trading_deposit"
 
 	// atomic update to prevent race conditions and log the funding via transaction
@@ -63,4 +65,21 @@ func (s *userService) DepositFunds(userID uint, amount float64) (float64, error)
 	}
 
 	return wallet.Balance, nil
+}
+
+func (s *userService) Cashout(userID uint, amount float64) (float64, error) {
+	if err := s.userRepo.CashoutTx(userID, amount); err != nil {
+		return 0, err
+	}
+
+	// fetch updated wallet balance
+	wallet, err := s.userRepo.FindWalletByUserID(userID)
+	if err != nil {
+		return 0, err
+	}
+	return wallet.Balance, nil
+}
+
+func (s *userService) ProcessWebhookDeposit(userID uint, amount float64, stripeID string) error {
+	return s.userRepo.DepositTx(userID, amount, stripeID)
 }

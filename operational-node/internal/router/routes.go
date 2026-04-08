@@ -29,6 +29,7 @@ func SetupRoutes(r *gin.Engine) {
 	securityService := services.NewSecurityService(userRepo)
 	portfolioService := services.NewPortfolioService(portfolioRepo, userRepo)
 	forecastService := services.NewForecastService(forecastRepo, portfolioRepo)
+	stripeService := services.NewStripeService()
 	rebalanceService := services.NewRebalanceService(rebalanceRepo, userRepo) // for debug endpoint
 	dataPipelineService := services.NewDataPipelineService()                  // for debug endpoint
 
@@ -38,6 +39,7 @@ func SetupRoutes(r *gin.Engine) {
 	securityHandler := handlers.NewSecurityHandler(securityService)
 	portfolioHandler := handlers.NewPortfolioHandler(portfolioService)
 	forecastHandler := handlers.NewForecastHandler(forecastService)
+	stripeHandler := handlers.NewStripeHandler(stripeService, userService)
 	rebalanceHandler := handlers.NewRebalanceHandler(rebalanceService)          // for debug endpoint
 	dataPipelineHandler := handlers.NewDataPipelineHandler(dataPipelineService) // for debug endpoint
 
@@ -64,6 +66,7 @@ func SetupRoutes(r *gin.Engine) {
 		v1.POST("/refresh-token", authHandler.RefreshTokenHandler)
 		v1.POST("/forgot-password", authHandler.ForgotPasswordHandler)
 		v1.POST("/reset-password", authHandler.ResetPasswordHandler)
+		v1.POST("/webhook/stripe", stripeHandler.WebhookHandler)
 
 		protected := v1.Group("/", middleware.AuthMiddleware())
 		{
@@ -73,6 +76,8 @@ func SetupRoutes(r *gin.Engine) {
 			protected.POST("/2fa/enable", securityHandler.Enable2FAHandler)
 			protected.POST("/deposit", userHandler.DepositHandler)
 			protected.POST("/invest", portfolioHandler.InvestHandler)
+			protected.POST("/deposit/intent", stripeHandler.CreateIntentHandler)
+			protected.POST("/cashout", userHandler.CashoutHandler)
 			protected.POST("/forecast", forecastHandler.RequestForecastHandler)
 			protected.GET("/forecast/status/:task_id", forecastHandler.GetForecastStatusHandler)
 		}

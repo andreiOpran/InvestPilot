@@ -12,6 +12,8 @@ import (
 type AppSettings struct {
 	DatabaseURL              string           `env:"DATABASE_URL,required"`
 	AESMasterKey             string           `env:"AES_MASTER_KEY,required"`
+	StripeKey                string           `env:"STRIPE_KEY,required"`
+	StripeWebhookKey         string           `env:"STRIPE_WEBHOOK_KEY,required"`
 	JWTSecret                string           `env:"JWT_SECRET" envDefault:"secret-key"`
 	SMTPHost                 string           `env:"SMTP_HOST"`
 	SMTPPort                 string           `env:"SMTP_PORT"`
