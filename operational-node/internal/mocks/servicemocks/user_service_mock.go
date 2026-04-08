@@ -28,3 +28,13 @@ func (m *MockUserService) DepositFunds(userID uint, amount float64) (float64, er
 	args := m.Called(userID, amount)
 	return args.Get(0).(float64), args.Error(1)
 }
+
+// TODO: implement
+func (m *MockUserService) Cashout(userID uint, amount float64) (float64, error) {
+	return 0, nil
+}
+
+// TODO: implement
+func (s *MockUserService) ProcessWebhookDeposit(userID uint, amount float64, stripeID string) error {
+	return nil
+}
