@@ -6,7 +6,7 @@ import (
 )
 
 type ForecastRepository interface {
-	CreatePendingForecast(taskID string, userID uint) error
+	CreateForecast(taskID string, userID uint, forecast *models.ForecastResult) error
 	GetForecast(taskID string, userID uint) (*models.ForecastResult, error)
 }
 
@@ -18,12 +18,7 @@ func NewForecastRepository(db *gorm.DB) ForecastRepository {
 	return &forecastRepository{db: db}
 }
 
-func (r *forecastRepository) CreatePendingForecast(taskID string, userID uint) error {
-	forecast := models.ForecastResult{
-		TaskID: taskID,
-		UserID: userID,
-		Status: "pending",
-	}
+func (r *forecastRepository) CreateForecast(taskID string, userID uint, forecast *models.ForecastResult) error {
 	return r.db.Create(&forecast).Error
 }
 

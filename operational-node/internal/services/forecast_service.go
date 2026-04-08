@@ -59,7 +59,12 @@ func (s *forecastService) RequestForecast(userID uint, req models.ForecastReques
 	taskID := uuid.New().String()
 
 	// create pending db record first
-	if err := s.forecastRepo.CreatePendingForecast(taskID, userID); err != nil {
+	forecast := models.ForecastResult{
+		TaskID: taskID,
+		UserID: userID,
+		Status: "pending",
+	}
+	if err := s.forecastRepo.CreateForecast(taskID, userID, &forecast); err != nil {
 		return "", err
 	}
 
