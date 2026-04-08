@@ -349,8 +349,8 @@ type InvestmentConfig struct {
 
 ### Phase 1: Foundation
 
-- [ ] Set up Docker Compose with Go, Python, RabbitMQ, and PostgreSQL services
-- [ ] Configure RabbitMQ exchanges and queues (`cmd_queue`, `result_queue`)
+- [x] Set up Docker Compose with Go, Python, RabbitMQ, and PostgreSQL services
+- [x] Configure RabbitMQ exchanges and queues (`cmd_queue`, `result_queue`)
 - [x] Connect Go to PostgreSQL using GORM
 - [x] Define database models and run AutoMigrate (including ModelPortfolio and ForecastResult)
 - [x] Create dummy user seeding for initial testing
@@ -439,7 +439,7 @@ An `EmailSender` interface decouples email logic from business logic.
      - Compute `shares = (adjusted_weight × total_value) / close_price`
      - DB transaction: write new Portfolio rows + mark old InvestmentRound IsActive=false
 - [x] **POST /forecast:** Accept user parameters, generate UUID (task_id), insert pending ForecastResult row, publish CMD_FORECAST to RabbitMQ, return HTTP 202 with task_id
-- [ ] **GET /forecast/status/:task_id:** Poll ForecastResult table, return pending status or final payload
+- [x] **GET /forecast/status/:task_id:** Poll ForecastResult table, return pending status or final payload
 
 ### Phase 5: Frontend Dashboard
 
@@ -473,6 +473,5 @@ An `EmailSender` interface decouples email logic from business logic.
 ### Phase 8: Enterprise Architecture Evolution (Optional / Future)
 
 - [ ] **Go — Modular Monolith with Vertical Slices:** Transition from layered (`handlers/`, `services/`, `repositories/`) to business domain slices (`features/auth/`, `features/ledger/`, `features/portfolio/`) for maximum cohesion and independent team workflows
-- [ ] **Python — gRPC Communication:** Replace HTTP/JSON with gRPC (Protobuf) between Go and Python. Strictly typed contracts, ~10x faster binary transfer — critical for weight matrices and price history
 - [ ] **Notifications Microservice:** Extend RabbitMQ to publish domain events (e.g., `user.registered`, `rebalance.completed`). Standalone consumer handles all email delivery asynchronously with zero data loss on crash
 - [ ] **Redis Caching (Cache-Aside Pattern):** Cache the 15 model portfolio weight sets in Redis RAM. Go reads from sub-millisecond cache on dashboard load instead of querying `model_portfolios` table. Cache invalidated and refreshed after each daily CMD_GENERATE run
