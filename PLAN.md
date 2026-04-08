@@ -426,7 +426,7 @@ An `EmailSender` interface decouples email logic from business logic.
 - [x] Implement RabbitMQ Producer in Go to dispatch CMD_SYNC and CMD_GENERATE daily via cron
 - [ ] Integrate Stripe Sandbox API for POST /deposit (bank → wallet) and POST /cashout (wallet → bank)
 - [x] **POST /invest:** Move wallet balance to portfolio as USD ticker, create InvestmentRound
-- [ ] **POST /rebalance (cron, every 30 days):**
+- [x] **POST /rebalance (cron, every 30 days):**
   1. Staleness check: abort if any ticker's latest price in `historical_market_data` is older than `PriceStalenessDays` trading days
   2. Read latest pre-computed weights from `model_portfolios` for all 15 bucket keys
   3. Query all users with active InvestmentRound
@@ -438,7 +438,7 @@ An `EmailSender` interface decouples email logic from business logic.
      - Read latest ClosePrice per ticker from historical_market_data
      - Compute `shares = (adjusted_weight × total_value) / close_price`
      - DB transaction: write new Portfolio rows + mark old InvestmentRound IsActive=false
-- [ ] **POST /forecast:** Accept user parameters, generate UUID (task_id), insert pending ForecastResult row, publish CMD_FORECAST to RabbitMQ, return HTTP 202 with task_id
+- [x] **POST /forecast:** Accept user parameters, generate UUID (task_id), insert pending ForecastResult row, publish CMD_FORECAST to RabbitMQ, return HTTP 202 with task_id
 - [ ] **GET /forecast/status/:task_id:** Poll ForecastResult table, return pending status or final payload
 
 ### Phase 5: Frontend Dashboard

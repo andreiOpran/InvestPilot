@@ -20,6 +20,7 @@ func SetupRoutes(r *gin.Engine) {
 	authRepo := repositories.NewAuthRepository(database.DB)
 	userRepo := repositories.NewUserRepository(database.DB)
 	portfolioRepo := repositories.NewPortfolioRepository(database.DB)
+	forecastRepo := repositories.NewForecastRepository(database.DB)
 	rebalanceRepo := repositories.NewRebalanceRepository(database.DB) // for debug endpoint
 
 	// init services with repository deps
@@ -27,6 +28,7 @@ func SetupRoutes(r *gin.Engine) {
 	userService := services.NewUserService(userRepo)
 	securityService := services.NewSecurityService(userRepo)
 	portfolioService := services.NewPortfolioService(portfolioRepo, userRepo)
+	forecastService := services.NewForecastService(forecastRepo, portfolioRepo)
 	rebalanceService := services.NewRebalanceService(rebalanceRepo, userRepo) // for debug endpoint
 	dataPipelineService := services.NewDataPipelineService()                  // for debug endpoint
 
@@ -35,6 +37,7 @@ func SetupRoutes(r *gin.Engine) {
 	userHandler := handlers.NewUserHandler(userService)
 	securityHandler := handlers.NewSecurityHandler(securityService)
 	portfolioHandler := handlers.NewPortfolioHandler(portfolioService)
+	forecastHandler := handlers.NewForecastHandler(forecastService)
 	rebalanceHandler := handlers.NewRebalanceHandler(rebalanceService)          // for debug endpoint
 	dataPipelineHandler := handlers.NewDataPipelineHandler(dataPipelineService) // for debug endpoint
 
@@ -70,6 +73,7 @@ func SetupRoutes(r *gin.Engine) {
 			protected.POST("/2fa/enable", securityHandler.Enable2FAHandler)
 			protected.POST("/deposit", userHandler.DepositHandler)
 			protected.POST("/invest", portfolioHandler.InvestHandler)
+			protected.POST("/forecast", forecastHandler.RequestForecastHandler)
 		}
 	}
 }

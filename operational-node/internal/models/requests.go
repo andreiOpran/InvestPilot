@@ -55,3 +55,9 @@ type ResetPasswordRequest struct {
 type RefreshRequest struct {
 	RefreshToken string `json:"refresh_token" binding:"required"`
 }
+
+type ForecastRequest struct {
+	InitialInvestment   float64 `json:"initial_investment" binding:"required,min=0"`
+	MonthlyContribution float64 `json:"monthly_contribution" binding:"min=0"`
+	Years               int     `json:"years" binding:"required,min=1,max=50"`
+}

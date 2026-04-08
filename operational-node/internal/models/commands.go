@@ -17,3 +17,13 @@ type GeneratePayload struct {
 	WeightThreshold    float64            `json:"weight_threshold"`
 	Verbose            bool               `json:"verbose"`
 }
+
+// ForecastPayload represents the JSON payload to senf for CMD_FORECAST
+type ForecastPayload struct {
+	TaskID              string             `json:"task_id"`
+	Weights             map[string]float64 `json:"weights"`
+	InitialInvestment   float64            `json:"initial_investment"`
+	MonthlyContribution float64            `json:"monthly_contribution"`
+	Years               int                `json:"years"`
+	Verbose             bool               `json:"verbose"`
+}
