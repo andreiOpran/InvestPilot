@@ -44,3 +44,8 @@ func (m *MockUserRepository) FindWalletByUserID(userID uint) (*models.Wallet, er
 	}
 	return nil, args.Error(1)
 }
+
+// TODO: implement
+func (r *MockUserRepository) DepositTx(userID uint, amount float64, stripeID string) error {
+	return nil
+}

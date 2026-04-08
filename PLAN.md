@@ -386,7 +386,7 @@ An `EmailSender` interface decouples email logic from business logic.
 - [ ] **Cloudflare Turnstile:** Anti-bot challenge on /login, /register, /forgot-password. Server-side verification before bcrypt to save CPU
 - [ ] **IP-Based Rate Limiting:** Global Gin middleware using Token Bucket algorithm
 - [ ] **Email-Based Account Lockout:** 5-attempt threshold → 15-minute lockout via LockoutUntil, immune to IP rotation
-- [ ] **Atomic Deposit Logic:** Refactor POST /deposit to use `gorm.Expr("balance + ?", amount)` for atomic DB-level increments (prevents Lost Update race conditions)
+- [x] **Atomic Deposit Logic:** Refactor POST /deposit to use `gorm.Expr("balance + ?", amount)` for atomic DB-level increments (prevents Lost Update race conditions)
 - [ ] **Decisional Node Isolation:** Move all Python-calling routes inside the `protected` middleware group
 
 ### Phase 3: The Python Math Engine & Data Persistence

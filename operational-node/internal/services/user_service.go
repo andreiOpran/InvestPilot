@@ -48,8 +48,11 @@ func (s *userService) UpdateUserProfile(userID uint, req models.UpdateProfileReq
 }
 
 func (s *userService) DepositFunds(userID uint, amount float64) (float64, error) {
-	// atomic update to prevent race conditions delegated to repository
-	if err := s.userRepo.AddWalletBalance(userID, amount); err != nil {
+	// TODO: get from Stripe Webhook handler
+	stripeID := "sim_paper_trading_deposit"
+
+	// atomic update to prevent race conditions and log the funding via transaction
+	if err := s.userRepo.DepositTx(userID, amount, stripeID); err != nil {
 		return 0, ErrInternal
 	}
 

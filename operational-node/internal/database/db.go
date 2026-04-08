@@ -35,6 +35,7 @@ func InitDB() {
 		&models.Session{},
 		&models.ActionToken{},
 		&models.Wallet{},
+		&models.Funding{},
 		&models.Transaction{},
 		&models.InvestmentRound{},
 		&models.Holding{},

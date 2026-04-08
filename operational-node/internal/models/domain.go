@@ -116,3 +116,15 @@ type ForecastResult struct {
 	CreatedAt time.Time
 	UpdatedAt time.Time
 }
+
+// tracks fiat money moving in and out of the platform via Stripe or paper trading
+type Funding struct {
+	ID              uint    `gorm:"primaryKey"`
+	UserID          uint    `gorm:"not null;index"`
+	Type            string  `gorm:"not null"` // "DEPOSIT", "WITHDRAWAL"
+	Amount          float64 `gorm:"not null"`
+	StripePaymentID string  `gorm:"index"`    // external reference ID
+	Status          string  `gorm:"not null"` // "COMPLETED", "PENDING", "FAILED"
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
+}

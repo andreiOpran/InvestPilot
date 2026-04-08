@@ -11,8 +11,8 @@ type UserRepository interface {
 	FindByID(userID uint) (*models.User, error)
 	FindByIDWithWallet(userID uint) (*models.User, error)
 	Save(user *models.User) error
-	AddWalletBalance(userID uint, amount float64) error
 	FindWalletByUserID(userID uint) (*models.Wallet, error)
+	DepositTx(userID uint, amount float64, stripeID string) error
 }
 
 type userRepository struct {
@@ -40,15 +40,36 @@ func (r *userRepository) Save(user *models.User) error {
 	return r.db.Save(user).Error
 }
 
-func (r *userRepository) AddWalletBalance(userID uint, amount float64) error {
-	// atomic update to prevent race conditions directly via gorm.Expr
-	return r.db.Model(&models.Wallet{}).
-		Where("user_id = ?", userID).
-		Update("balance", gorm.Expr("balance + ?", amount)).Error
-}
-
 func (r *userRepository) FindWalletByUserID(userID uint) (*models.Wallet, error) {
 	var wallet models.Wallet
 	err := r.db.Where("user_id = ?", userID).First(&wallet).Error
 	return &wallet, err
+}
+
+func (r *userRepository) DepositTx(userID uint, amount float64, stripeID string) error {
+	// begin gorm transaction
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		// atomically update wallet balance
+		err := tx.Model(&models.Wallet{}).
+			Where("user_id = ?", userID).
+			Update("balance", gorm.Expr("balance + ?", amount)).Error
+		if err != nil {
+			return err
+		}
+
+		// create immutable funding ledger record
+		funding := models.Funding{
+			UserID:          userID,
+			Type:            "DEPOSIT",
+			Amount:          amount,
+			StripePaymentID: stripeID,
+			Status:          "COMPLETED",
+		}
+		if err := tx.Create(&funding).Error; err != nil {
+			return err
+		}
+
+		// return nil to trigger COMMIT
+		return nil
+	})
 }
