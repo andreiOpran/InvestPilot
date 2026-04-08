@@ -10,6 +10,7 @@ import (
 
 type ForecastService interface {
 	RequestForecast(userID uint, req models.ForecastRequest) (string, error)
+	GetForecastByTaskID(taskID string) (*models.ForecastResult, error)
 }
 
 type forecastService struct {
@@ -78,4 +79,8 @@ func (s *forecastService) RequestForecast(userID uint, req models.ForecastReques
 	}
 
 	return taskID, nil
+}
+
+func (s *forecastService) GetForecastByTaskID(taskID string) (*models.ForecastResult, error) {
+	return s.forecastRepo.GetForecastByTaskID(taskID)
 }
