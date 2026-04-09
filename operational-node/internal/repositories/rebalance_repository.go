@@ -1,7 +1,6 @@
 package repositories
 
 import (
-	"encoding/json"
 	"time"
 
 	"github.com/andreiOpran/licenta/operational-node/internal/models"
@@ -10,10 +9,10 @@ import (
 
 type RebalanceRepository interface {
 	GetLatestMarketDataDate() (time.Time, error)
-	GetLatestModelPortfolios() (map[string]map[string]float64, error)
+	GetLatestModelPortfolios() ([]models.ModelPortfolio, error)
 	GetMaxRoundID() (uint, error)
 	GetActiveInvestmentRoundsBatch(lastID uint, maxID uint, batchSize int) ([]models.InvestmentRound, error)
-	GetLatestPrices() (map[string]float64, error)
+	GetLatestPrices() ([]models.HistoricalMarketData, error)
 	ExecuteBatchRebalanceTransaction(newRounds []models.InvestmentRound, oldRoundIDs []uint) error
 }
 
@@ -31,28 +30,14 @@ func (r *rebalanceRepository) GetLatestMarketDataDate() (time.Time, error) {
 	return maxDate, err
 }
 
-func (r *rebalanceRepository) GetLatestModelPortfolios() (map[string]map[string]float64, error) {
+func (r *rebalanceRepository) GetLatestModelPortfolios() ([]models.ModelPortfolio, error) {
 	var portfolios []models.ModelPortfolio
-
-	// fetch latest model portfolios
 	err := r.db.Raw(`
 		SELECT DISTINCT ON (bucket_key) * FROM model_portfolios
 		ORDER BY bucket_key, computed_at DESC
 	`).Scan(&portfolios).Error
-	if err != nil {
-		return nil, err
-	}
 
-	result := make(map[string]map[string]float64)
-	for _, m := range portfolios {
-		var weights map[string]float64
-		if err := json.Unmarshal([]byte(m.Weights), &weights); err != nil {
-			return nil, err
-		}
-		result[m.BucketKey] = weights
-	}
-
-	return result, nil
+	return portfolios, err
 }
 
 func (r *rebalanceRepository) GetMaxRoundID() (uint, error) {
@@ -74,24 +59,15 @@ func (r *rebalanceRepository) GetActiveInvestmentRoundsBatch(lastID uint, maxID 
 	return rounds, err
 }
 
-func (r *rebalanceRepository) GetLatestPrices() (map[string]float64, error) {
-	type priceResult struct {
-		Ticker     string
-		ClosePrice float64
-	}
-	var results []priceResult
+func (r *rebalanceRepository) GetLatestPrices() ([]models.HistoricalMarketData, error) {
+	var results []models.HistoricalMarketData
 	err := r.db.Raw(`
 		SELECT DISTINCT ON (ticker) ticker, close_price
 		FROM historical_market_data
 		ORDER BY ticker, date DESC
 	`).Scan(&results).Error
 
-	prices := make(map[string]float64)
-	for _, res := range results {
-		prices[res.Ticker] = res.ClosePrice
-	}
-	prices["USD"] = 1.0
-	return prices, err
+	return results, err
 }
 
 func (r *rebalanceRepository) ExecuteBatchRebalanceTransaction(

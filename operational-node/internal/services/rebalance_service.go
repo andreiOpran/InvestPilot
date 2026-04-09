@@ -40,15 +40,30 @@ func (s *rebalanceService) RunMonthlyRebalance() error {
 		return ErrRebalancePausedStaleMarketData
 	}
 
-	// load latest model portfolios and prices
-	latestModels, err := s.rebalanceRepo.GetLatestModelPortfolios()
+	// load and map latest model portfolios
+	portfolioRows, err := s.rebalanceRepo.GetLatestModelPortfolios()
 	if err != nil {
 		return err
 	}
-	latestPrices, err := s.rebalanceRepo.GetLatestPrices()
+	latestModels := make(map[string]map[string]float64)
+	for _, m := range portfolioRows {
+		var weights map[string]float64
+		if err := json.Unmarshal([]byte(m.Weights), &weights); err != nil {
+			return err
+		}
+		latestModels[m.BucketKey] = weights
+	}
+
+	// load and map latest prices, while injecting USD
+	priceRows, err := s.rebalanceRepo.GetLatestPrices()
 	if err != nil {
 		return err
 	}
+	latestPrices := make(map[string]float64)
+	for _, res := range priceRows {
+		latestPrices[res.Ticker] = res.ClosePrice
+	}
+	latestPrices["USD"] = 1.0 // fiat money, by convention price is 1.0
 
 	// get maximum InvestmentRound ID currently in the DB
 	// to be used as a ceiling for deactivating old rounds
