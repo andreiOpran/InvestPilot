@@ -9,7 +9,7 @@ import (
 )
 
 type RebalanceRepository interface {
-	CheckPriceStaleness(maxDays int) error
+	GetLatestMarketDataDate() (time.Time, error)
 	GetLatestModelPortfolios() (map[string]map[string]float64, error)
 	GetMaxRoundID() (uint, error)
 	GetActiveInvestmentRoundsBatch(lastID uint, maxID uint, batchSize int) ([]models.InvestmentRound, error)
@@ -25,19 +25,10 @@ func NewRebalanceRepository(db *gorm.DB) RebalanceRepository {
 	return &rebalanceRepository{db: db}
 }
 
-func (r *rebalanceRepository) CheckPriceStaleness(maxDays int) error {
+func (r *rebalanceRepository) GetLatestMarketDataDate() (time.Time, error) {
 	var maxDate time.Time
 	err := r.db.Model(&models.HistoricalMarketData{}).Select("MAX(date)").Scan(&maxDate).Error
-	if err != nil {
-		return err
-	}
-
-	// trading paused on weekends, so we add 2 days when checking
-	daysOld := int(time.Since(maxDate).Hours() / 24)
-	if daysOld > maxDays {
-		return ErrMarketDataStale
-	}
-	return nil
+	return maxDate, err
 }
 
 func (r *rebalanceRepository) GetLatestModelPortfolios() (map[string]map[string]float64, error) {

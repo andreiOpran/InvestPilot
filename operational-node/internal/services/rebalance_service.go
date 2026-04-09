@@ -2,9 +2,9 @@ package services
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/andreiOpran/licenta/operational-node/internal/clients"
 	"github.com/andreiOpran/licenta/operational-node/internal/config"
@@ -26,15 +26,18 @@ func NewRebalanceService(rr repositories.RebalanceRepository, ur repositories.Us
 }
 
 func (s *rebalanceService) RunMonthlyRebalance() error {
-	stalenessDays := config.Env.Investment.PriceStalenessDays
-
 	// staleness check
-	if err := s.rebalanceRepo.CheckPriceStaleness(stalenessDays); err != nil {
-		log.Printf("[REBALANCE ABORTED] %v", err)
-		if errors.Is(err, repositories.ErrMarketDataStale) {
-			return ErrRebalancePausedStaleMarketData
-		}
+	maxDate, err := s.rebalanceRepo.GetLatestMarketDataDate()
+	if err != nil {
 		return err
+	}
+
+	// trading paused on weekends, so we add 2 days when checking
+	daysOld := int(time.Since(maxDate).Hours() / 24)
+	maxDaysStaleness := config.Env.Investment.PriceStalenessDays
+	if daysOld+2 > maxDaysStaleness {
+		log.Printf("[REBALANCE ABORTED] %v", err)
+		return ErrRebalancePausedStaleMarketData
 	}
 
 	// load latest model portfolios and prices
