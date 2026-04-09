@@ -11,7 +11,7 @@ type RebalanceRepository interface {
 	GetLatestMarketDataDate() (time.Time, error)
 	GetLatestModelPortfolios() ([]models.ModelPortfolio, error)
 	GetMaxRoundID() (uint, error)
-	GetActiveInvestmentRoundsBatch(lastID uint, maxID uint, batchSize int) ([]models.InvestmentRound, error)
+	GetInvestmentRoundsBatchByStatus(isActive bool, lastID uint, maxID uint, batchSize int) ([]models.InvestmentRound, error)
 	GetLatestPrices() ([]models.HistoricalMarketData, error)
 	ExecuteBatchRebalanceTransaction(newRounds []models.InvestmentRound, oldRoundIDs []uint) error
 }
@@ -46,13 +46,13 @@ func (r *rebalanceRepository) GetMaxRoundID() (uint, error) {
 	return maxID, err
 }
 
-func (r *rebalanceRepository) GetActiveInvestmentRoundsBatch(lastID uint, maxID uint, batchSize int) ([]models.InvestmentRound, error) {
+func (r *rebalanceRepository) GetInvestmentRoundsBatchByStatus(isActive bool, lastID uint, maxID uint, batchSize int) ([]models.InvestmentRound, error) {
 	var rounds []models.InvestmentRound
 	err := r.db.
 		Preload("Holdings").
 		Preload("User").
-		Where("is_active = ? AND id > ? AND id <= ?", true, lastID, maxID).
-		Order("id ASC"). // for cursor pagination
+		Where("is_active = ? AND id > ? AND id <= ?", isActive, lastID, maxID).
+		Order("id ASC").
 		Limit(batchSize).
 		Find(&rounds).Error
 

@@ -76,7 +76,8 @@ func (s *rebalanceService) RunMonthlyRebalance() error {
 	var lastID uint = 0
 
 	for {
-		activeRounds, err := s.rebalanceRepo.GetActiveInvestmentRoundsBatch(
+		activeRounds, err := s.rebalanceRepo.GetInvestmentRoundsBatchByStatus(
+			true, // isActive
 			lastID,
 			maxID,
 			config.Env.RebalanceBatchSize,
