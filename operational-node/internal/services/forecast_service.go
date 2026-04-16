@@ -27,7 +27,7 @@ func NewForecastService(fr repositories.ForecastRepository, pr repositories.Port
 
 func (s *forecastService) RequestForecast(userID uint, req models.ForecastRequest) (string, error) {
 	// get user current holdings
-	round, err := s.portfolioRepo.GetActiveRoundWithHoldings(userID)
+	round, err := s.portfolioRepo.GetRoundWithHoldingsByStatus(userID, true)
 	if err != nil {
 		return "", err
 	}

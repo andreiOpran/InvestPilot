@@ -41,7 +41,7 @@ func (s *portfolioService) Invest(userID uint, amount float64) error {
 		Amount: amount,
 	}
 
-	oldRound, err := s.portfolioRepo.GetActiveRoundWithHoldings(userID)
+	oldRound, err := s.portfolioRepo.GetRoundWithHoldingsByStatus(userID, true)
 	if err != nil {
 		return err
 	}

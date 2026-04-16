@@ -8,7 +8,7 @@ import (
 )
 
 type PortfolioRepository interface {
-	GetActiveRoundWithHoldings(userID uint) (*models.InvestmentRound, error)
+	GetRoundWithHoldingsByStatus(userID uint, isActive bool) (*models.InvestmentRound, error)
 	ExecuteInvestTransaction(
 		wallet *models.Wallet,
 		txRecord *models.Transaction,
@@ -25,11 +25,11 @@ func NewPortfolioRepository(db *gorm.DB) PortfolioRepository {
 	return &portfolioRepository{db: db}
 }
 
-func (r *portfolioRepository) GetActiveRoundWithHoldings(userID uint) (*models.InvestmentRound, error) {
+func (r *portfolioRepository) GetRoundWithHoldingsByStatus(userID uint, isActive bool) (*models.InvestmentRound, error) {
 	var round models.InvestmentRound
-	err := r.db.Preload("Holdings").Where("user_id = ? AND is_active = ?", userID, true).First(&round).Error
+	err := r.db.Preload("Holdings").Where("user_id = ? AND is_active = ?", userID, isActive).First(&round).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil, nil // gracefully return nil if no existing active round
+		return nil, nil // gracefully return nil if no existing matching round
 	}
 	if err != nil {
 		return nil, err
@@ -69,3 +69,8 @@ func (r *portfolioRepository) ExecuteInvestTransaction(
 		return nil
 	})
 }
+
+// TODO
+
+// 3. File: portfolio_repository.go
+// Change the hardcoded function signature in your repository to accept a parametrized status boolean.
