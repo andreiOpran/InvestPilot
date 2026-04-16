@@ -40,7 +40,25 @@ func (r *authRepository) FindUserByEmail(email string) (*models.User, error) {
 }
 
 func (r *authRepository) CreateUser(user *models.User) error {
-	return r.db.Create(user).Error
+	// use atomic transaction to ensure user and new wallet are created together
+	return r.db.Transaction(func(tx *gorm.DB) error {
+
+		// create user, ignoring auto-associations
+		if err := tx.Omit("Wallet").Create(user).Error; err != nil {
+			return err
+		}
+
+		// create empty wallet for the created user
+		wallet := models.Wallet{
+			UserID:  user.ID,
+			Balance: 0.0,
+		}
+		if err := tx.Create(&wallet).Error; err != nil {
+			return err
+		}
+
+		return nil
+	})
 }
 
 func (r *authRepository) CreateActionToken(token *models.ActionToken) error {

@@ -37,7 +37,7 @@ type AppSettings struct {
 	DataPipelineCronSchedule string           `env:"DATA_PIPELINE_CRON" envDefault:"0 22 * * *"`
 	RebalanceSchedule        string           `env:"REBALANCE_CRON" envDefault:"0 2 1 * *"`
 	RebalanceBatchSize       int              `env:"REBALANCE_BATCH_SIZE" envDefault:"500"`
-	APIBaseURL               string           `env:"API_BASE_URL" envDefault:"http://localhost:8080/api/v1"`
+	APIBaseURL               string           `env:"API_BASE_URL" envDefault:"http://localhost:8081/api/v1"`
 	FrontendBaseURL          string           `env:"FRONTEND_BASE_URL" envDefault:"http://localhost:8081"`
 	PythonNodeURL            string           `env:"PYTHON_NODE_URL" envDefault:"http://python-engine:5000"`
 	PythonClientTimeout      time.Duration    `env:"PYTHON_CLIENT_TIMEOUT" envDefault:"5s"`

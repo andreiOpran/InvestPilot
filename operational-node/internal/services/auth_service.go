@@ -63,17 +63,17 @@ func (s *authService) RegisterUser(req models.RegisterRequest) error {
 		return nil // success from the client's perspective
 	}
 
-	// if user does not exist, procees with creation
+	// if user does not exist, proceed with creation
 	// build user with an empty wallet and isemailverified=false
 	user := models.User{
 		Email:             req.Email,
 		Password:          string(hashedPassword),
 		RiskTolerance:     0, // will be updated later by onboarding form
 		InvestmentHorizon: 0, // will be updated later by onboarding form
-		Wallet:            models.Wallet{Balance: 0.0},
 	}
 
 	// save to db via repo (will fail if email already exists)
+	// wallet is handled by repo
 	if err := s.authRepo.CreateUser(&user); err != nil {
 		return ErrEmailExists
 	}
