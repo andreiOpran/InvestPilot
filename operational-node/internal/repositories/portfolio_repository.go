@@ -69,8 +69,3 @@ func (r *portfolioRepository) ExecuteInvestTransaction(
 		return nil
 	})
 }
-
-// TODO
-
-// 3. File: portfolio_repository.go
-// Change the hardcoded function signature in your repository to accept a parametrized status boolean.
