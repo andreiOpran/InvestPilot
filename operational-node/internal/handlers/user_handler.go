@@ -10,6 +10,7 @@ import (
 	"github.com/andreiOpran/licenta/operational-node/internal/config"
 	"github.com/andreiOpran/licenta/operational-node/internal/mailer"
 	"github.com/andreiOpran/licenta/operational-node/internal/models"
+	"github.com/andreiOpran/licenta/operational-node/internal/repositories"
 	"github.com/andreiOpran/licenta/operational-node/internal/services"
 )
 
@@ -139,7 +140,7 @@ func (h *UserHandler) DepositHandler(c *gin.Context) {
 	})
 }
 
-// Add the CashoutHandler:
+// CashoutHandler extracts simulated funds from user's wallet
 func (h *UserHandler) CashoutHandler(c *gin.Context) {
 	var req models.CashoutRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -150,7 +151,7 @@ func (h *UserHandler) CashoutHandler(c *gin.Context) {
 	userID := c.MustGet("userID").(uint)
 	newBalance, err := h.userService.Cashout(userID, req.Amount)
 	if err != nil {
-		if err.Error() == "insufficient funds" {
+		if errors.Is(err, repositories.ErrUserCashoutInsufficientFunds) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Insufficient wallet balance."})
 			return
 		}
