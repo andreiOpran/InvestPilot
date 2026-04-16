@@ -9,7 +9,7 @@ import (
 	"github.com/andreiOpran/licenta/operational-node/internal/models"
 	"github.com/andreiOpran/licenta/operational-node/internal/services"
 	"github.com/gin-gonic/gin"
-	"github.com/stripe/stripe-go/v78"
+	"github.com/stripe/stripe-go/v85"
 )
 
 type StripeHandler struct {

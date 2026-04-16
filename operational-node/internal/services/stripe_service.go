@@ -5,9 +5,9 @@ import (
 	"strconv"
 
 	"github.com/andreiOpran/licenta/operational-node/internal/config"
-	"github.com/stripe/stripe-go/v78"
-	"github.com/stripe/stripe-go/v78/paymentintent"
-	"github.com/stripe/stripe-go/v78/webhook"
+	"github.com/stripe/stripe-go/v85"
+	"github.com/stripe/stripe-go/v85/paymentintent"
+	"github.com/stripe/stripe-go/v85/webhook"
 )
 
 type StripeService interface {

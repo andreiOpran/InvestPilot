@@ -13,7 +13,7 @@ require (
 	github.com/rabbitmq/amqp091-go v1.10.0
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/stretchr/testify v1.11.1
-	github.com/stripe/stripe-go/v78 v78.12.0
+	github.com/stripe/stripe-go/v85 v85.0.1
 	golang.org/x/crypto v0.48.0
 	gorm.io/driver/postgres v1.6.0
 	gorm.io/driver/sqlite v1.6.0
