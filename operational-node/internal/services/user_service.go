@@ -11,7 +11,7 @@ type UserService interface {
 	UpdateUserProfile(userID uint, req models.UpdateProfileRequest) error
 	DepositFunds(userID uint, amount float64) (float64, error)
 	Cashout(userID uint, amount float64) (float64, error)
-	ProcessWebhookDeposit(userID uint, amount float64, stripeID string) error
+	ProcessWebhookDeposit(userID uint, amount int64, stripeID string) error
 }
 
 type userService struct {
@@ -75,7 +75,9 @@ func (s *userService) DepositFunds(userID uint, amount float64) (float64, error)
 	return wallet.Balance, nil
 }
 
-func (s *userService) ProcessWebhookDeposit(userID uint, amount float64, stripeID string) error {
+func (s *userService) ProcessWebhookDeposit(userID uint, paymentIntentAmount int64, stripeID string) error {
+	amount := float64(paymentIntentAmount) / 100.0 // convert cents back to flat dollar float
+
 	// generate funding ledger log
 	funding := &models.Funding{
 		UserID:          userID,

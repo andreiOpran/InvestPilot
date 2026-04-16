@@ -75,10 +75,9 @@ func (h *StripeHandler) WebhookHandler(c *gin.Context) {
 		}
 
 		userID, _ := strconv.ParseUint(userIDStr, 10, 32)
-		amountFloat := float64(paymentIntent.Amount) / 100.0 // convert cents back to flat dollar float
 
 		// atomically log and fund user wallet
-		if err := h.userService.ProcessWebhookDeposit(uint(userID), amountFloat, paymentIntent.ID); err != nil {
+		if err := h.userService.ProcessWebhookDeposit(uint(userID), paymentIntent.Amount, paymentIntent.ID); err != nil {
 			// if it fails, returning 500 will tell stripe to retry the webhook later
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to process funding"})
 			return
