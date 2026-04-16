@@ -10,7 +10,6 @@ import (
 	"github.com/andreiOpran/licenta/operational-node/internal/config"
 	"github.com/andreiOpran/licenta/operational-node/internal/mailer"
 	"github.com/andreiOpran/licenta/operational-node/internal/models"
-	"github.com/andreiOpran/licenta/operational-node/internal/repositories"
 	"github.com/andreiOpran/licenta/operational-node/internal/services"
 )
 
@@ -151,7 +150,7 @@ func (h *UserHandler) CashoutHandler(c *gin.Context) {
 	userID := c.MustGet("userID").(uint)
 	newBalance, err := h.userService.Cashout(userID, req.Amount)
 	if err != nil {
-		if errors.Is(err, repositories.ErrUserCashoutInsufficientFunds) {
+		if errors.Is(err, services.ErrInsufficientBalance) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Insufficient wallet balance."})
 			return
 		}

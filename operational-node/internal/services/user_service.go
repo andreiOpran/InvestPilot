@@ -1,6 +1,8 @@
 package services
 
 import (
+	"errors"
+
 	"github.com/andreiOpran/licenta/operational-node/internal/models"
 	"github.com/andreiOpran/licenta/operational-node/internal/repositories"
 	"github.com/google/uuid"
@@ -104,7 +106,11 @@ func (s *userService) Cashout(userID uint, amount float64) (float64, error) {
 		Status:          "COMPLETED",
 	}
 
-	if err := s.userRepo.CashoutTx(userID, amount, funding); err != nil {
+	err := s.userRepo.CashoutTx(userID, amount, funding)
+	if err != nil {
+		if errors.Is(err, repositories.ErrUserCashoutInsufficientFunds) {
+			return 0, ErrInsufficientBalance
+		}
 		return 0, err
 	}
 
