@@ -32,6 +32,11 @@ func (s *stripeService) CreatePaymentIntent(userID uint, amount float64) (string
 		Metadata: map[string]string{
 			"user_id": strconv.FormatUint(uint64(userID), 10), // for mapping webhooks back to user
 		},
+		// TODO: remove to allow other types of payments (Apple Pay, etc.)
+		AutomaticPaymentMethods: &stripe.PaymentIntentAutomaticPaymentMethodsParams{
+			Enabled:        stripe.Bool(true),
+			AllowRedirects: stripe.String("never"), // only internal flows (card)
+		},
 	}
 
 	pi, err := paymentintent.New(params)
