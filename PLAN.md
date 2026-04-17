@@ -387,7 +387,7 @@ An `EmailSender` interface decouples email logic from business logic.
 - [ ] **IP-Based Rate Limiting:** Global Gin middleware using Token Bucket algorithm
 - [ ] **Email-Based Account Lockout:** 5-attempt threshold → 15-minute lockout via LockoutUntil, immune to IP rotation
 - [x] **Atomic Deposit Logic:** Refactor POST /deposit to use `gorm.Expr("balance + ?", amount)` for atomic DB-level increments (prevents Lost Update race conditions)
-- [ ] **Decisional Node Isolation:** Move all Python-calling routes inside the `protected` middleware group
+- [x] **Decisional Node Isolation:** Move all Python-calling routes inside the `protected` middleware group
 
 ### Phase 3: The Python Math Engine & Data Persistence
 

@@ -79,10 +79,12 @@ func (s *authService) RegisterUser(req models.RegisterRequest) error {
 		InvestmentHorizon: 0, // will be updated later by onboarding form
 	}
 
-	// save to db via repo (will fail if email already exists)
+	// save to db via repo
 	// wallet is handled by repo
 	if err := s.authRepo.CreateUser(&user); err != nil {
-		return ErrEmailExists
+		// if insert fails because on unique constraing on email,
+		// we pretend it worked to block enumeration
+		return nil
 	}
 
 	// generate actiontoken for email verification
