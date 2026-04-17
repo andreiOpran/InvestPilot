@@ -8,6 +8,7 @@ import (
 
 	"github.com/andreiOpran/licenta/operational-node/internal/models"
 	"github.com/andreiOpran/licenta/operational-node/internal/services"
+	"github.com/andreiOpran/licenta/operational-node/utils/validator"
 )
 
 type AuthHandler struct {
@@ -33,6 +34,10 @@ func (h *AuthHandler) RegisterHandler(c *gin.Context) {
 		if errors.Is(err, services.ErrEmailExists) {
 			c.JSON(http.StatusConflict, gin.H{"error": "Email already registered"})
 			return
+		}
+		if validator.IsPasswordValidationError(err) {
+			// return specific password requirement that was not met
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 		return
@@ -210,6 +215,10 @@ func (h *AuthHandler) ResetPasswordHandler(c *gin.Context) {
 		if errors.Is(err, services.ErrTokenExpired) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Recovery token has expired"})
 			return
+		}
+		if validator.IsPasswordValidationError(err) {
+			// return specific password requirement that was not met
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not complete reset process"})
 		return

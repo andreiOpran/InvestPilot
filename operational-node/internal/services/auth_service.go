@@ -15,6 +15,7 @@ import (
 	"github.com/andreiOpran/licenta/operational-node/internal/repositories"
 	"github.com/andreiOpran/licenta/operational-node/utils/crypto"
 	"github.com/andreiOpran/licenta/operational-node/utils/token"
+	"github.com/andreiOpran/licenta/operational-node/utils/validator"
 )
 
 type AuthService interface {
@@ -46,6 +47,12 @@ type LoginResult struct {
 }
 
 func (s *authService) RegisterUser(req models.RegisterRequest) error {
+	// password policy check
+	userInputs := []string{req.Email}
+	if err := validator.ValidatePassword(req.Password, userInputs); err != nil {
+		return err
+	}
+
 	// even if the user already exists, we do the heavy bcrypt hashing
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), config.Env.BcryptCost)
 	if err != nil {
@@ -386,6 +393,18 @@ func (s *authService) ResetPassword(tokenStr, newPassword string) error {
 		// cleanup expired token
 		s.authRepo.DeleteActionToken(actionToken)
 		return ErrTokenExpired
+	}
+
+	// extract user data from DB based on userID from token, to use it in password validation
+	user, err := s.authRepo.FindUserByID(actionToken.UserID)
+	if err != nil {
+		return ErrInternal
+	}
+
+	// password policy check
+	userInputs := []string{user.Email}
+	if err := validator.ValidatePassword(newPassword, userInputs); err != nil {
+		return err
 	}
 
 	// hash the new password

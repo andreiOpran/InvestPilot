@@ -10,6 +10,7 @@ import (
 
 // AuthRepository defines the database operations for authentication
 type AuthRepository interface {
+	FindUserByID(id uint) (*models.User, error)
 	FindUserByEmail(email string) (*models.User, error)
 	CreateUser(user *models.User) error
 	CreateActionToken(token *models.ActionToken) error
@@ -31,6 +32,12 @@ type authRepository struct {
 
 func NewAuthRepository(db *gorm.DB) AuthRepository {
 	return &authRepository{db: db}
+}
+
+func (r *authRepository) FindUserByID(id uint) (*models.User, error) {
+	var user models.User
+	err := r.db.Where("id = ?", id).First(&user).Error
+	return &user, err
 }
 
 func (r *authRepository) FindUserByEmail(email string) (*models.User, error) {
