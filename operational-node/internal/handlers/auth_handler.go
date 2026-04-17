@@ -31,10 +31,6 @@ func (h *AuthHandler) RegisterHandler(c *gin.Context) {
 
 	err := h.authService.RegisterUser(req)
 	if err != nil {
-		if errors.Is(err, services.ErrEmailExists) {
-			c.JSON(http.StatusConflict, gin.H{"error": "Email already registered"})
-			return
-		}
 		if validator.IsPasswordValidationError(err) {
 			// return specific password requirement that was not met
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
