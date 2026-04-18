@@ -107,6 +107,15 @@ type User struct {
     ActionTokens []ActionToken
 }
 
+// Tracks user login attempts to prevent brute-force attacks via progressive lockouts
+type LoginAttempt struct {
+	ID        uint      `gorm:"primaryKey"`
+	UserID    uint      `gorm:"not null;index"`
+	IsSuccess bool      `gorm:"not null"`
+	IPAddress string    `gorm:"not null"`
+	CreatedAt time.Time `gorm:"not null;index"`
+}
+
 // Long-lived refresh tokens (multi-device support)
 type Session struct {
     ID           uint      `gorm:"primaryKey"`
@@ -161,7 +170,7 @@ type InvestmentRound struct {
 
 // Single holding within an investment round
 // Ticker: ETF symbol (e.g. SPY, QQQ, BND) or "USD" for uninvested cash
-type Portfolio struct {
+type Holding struct {
     ID              uint      `gorm:"primaryKey"`
     UserID          uint      `gorm:"not null;index"`
     RoundID         uint      `gorm:"not null;index"`
@@ -201,6 +210,18 @@ type ForecastResult struct {
     Payload    string    // JSON with percentile arrays, nil until complete
     CreatedAt  time.Time
     UpdatedAt  time.Time
+}
+
+// Tracks fiat money moving in and out of the platform via Stripe or paper trading
+type Funding struct {
+	ID              uint    `gorm:"primaryKey"`
+	UserID          uint    `gorm:"not null;index"`
+	Type            string  `gorm:"not null"` // "DEPOSIT", "WITHDRAWAL"
+	Amount          float64 `gorm:"not null"`
+	StripePaymentID string  `gorm:"index"`    // external reference ID
+	Status          string  `gorm:"not null"` // "COMPLETED", "PENDING", "FAILED"
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
 }
 ```
 
