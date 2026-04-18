@@ -13,6 +13,7 @@ import (
 // SetupRoutes registers all HTTP endpoints and maps them to handler functions
 func SetupRoutes(r *gin.Engine) {
 	// apply global middlewares
+	r.Use(middleware.IPRateLimiter())
 	r.Use(middleware.CORSMiddleware())
 	r.Use(middleware.SecurityHeadersMiddleware())
 

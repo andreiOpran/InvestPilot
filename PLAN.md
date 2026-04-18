@@ -384,7 +384,7 @@ An `EmailSender` interface decouples email logic from business logic.
 - [x] Gin middleware to protect routes (require Bearer Access Token)
 - [x] Refactor GET /user and POST /deposit to use userID from JWT context
 - [ ] **Cloudflare Turnstile:** Anti-bot challenge on /login, /register, /forgot-password. Server-side verification before bcrypt to save CPU
-- [ ] **IP-Based Rate Limiting:** Global Gin middleware using Token Bucket algorithm
+- [x] **IP-Based Rate Limiting:** Global Gin middleware using Token Bucket algorithm
 - [x] **Email-Based Account Lockout:** 5-attempt threshold → 15-minute lockout via LockoutUntil, immune to IP rotation
 - [x] **Atomic Deposit Logic:** Refactor POST /deposit to use `gorm.Expr("balance + ?", amount)` for atomic DB-level increments (prevents Lost Update race conditions)
 - [x] **Decisional Node Isolation:** Move all Python-calling routes inside the `protected` middleware group

@@ -1,6 +1,6 @@
 module github.com/andreiOpran/licenta/operational-node
 
-go 1.24.0
+go 1.25.0
 
 require (
 	github.com/caarlos0/env/v10 v10.0.0
@@ -16,6 +16,7 @@ require (
 	github.com/stretchr/testify v1.11.1
 	github.com/stripe/stripe-go/v85 v85.0.1
 	golang.org/x/crypto v0.48.0
+	golang.org/x/time v0.15.0
 	gorm.io/driver/postgres v1.6.0
 	gorm.io/driver/sqlite v1.6.0
 	gorm.io/gorm v1.31.1

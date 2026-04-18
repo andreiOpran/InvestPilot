@@ -32,6 +32,10 @@ type AppSettings struct {
 	LockoutDuration3          time.Duration    `env:"LOCKOUT_DURATION_3" envDefault:"15m"`
 	LoginAttemptScanningLimit int              `env:"LOGIN_ATTEMPT_SCANNING_LIMIT" envDefault:"30"`
 	LoginAttemptRetentionDays int              `env:"LOGIN_ATTEMPT_RETENTION_DAYS" envDefault:"7"`
+	RateLimitRPS              float64          `env:"RATE_LIMIT_RPS" envDefault:"10.0"`
+	RateLimitBurst            int              `env:"RATE_LIMIT_BURST" envDefault:"20"`
+	RateLimitCleanupInterval  time.Duration    `env:"RATE_LIMIT_CLEANUP_INTERVAL" envDefault:"1m"`
+	RateLimitRetention        time.Duration    `env:"RATE_LIMIT_RETENTION" envDefault:"3m"`
 	AccessTokenLifetime       time.Duration    `env:"ACCESS_TOKEN_LIFETIME" envDefault:"10m"`
 	RefreshTokenLifetime      time.Duration    `env:"REFRESH_TOKEN_LIFETIME" envDefault:"168h"`
 	VerifyEmailLifetime       time.Duration    `env:"VERIFY_EMAIL_LIFETIME" envDefault:"24h"`
