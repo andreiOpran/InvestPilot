@@ -23,7 +23,6 @@
 - [ ] **Schema validation:** `zod` + `@hookform/resolvers`
 - [ ] **UI primitives:** `tailwindcss` + `@tailwindcss/vite` (Vite plugin)
 - [ ] **Component library:** `shadcn/ui` — init via `npx shadcn@latest init`, configure `components.json`
-- [ ] **Charts:** `recharts`
 - [ ] **Toast notifications:** `sonner`
 - [ ] **Stripe (client-side):** `@stripe/stripe-js` + `@stripe/react-stripe-js`
 - [ ] **Anti-bot:** `@marsidev/react-turnstile`
@@ -40,6 +39,7 @@ Install only components actually used — add more as needed:
 - [ ] `npx shadcn@latest add progress` (onboarding questionnaire step indicator)
 - [ ] `npx shadcn@latest add radio-group` (multiple-choice questionnaire answers)
 - [ ] `npx shadcn@latest add checkbox` (chart toggles, e.g. Net Contributions line)
+- [ ] `npx shadcn@latest add chart` (shadcn recharts wrapper with native themeing)
 
 ### 1.4 Global Providers (`main.tsx`)
 - [ ] Wrap app in `QueryClientProvider` (TanStack Query)
