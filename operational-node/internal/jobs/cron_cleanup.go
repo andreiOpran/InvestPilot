@@ -28,7 +28,7 @@ func StartTokenCleanupJob() {
 
 // ExecuteTokenCleanup does garbage collection for expired tokens in the database, triggered everyday at 03:00 AM
 func ExecuteTokenCleanup() {
-	log.Println("[CRON JOB / MANUAL] Cleaning up expired tokens...")
+	log.Println("[CRON JOB] Cleaning up expired tokens...")
 	now := time.Now()
 
 	// init cleanup repository using the global db explicitly for the cron job
@@ -71,5 +71,33 @@ func ExecuteTokenCleanup() {
 		log.Printf("[CLEANUP] Deleted %d expired Sessions (Batch).\n", totalDeleted)
 	} else {
 		log.Println("[CLEANUP] No expired Sessions found for deletion.")
+	}
+
+	// clean old login attempts using tracking retention duration
+	retentionDate := now.Add(-time.Hour * 24 * time.Duration(config.Env.LoginAttemptRetentionDays))
+	totalDeleted = 0
+
+	for {
+		deleted, err := repo.DeleteOldLoginAttemptsBatch(retentionDate, batchSize)
+		if err != nil {
+			log.Printf("[CLEANUP] Error deleting LoginAttempts (Batch): %v\n", err)
+			break
+		}
+
+		totalDeleted += deleted
+
+		// if we deleted less than the batch size, means we are done
+		if deleted < int64(batchSize) {
+			break
+		}
+
+		// sleep for a bit to let the db receive requests from the users
+		time.Sleep(config.Env.CronBatchSleep)
+	}
+
+	if totalDeleted > 0 {
+		log.Printf("[CLEANUP] Deleted %d expired LoginAttempts.\n", totalDeleted)
+	} else {
+		log.Println("[CLEANUP] No expired LoginAttempts found for deletion.")
 	}
 }

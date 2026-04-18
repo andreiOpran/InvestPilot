@@ -80,6 +80,10 @@ func (h *AuthHandler) LoginHandler(c *gin.Context) {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid email or password"})
 			return
 		}
+		if errors.Is(err, services.ErrAccountLocked) {
+			c.JSON(http.StatusTooManyRequests, gin.H{"error": err.Error()})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 		return
 	}

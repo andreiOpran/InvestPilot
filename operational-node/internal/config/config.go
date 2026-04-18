@@ -24,6 +24,14 @@ type AppSettings struct {
 	PasswordMinLength         int              `env:"PASSWORD_MIN_LENGTH" envDefault:"10"`
 	PasswordMaxLength         int              `env:"PASSWORD_MAX_LENGTH" envDefault:"128"`
 	PasswordMinZxcvbnStrength int              `env:"PASSWORD_MIN_ZXCVBN_STRENGTH" envDefault:"3"`
+	LockoutThreshold1         int              `env:"LOCKOUT_THRESHOLD_1" envDefault:"4"`
+	LockoutDuration1          time.Duration    `env:"LOCKOUT_DURATION_1" envDefault:"1m"`
+	LockoutThreshold2         int              `env:"LOCKOUT_THRESHOLD_2" envDefault:"5"`
+	LockoutDuration2          time.Duration    `env:"LOCKOUT_DURATION_2" envDefault:"3m"`
+	LockoutThreshold3         int              `env:"LOCKOUT_THRESHOLD_3" envDefault:"6"`
+	LockoutDuration3          time.Duration    `env:"LOCKOUT_DURATION_3" envDefault:"15m"`
+	LoginAttemptScanningLimit int              `env:"LOGIN_ATTEMPT_SCANNING_LIMIT" envDefault:"30"`
+	LoginAttemptRetentionDays int              `env:"LOGIN_ATTEMPT_RETENTION_DAYS" envDefault:"7"`
 	AccessTokenLifetime       time.Duration    `env:"ACCESS_TOKEN_LIFETIME" envDefault:"10m"`
 	RefreshTokenLifetime      time.Duration    `env:"REFRESH_TOKEN_LIFETIME" envDefault:"168h"`
 	VerifyEmailLifetime       time.Duration    `env:"VERIFY_EMAIL_LIFETIME" envDefault:"24h"`

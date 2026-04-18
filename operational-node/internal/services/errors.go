@@ -4,8 +4,8 @@ import "errors"
 
 var (
 	ErrUserNotFound                   = errors.New("user not found")
-	ErrEmailExists                    = errors.New("email already registered")
 	ErrInvalidCredentials             = errors.New("invalid email or password")
+	ErrAccountLocked                  = errors.New("account is temporarily locked due to multiple failed login attempts")
 	ErrTokenExpired                   = errors.New("token has expired")
 	ErrTokenInvalid                   = errors.New("invalid or expired token")
 	Err2FAAlreadyEnabled              = errors.New("2FA is already enabled")

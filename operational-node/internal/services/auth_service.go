@@ -147,23 +147,74 @@ func (s *authService) AuthenticateUser(email, password, clientIP, userAgent stri
 	user, err := s.authRepo.FindUserByEmail(email)
 	userExists := err == nil
 
-	// compare provided password against stored bcrypt hash, also dummy verifications for nonexistent user
+	// evaluate progressive lockout
+	var consecutiveFails int
+	var lastAttemptTime time.Time
+
 	if userExists {
-		if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {
+		consecutiveFails, lastAttemptTime, _ = s.authRepo.GetConsecutiveFailedAttempts(user.ID)
+
+		if consecutiveFails >= config.Env.LockoutThreshold1 {
+			var lockoutDuration time.Duration
+			if consecutiveFails >= config.Env.LockoutThreshold3 {
+				lockoutDuration = config.Env.LockoutDuration3
+			} else if consecutiveFails >= config.Env.LockoutThreshold2 {
+				lockoutDuration = config.Env.LockoutDuration2
+			} else {
+				lockoutDuration = config.Env.LockoutDuration1
+			}
+
+			// check if we are still within the penalty box time
+			if time.Since(lastAttemptTime) < lockoutDuration {
+				return nil, ErrAccountLocked
+			}
+		}
+	}
+
+	// validate password (fall back to dummy hash for nonexistent user to prevent timing attacks)
+	var passwordOk bool
+	if userExists {
+		passwordOk = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)) == nil
+	} else {
+		// dummy comparison
+		// dummyBcryptHash is declared to not compute a random cost 14 hash
+		const dummyBcryptHash = "$2a$14$1AB05scB8KFNDuDWpgvzkO6GYYf62uSGJr445WX6x2jHkWpcySpjW"
+		_ = bcrypt.CompareHashAndPassword([]byte(dummyBcryptHash), []byte(password))
+	}
+
+	// create login attempt records for real users
+	if userExists {
+		attempt := models.LoginAttempt{
+			UserID:    user.ID,
+			IsSuccess: passwordOk,
+			IPAddress: clientIP,
+		}
+		_ = s.authRepo.CreateLoginAttempt(&attempt)
+
+		if !passwordOk {
+			newFails := consecutiveFails + 1
+
+			// send warning email on exactly the first threshold breach
+			if newFails == config.Env.LockoutThreshold1 {
+				subject, body, tmplErr := mailer.BuildEmailContent("lockout_alert", nil)
+				if tmplErr == nil {
+					// send email in goroutine so smtp server network latency does not affect api response time
+					go func() {
+						_ = mailer.Client.SendEmail(user.Email, subject, body)
+					}()
+				}
+			}
 			// vague, do not reveal whether email exists
 			return nil, ErrInvalidCredentials
 		}
 
-		// check verification only is password is correct,
+		// check verification only if password is correct,
 		// but return same vague error message to protect against enuemration
 		if !user.IsEmailVerified {
 			return nil, ErrInvalidCredentials
 		}
 	} else {
-		// dummy comparison
-		// declared to not compute a random cost 14 hash
-		const dummyBcryptHash = "$2a$14$1AB05scB8KFNDuDWpgvzkO6GYYf62uSGJr445WX6x2jHkWpcySpjW"
-		_ = bcrypt.CompareHashAndPassword([]byte(dummyBcryptHash), []byte(password))
+		// vague, do not reveal whether email exists
 		return nil, ErrInvalidCredentials
 	}
 

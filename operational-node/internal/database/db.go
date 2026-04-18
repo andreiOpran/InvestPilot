@@ -32,6 +32,7 @@ func InitDB() {
 	// AutoMigrate automatically creates or updates the db tables
 	if err := DB.AutoMigrate(
 		&models.User{},
+		&models.LoginAttempt{},
 		&models.Session{},
 		&models.ActionToken{},
 		&models.Wallet{},

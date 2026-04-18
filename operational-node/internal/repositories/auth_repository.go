@@ -5,6 +5,7 @@ import (
 
 	"gorm.io/gorm"
 
+	"github.com/andreiOpran/licenta/operational-node/internal/config"
 	"github.com/andreiOpran/licenta/operational-node/internal/models"
 )
 
@@ -13,6 +14,8 @@ type AuthRepository interface {
 	FindUserByID(id uint) (*models.User, error)
 	FindUserByEmail(email string) (*models.User, error)
 	CreateUser(user *models.User) error
+	CreateLoginAttempt(attempt *models.LoginAttempt) error
+	GetConsecutiveFailedAttempts(userID uint) (int, time.Time, error)
 	CreateActionToken(token *models.ActionToken) error
 	FindActionToken(tokenStr, tokenType string) (*models.ActionToken, error)
 	DeleteActionToken(token *models.ActionToken) error
@@ -66,6 +69,39 @@ func (r *authRepository) CreateUser(user *models.User) error {
 
 		return nil
 	})
+}
+
+func (r *authRepository) CreateLoginAttempt(attempt *models.LoginAttempt) error {
+	return r.db.Create(attempt).Error
+}
+
+func (r *authRepository) GetConsecutiveFailedAttempts(userID uint) (int, time.Time, error) {
+	var attempts []models.LoginAttempt
+
+	// fetch recent attempts to calculate consecutive failures, limit to avoid over-scanning
+	err := r.db.
+		Where("user_id = ?", userID).
+		Order("created_at desc").
+		Limit(config.Env.LoginAttemptScanningLimit).
+		Find(&attempts).Error
+	if err != nil {
+		return 0, time.Time{}, err
+	}
+
+	var fails int
+	var lastAttempt time.Time
+
+	for i, a := range attempts {
+		if i == 0 {
+			lastAttempt = a.CreatedAt // store timestamp of when last attempt was made
+		}
+		if a.IsSuccess {
+			break // if we have succesfull login, we break the consecutive chain
+		}
+		fails++
+	}
+
+	return fails, lastAttempt, nil
 }
 
 func (r *authRepository) CreateActionToken(token *models.ActionToken) error {

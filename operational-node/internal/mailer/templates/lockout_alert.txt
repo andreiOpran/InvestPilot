@@ -1,0 +1,10 @@
+Subject: Robo-Advisory Security Alert: Account Temporarily Locked
+
+Hello,
+
+We noticed multiple failed login attempts on your account. 
+
+As a protective measure, we have temporarily locked your login access. The lock will automatically expire shortly, but future failed attempts will incur longer lockouts to protect your security.
+
+If this was you simply forgetting your password, please proceed to reset your password.
+If you did not initiate this action, someone may be attempting to access your account. We strongly advise that you change your password immediately.

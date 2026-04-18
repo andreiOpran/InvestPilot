@@ -19,6 +19,15 @@ type User struct {
 	ActionTokens      []ActionToken // one-to-many relationship
 }
 
+// tracks user login attempts to prevent brute-force attacks via progressive lockouts
+type LoginAttempt struct {
+	ID        uint      `gorm:"primaryKey"`
+	UserID    uint      `gorm:"not null;index"`
+	IsSuccess bool      `gorm:"not null"`
+	IPAddress string    `gorm:"not null"`
+	CreatedAt time.Time `gorm:"not null;index"`
+}
+
 // manages long-lived refresh tokens (allows multi-device logins)
 type Session struct {
 	ID           uint      `gorm:"primaryKey"`
