@@ -10,41 +10,43 @@
 ## Section 1 — Infrastructure & Project Scaffold
 
 ### 1.1 Project Initialization
-- [ ] Scaffold project: `npm create vite@latest . -- --template react-ts`
-- [ ] Configure `tsconfig.json` path aliases (`@/api`, `@/stores`, `@/components`, `@/hooks`, `@/lib`)
-- [ ] Configure `vite.config.ts` dev proxy: forward `/api` → `http://localhost:8080` to eliminate CORS in development
+- [x] Scaffold project: `npm create vite@latest . -- --template react-ts`
+- [x] Configure `tsconfig.json` path aliases (`@/api`, `@/stores`, `@/components`, `@/hooks`, `@/lib`)
+- [x] Configure `vite.config.ts` dev proxy: forward `/api` → `http://localhost:8080` to eliminate CORS in development
 
 ### 1.2 Dependency Installation
-- [ ] **Routing:** `react-router-dom`
-- [ ] **Server state / polling:** `@tanstack/react-query` + `@tanstack/react-query-devtools`
-- [ ] **Client state:** `zustand`
-- [ ] **HTTP client:** `axios`
-- [ ] **Form engine:** `react-hook-form`
-- [ ] **Schema validation:** `zod` + `@hookform/resolvers`
-- [ ] **UI primitives:** `tailwindcss` + `@tailwindcss/vite` (Vite plugin)
-- [ ] **Component library:** `shadcn/ui` — init via `npx shadcn@latest init`, configure `components.json`
-- [ ] **Toast notifications:** `sonner`
-- [ ] **Stripe (client-side):** `@stripe/stripe-js` + `@stripe/react-stripe-js`
-- [ ] **Anti-bot:** `@marsidev/react-turnstile`
+- [x] **Routing:** `react-router-dom`
+- [x] **Server state / polling:** `@tanstack/react-query` + `@tanstack/react-query-devtools`
+- [x] **Client state:** `zustand`
+- [x] **HTTP client:** `axios`
+- [x] **Form engine:** `react-hook-form`
+- [x] **Schema validation:** `zod` + `@hookform/resolvers`
+- [x] **UI primitives:** `tailwindcss` + `@tailwindcss/vite` (Vite plugin)
+- [x] **Component library:** `shadcn/ui` — init via `npx shadcn@latest init`, configure `components.json`
+- [x] **Toast notifications:** `sonner`
+- [x] **Stripe (client-side):** `@stripe/stripe-js` + `@stripe/react-stripe-js`
+- [x] **Anti-bot:** `@marsidev/react-turnstile`
 
 ### 1.3 shadcn/ui Component Installation
 Install only components actually used — add more as needed:
-- [ ] `npx shadcn@latest add button card input label skeleton badge separator`
-- [ ] `npx shadcn@latest add dialog alert-dialog sheet` (modals and drawers)
-- [ ] `npx shadcn@latest add table` (transaction history data table)
-- [ ] `npx shadcn@latest add slider` (risk tolerance input)
-- [ ] `npx shadcn@latest add tabs` (dashboard section switching)
-- [ ] `npx shadcn@latest add alert` (inline form-level errors)
-- [ ] `npx shadcn@latest add tooltip` (chart data point labels)
-- [ ] `npx shadcn@latest add progress` (onboarding questionnaire step indicator)
-- [ ] `npx shadcn@latest add radio-group` (multiple-choice questionnaire answers)
-- [ ] `npx shadcn@latest add checkbox` (chart toggles, e.g. Net Contributions line)
-- [ ] `npx shadcn@latest add chart` (shadcn recharts wrapper with native themeing)
+- [x] `npx shadcn@latest add button card input label skeleton badge separator`
+- [x] `npx shadcn@latest add dialog alert-dialog sheet` (modals and drawers)
+- [x] `npx shadcn@latest add table` (transaction history data table)
+- [x] `npx shadcn@latest add slider` (risk tolerance input)
+- [x] `npx shadcn@latest add tabs` (dashboard section switching)
+- [x] `npx shadcn@latest add alert` (inline form-level errors)
+- [x] `npx shadcn@latest add tooltip` (chart data point labels)
+- [x] `npx shadcn@latest add progress` (onboarding questionnaire step indicator)
+- [x] `npx shadcn@latest add radio-group` (multiple-choice questionnaire answers)
+- [x] `npx shadcn@latest add checkbox` (chart toggles, e.g. Net Contributions line)
+- [x] `npx shadcn@latest add chart` (shadcn recharts wrapper with native themeing)
+- [x] `npx shadcn@latest add sonner` (shadcn sonner wrapper with native themeing)
+
 
 ### 1.4 Global Providers (`main.tsx`)
-- [ ] Wrap app in `QueryClientProvider` (TanStack Query)
-- [ ] Mount `<Toaster />` from Sonner at root level (single instance, outside routing)
-- [ ] Configure `QueryClient` defaults: `retry: 1`, `staleTime: 30_000`
+- [x] Wrap app in `QueryClientProvider` (TanStack Query)
+- [x] Mount `<Toaster />` from Sonner at root level (single instance, outside routing)
+- [x] Configure `QueryClient` defaults: `retry: 1`, `staleTime: 30_000`
 
 ### 1.5 Go Backend Modification (Pre-Frontend)
 
