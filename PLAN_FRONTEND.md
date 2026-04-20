@@ -53,8 +53,8 @@ Install only components actually used — add more as needed:
 **Security & Infrastructure Updates**
 - [x] Modify `LoginHandler`, `Verify2FAHandler`, `RefreshTokenHandler` to set `refresh_token` as an `httpOnly + Secure + SameSite=Strict` cookie scoped to `Path: /api/v1/refresh-token`
 - [x] Remove `refresh_token` from all JSON response bodies
-- [ ] Verify `CORSMiddleware` has `AllowCredentials: true` and `AllowHeaders` includes `Authorization`
-- [ ] Add Go catch-all `NoRoute` handler to serve `./frontend/index.html` for SPA client-side routing
+- [x] Verify `CORSMiddleware` has `AllowCredentials: true` and `AllowHeaders` includes `Authorization`
+- [x] Add Go catch-all `NoRoute` handler to serve `./frontend/index.html` for SPA client-side routing
 
 **Onboarding API Suite**
 - [ ] `GET /api/v1/onboarding/questions`: Fetch the dynamic list of onboarding questions and their available options.
