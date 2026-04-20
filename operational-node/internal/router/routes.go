@@ -1,9 +1,6 @@
 package router
 
 import (
-	"net/http"
-	"strings"
-
 	"github.com/gin-gonic/gin"
 
 	"github.com/andreiOpran/licenta/operational-node/internal/database"
@@ -92,14 +89,5 @@ func SetupRoutes(r *gin.Engine) {
 	r.StaticFile("/vite.svg", "../frontend/dist/vite.svg")
 
 	// catch-all for client-side routing
-	r.NoRoute(func(c *gin.Context) {
-		// if request was meant for API endpoint, return 404 json
-		if strings.HasPrefix(c.Request.URL.Path, "/api/") {
-			c.JSON(http.StatusNotFound, gin.H{"error": "API route not found"})
-			return
-		}
-
-		// otherwise, serve SPA index.html so React Router can take over
-		c.File("../frontend/dist/index.html")
-	})
+	r.NoRoute(handlers.SPAFallbackHandler("../frontend/dist/index.html"))
 }
