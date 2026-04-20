@@ -6,8 +6,10 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"github.com/andreiOpran/licenta/operational-node/internal/config"
 	"github.com/andreiOpran/licenta/operational-node/internal/models"
 	"github.com/andreiOpran/licenta/operational-node/internal/services"
+	"github.com/andreiOpran/licenta/operational-node/utils/cookie"
 	"github.com/andreiOpran/licenta/operational-node/utils/validator"
 )
 
@@ -98,23 +100,37 @@ func (h *AuthHandler) LoginHandler(c *gin.Context) {
 		return
 	}
 
+	// set refresh token as HttpOnly cookie
+	cookie.SetHttpOnly(
+		c,                   // context
+		"refresh_token",     // name
+		result.RefreshToken, // value
+		config.Env.RefreshTokenLifetimeSecondsInt, // maxAge
+		"/api/v1/refresh-token",                   // path
+	)
+
+	// frontend will store just the access token
 	c.JSON(http.StatusOK, gin.H{
-		"status":        "success",
-		"access_token":  result.AccessToken,
-		"refresh_token": result.RefreshToken,
+		"status":       "success",
+		"access_token": result.AccessToken,
 	})
 }
 
 // LogoutHandler handles logout by revoking refresh token
 func (h *AuthHandler) LogoutHandler(c *gin.Context) {
-	var req models.RefreshRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Refresh token required for logout"})
+	// read refresh token from cookie
+	refreshToken, err := c.Cookie("refresh_token")
+	if err != nil || refreshToken == "" {
+		// if cookie is missing (session is already deleted) log success
+		cookie.Clear(c, "refresh_token", "/api/v1/refresh-token")
+		c.JSON(http.StatusOK, gin.H{"message": "Logged out successfully"})
 		return
 	}
 
-	_ = h.authService.LogoutUser(req.RefreshToken)
+	// revoke session
+	_ = h.authService.LogoutUser(refreshToken)
 
+	cookie.Clear(c, "refresh_token", "/api/v1/refresh-token")
 	c.JSON(http.StatusOK, gin.H{"message": "Logged out successfully"})
 }
 
@@ -144,10 +160,18 @@ func (h *AuthHandler) Verify2FAHandler(c *gin.Context) {
 		return
 	}
 
+	// set refresh token as HttpOnly cookie
+	cookie.SetHttpOnly(
+		c,               // context
+		"refresh_token", // name
+		refreshToken,    // value
+		config.Env.RefreshTokenLifetimeSecondsInt, // maxAge
+		"/api/v1/refresh-token",                   // path
+	)
+
 	c.JSON(http.StatusOK, gin.H{
-		"status":        "success",
-		"access_token":  accessToken,
-		"refresh_token": refreshToken,
+		"status":       "success",
+		"access_token": accessToken,
 	})
 }
 
@@ -162,10 +186,12 @@ func (h *AuthHandler) RefreshTokenHandler(c *gin.Context) {
 	accessToken, refreshToken, err := h.authService.RefreshToken(req.RefreshToken, c.ClientIP(), c.Request.UserAgent())
 	if err != nil {
 		if errors.Is(err, services.ErrTokenInvalid) || errors.Is(err, services.ErrTokenExpired) {
+			cookie.Clear(c, "refresh_token", "/api/v1/refresh-token")
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired refresh token. Please log in again."})
 			return
 		}
 		if errors.Is(err, services.ErrTokenReuseDetected) {
+			cookie.Clear(c, "refresh_token", "/api/v1/refresh-token")
 			c.JSON(http.StatusUnauthorized, gin.H{
 				"error": "Security Alert: Token reuse detected. To protect your account, all devices have been logged out.",
 			})
@@ -179,9 +205,17 @@ func (h *AuthHandler) RefreshTokenHandler(c *gin.Context) {
 		return
 	}
 
+	// rotate token, set new refresh token as a new cookie
+	cookie.SetHttpOnly(
+		c,               // context
+		"refresh_token", // name
+		refreshToken,    // value
+		config.Env.RefreshTokenLifetimeSecondsInt, // maxAge
+		"/api/v1/refresh-token",                   // path
+	)
+
 	c.JSON(http.StatusOK, gin.H{
-		"access_token":  accessToken,
-		"refresh_token": refreshToken,
+		"access_token": accessToken,
 	})
 }
 

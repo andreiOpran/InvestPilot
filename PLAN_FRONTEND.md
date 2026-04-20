@@ -51,8 +51,8 @@ Install only components actually used — add more as needed:
 ### 1.5 Go Backend Modification (Pre-Frontend)
 
 **Security & Infrastructure Updates**
-- [ ] Modify `LoginHandler`, `Verify2FAHandler`, `RefreshTokenHandler` to set `refresh_token` as an `httpOnly + Secure + SameSite=Strict` cookie scoped to `Path: /api/v1/refresh-token`
-- [ ] Remove `refresh_token` from all JSON response bodies
+- [x] Modify `LoginHandler`, `Verify2FAHandler`, `RefreshTokenHandler` to set `refresh_token` as an `httpOnly + Secure + SameSite=Strict` cookie scoped to `Path: /api/v1/refresh-token`
+- [x] Remove `refresh_token` from all JSON response bodies
 - [ ] Verify `CORSMiddleware` has `AllowCredentials: true` and `AllowHeaders` includes `Authorization`
 - [ ] Add Go catch-all `NoRoute` handler to serve `./frontend/index.html` for SPA client-side routing
 

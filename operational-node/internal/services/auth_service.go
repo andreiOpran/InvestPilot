@@ -238,7 +238,7 @@ func (s *authService) AuthenticateUser(email, password, clientIP, userAgent stri
 		IsUsed:       false,
 		ClientIP:     clientIP,
 		UserAgent:    userAgent,
-		ExpiresAt:    time.Now().Add(config.Env.RefreshTokenLifetime),
+		ExpiresAt:    time.Now().Add(config.Env.RefreshTokenLifetimeHours),
 	}
 	if err := s.authRepo.CreateSession(&session); err != nil {
 		return nil, ErrInternal
@@ -291,7 +291,7 @@ func (s *authService) Verify2FA(email, password, totpToken, clientIP, userAgent 
 		IsUsed:       false,
 		ClientIP:     clientIP,
 		UserAgent:    userAgent,
-		ExpiresAt:    time.Now().Add(config.Env.RefreshTokenLifetime),
+		ExpiresAt:    time.Now().Add(config.Env.RefreshTokenLifetimeHours),
 	}
 	if err := s.authRepo.CreateSession(&session); err != nil {
 		return "", "", ErrInternal
@@ -358,7 +358,7 @@ func (s *authService) RefreshToken(refreshTokenStr, clientIP, userAgent string) 
 		IsUsed:       false,
 		ClientIP:     clientIP,
 		UserAgent:    userAgent,
-		ExpiresAt:    time.Now().Add(config.Env.RefreshTokenLifetime),
+		ExpiresAt:    time.Now().Add(config.Env.RefreshTokenLifetimeHours),
 	}
 
 	if err := s.authRepo.CreateSession(&newSession); err != nil {
