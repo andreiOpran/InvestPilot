@@ -109,15 +109,18 @@ func (s *portfolioService) Invest(userID uint, amount float64) error {
 func (s *portfolioService) GetPortfolioHistory(userID uint, timeRange string) (models.PortfolioHistoryResponse, error) {
 	now := time.Now()
 	var since time.Time
+	var interval time.Duration // if interval is left 0, it is default to 1 day
 	isIntraday := false
 
 	switch timeRange {
 	case "1D":
 		since = now.AddDate(0, 0, -1)
 		isIntraday = true
+		interval = 15 * time.Minute
 	case "1W":
 		since = now.AddDate(0, 0, -7)
 		isIntraday = true
+		interval = 1 * time.Hour
 	case "1M":
 		since = now.AddDate(0, -1, 0)
 	case "6M":
@@ -173,7 +176,17 @@ func (s *portfolioService) GetPortfolioHistory(userID uint, timeRange string) (m
 	timestampSet := make(map[time.Time]struct{})
 	for _, prices := range pricing {
 		for _, p := range prices {
-			timestampSet[p.Timestamp] = struct{}{}
+			ts := p.Timestamp
+
+			// aggregate multiple DB timestamps into defined interval bucket
+			if interval > 0 {
+				// round up to next boundary (14:15 -> 15:00)
+				if ts.Truncate(interval) != ts {
+					ts = ts.Add(interval).Truncate(interval)
+				}
+			}
+
+			timestampSet[ts] = struct{}{}
 		}
 	}
 	var allTimestamps []time.Time
