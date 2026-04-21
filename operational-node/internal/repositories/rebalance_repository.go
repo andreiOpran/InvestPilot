@@ -12,7 +12,7 @@ type RebalanceRepository interface {
 	GetLatestModelPortfolios() ([]models.ModelPortfolio, error)
 	GetMaxRoundID() (uint, error)
 	GetInvestmentRoundsBatchByStatus(isActive bool, lastID uint, maxID uint, batchSize int) ([]models.InvestmentRound, error)
-	GetLatestPrices() ([]models.HistoricalMarketData, error)
+	GetLatestPrices() ([]models.DailyMarketData, error)
 	ExecuteBatchRebalanceTransaction(newRounds []models.InvestmentRound, oldRoundIDs []uint) error
 }
 
@@ -26,7 +26,7 @@ func NewRebalanceRepository(db *gorm.DB) RebalanceRepository {
 
 func (r *rebalanceRepository) GetLatestMarketDataDate() (time.Time, error) {
 	var maxDate time.Time
-	err := r.db.Model(&models.HistoricalMarketData{}).Select("MAX(date)").Scan(&maxDate).Error
+	err := r.db.Model(&models.DailyMarketData{}).Select("MAX(date)").Scan(&maxDate).Error
 	return maxDate, err
 }
 
@@ -59,8 +59,8 @@ func (r *rebalanceRepository) GetInvestmentRoundsBatchByStatus(isActive bool, la
 	return rounds, err
 }
 
-func (r *rebalanceRepository) GetLatestPrices() ([]models.HistoricalMarketData, error) {
-	var results []models.HistoricalMarketData
+func (r *rebalanceRepository) GetLatestPrices() ([]models.DailyMarketData, error) {
+	var results []models.DailyMarketData
 	err := r.db.Raw(`
 		SELECT DISTINCT ON (ticker) ticker, close_price
 		FROM historical_market_data

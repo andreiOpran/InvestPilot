@@ -96,7 +96,7 @@ type Holding struct {
 	UpdatedAt         time.Time
 }
 
-type HistoricalMarketData struct {
+type DailyMarketData struct {
 	ID         uint      `gorm:"primaryKey"`
 	Ticker     string    `gorm:"not null;uniqueIndex:idx_ticker_date"` // "LYMS", "XDWI"
 	Date       time.Time `gorm:"not null;uniqueIndex:idx_ticker_date"` // trading day

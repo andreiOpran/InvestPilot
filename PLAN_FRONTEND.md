@@ -61,7 +61,7 @@ Install only components actually used — add more as needed:
 - [ ] `POST /api/v1/onboarding/submit`: Accept selected answer IDs, calculate `riskTolerance` and `investmentHorizon` server-side, and update the User profile.
 
 **Portfolio & Data APIs**
-- [ ] `GET /api/v1/portfolio/history?range=`: Aggregate `HistoricalMarketData` and user holdings to return time-series data (Date, Portfolio Value, Net Contributions) for requested ranges (1D, 1W, 1M, 6M, 1Y, YTD, 5Y).
+- [ ] `GET /api/v1/portfolio/history?range=`: Aggregate `DailyMarketData` and user holdings to return time-series data (Date, Portfolio Value, Net Contributions) for requested ranges (1D, 1W, 1M, 6M, 1Y, YTD, 5Y).
 - [ ] `GET /api/v1/transactions`: Execute a unified query (e.g., using UNION) across the `Funding` and `Transaction` tables to return a single, paginated, and chronologically sorted list of all financial events (DEPOSIT, CASHOUT, INVEST, SELL).
 - [ ] `GET /api/v1/portfolio`: Return the user's currently active `InvestmentRound` and its associated `Holding` array (needed for the Allocation Pie Chart).
 

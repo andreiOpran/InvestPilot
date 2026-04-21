@@ -50,7 +50,7 @@ Real-time pricing would add: a new external API dependency on the rebalance crit
 
 Instead, Go performs a **staleness check** before any rebalance executes: if the most recent price in `historical_market_data` for any ticker is older than 2 trading days, the rebalance aborts and an alert is logged. This catches sync failures without adding live-fetch complexity.
 
-### 3.3 Local HistoricalMarketData vs. Live yfinance Fetching
+### 3.3 Local DailyMarketData vs. Live yfinance Fetching
 
 All ETF price data is persisted in the local PostgreSQL `historical_market_data` table via the daily `/sync` pipeline. Reasons:
 
@@ -184,7 +184,7 @@ type Holding struct {
 }
 
 // Daily closing prices for each ETF — written by Python (sync), read by Go (rebalance) and Python (HRP)
-type HistoricalMarketData struct {
+type DailyMarketData struct {
     ID         uint      `gorm:"primaryKey"`
     Ticker     string    `gorm:"not null;uniqueIndex:idx_ticker_date"`
     Date       time.Time `gorm:"not null;uniqueIndex:idx_ticker_date"`

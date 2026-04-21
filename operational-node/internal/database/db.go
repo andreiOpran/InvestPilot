@@ -40,7 +40,7 @@ func InitDB() {
 		&models.Transaction{},
 		&models.InvestmentRound{},
 		&models.Holding{},
-		&models.HistoricalMarketData{},
+		&models.DailyMarketData{},
 		&models.IntradayMarketData{},
 		&models.ModelPortfolio{},
 		&models.ForecastResult{},
