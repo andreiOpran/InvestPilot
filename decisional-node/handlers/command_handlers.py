@@ -11,9 +11,9 @@ from services.rebalance_service import compute_rebalance
 from utils.debug import save_debug_csv
 
 
-def process_sync(payload: dict, repo: DataRepository):
+def process_sync_daily(payload: dict, repo: DataRepository):
     """
-    DATA INGESTION PIPELINE - step 1 of daily background job
+    DAILY DATA INGESTION PIPELINE - step 1 of daily background job
     
     Fetches 5 years of daily closing prices from Yahoo Finance
     for all tickers and puts them in historical_market_data
@@ -39,13 +39,52 @@ def process_sync(payload: dict, repo: DataRepository):
                     "close_price": float(close_price)      # convert numpy float64 to python float
                 })
         
-        repo.save_market_data(rows_to_insert)
+        repo.save_daily_market_data(rows_to_insert)
         
         return {
-            "message":       "Sync complete",
+            "message":       "Daily sync complete",
             "rows_inserted": len(rows_to_insert),
             "tickers":       len(all_tickers)
         }
+    except Exception as e:
+        return {"error": str(e)}
+
+def process_sync_intraday(payload: dict, repo: DataRepository):
+    """
+    INTRADAY PIPELINE
+    
+    Fetches 14 days of 15m interval prices from Yahoo Finance
+    for all tickers and puts them in intraday_market_data
+    table in the db
+    """
+    try:
+        all_tickers = payload.get("equity_tickers", []) + payload.get("bond_tickers", [])
+        
+        # close gets the price at the end of the 15m interval
+        raw_download = yf.download(all_tickers, period="14d", interval="15m")
+        raw_download_close = raw_download["Close"] if raw_download is not None else pd.DataFrame()
+        
+        rows_to_insert = []
+        for ticker in all_tickers:
+            if ticker not in raw_download_close.columns:
+                continue
+            
+            for timestamp, price in raw_download_close[ticker].dropna().items():
+                rows_to_insert.append({
+                    "ticker": ticker,
+                    # remove timezone info for generic postgresql timestamp insertion
+                    "timestamp": pd.to_datetime(timestamp).tz_localize(None),
+                    "price": float(price)
+                })
+
+        repo.save_intraday_market_data(rows_to_insert)
+        
+        return {
+            "message":       "Intraday sync complete",
+            "rows_inserted": len(rows_to_insert),
+            "tickers":       len(all_tickers)
+        }
+
     except Exception as e:
         return {"error": str(e)}
 

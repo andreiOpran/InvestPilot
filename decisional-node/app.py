@@ -10,7 +10,8 @@ from handlers.command_handlers import (
     process_generate_models,
     process_rebalance_user,
     process_rebalance_batch,
-    process_sync,
+    process_sync_daily,
+    process_sync_intraday,
 )
 from repositories.db_repository import DataRepository
 
@@ -51,8 +52,10 @@ def main():
             # capture result dict
             response = None
             
-            if command == "CMD_SYNC":
-                response = process_sync(payload, repo)
+            if command == "CMD_SYNC_DAILY":
+                response = process_sync_daily(payload, repo)
+            elif command == "CMD_SYNC_INTRADAY":
+                response = process_sync_intraday(payload, repo)
             elif command == "CMD_GENERATE":
                 response = process_generate_models(payload, repo)
             elif command == "CMD_REBALANCE_USER":

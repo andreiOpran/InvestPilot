@@ -7,7 +7,7 @@ class DataRepository:
     def __init__(self, db_url: str):
         self.engine = create_engine(db_url)
 
-    def save_market_data(self, rows_to_insert: list):
+    def save_daily_market_data(self, rows_to_insert: list):
         # open transaction with auto-commit/rollback
         with self.engine.begin() as conn:
             for row in rows_to_insert:
@@ -26,6 +26,28 @@ class DataRepository:
             conn.execute(text("""
                 DELETE FROM historical_market_data
                 WHERE date < NOW() - INTERVAL '5 years'
+            """))
+            
+    def save_intraday_market_data(self, rows_to_insert: list):
+        # open transaction with auto-commit/rollback
+        with self.engine.begin() as conn:
+            for row in rows_to_insert:
+                conn.execute(
+                    text("""
+                        INSERT INTO intraday_market_data (ticker, timestamp, price, created_at)
+                        VALUES (:ticker, :timestamp, :price, NOW())
+                        ON CONFLICT (ticker, timestamp)
+                        DO UPDATE SET price = EXCLUDED.price
+                    """),
+                    # ON CONFLICT: if a row for this (ticker, timestamp) already exists,
+                    # update its price instead of throwing a duplicate key error
+                    row
+                )
+            
+            # delete rows for data older than 14 days
+            conn.execute(text("""
+                DELETE FROM intraday_market_data
+                WHERE timestamp < NOW() - INTERVAL '14 days'
             """))
 
     def get_historical_prices_tall(self) -> pd.DataFrame:
