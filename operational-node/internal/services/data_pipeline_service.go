@@ -30,8 +30,9 @@ func (s *dataPipelineService) RunDailyPipeline() error {
 
 	// dispatch CMD_SYNC_DAILY
 	syncPayload := models.SyncPayload{
-		EquityTickers: invConfig.EquityTickers,
-		BondTickers:   invConfig.BondTickers,
+		EquityTickers:      invConfig.EquityTickers,
+		BondTickers:        invConfig.BondTickers,
+		MarketDataLifetime: invConfig.DailyMarketDataLifetime,
 	}
 
 	log.Println("[INFO] Dispatching CMD_SYNC_DAILY to publisher...")
@@ -74,8 +75,9 @@ func (s *dataPipelineService) RunIntradayPipeline() error {
 
 	// dispatch CMD_SYNC_INTRADAY
 	syncPayload := models.SyncPayload{
-		EquityTickers: invConfig.EquityTickers,
-		BondTickers:   invConfig.BondTickers,
+		EquityTickers:      invConfig.EquityTickers,
+		BondTickers:        invConfig.BondTickers,
+		MarketDataLifetime: invConfig.IntradayMarketDataLifetime,
 	}
 
 	log.Println("[INFO] Dispatching CMD_SYNC_INTRADAY to publisher...")

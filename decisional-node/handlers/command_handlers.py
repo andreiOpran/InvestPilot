@@ -39,7 +39,7 @@ def process_sync_daily(payload: dict, repo: DataRepository):
                     "close_price": float(close_price)      # convert numpy float64 to python float
                 })
         
-        repo.save_daily_market_data(rows_to_insert)
+        repo.save_daily_market_data(rows_to_insert, payload["data_lifetime"])
         
         return {
             "message":       "Daily sync complete",
@@ -77,7 +77,7 @@ def process_sync_intraday(payload: dict, repo: DataRepository):
                     "price": float(price)
                 })
 
-        repo.save_intraday_market_data(rows_to_insert)
+        repo.save_intraday_market_data(rows_to_insert, payload["data_lifetime"])
         
         return {
             "message":       "Intraday sync complete",
