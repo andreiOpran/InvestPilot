@@ -21,7 +21,7 @@ func NewDataPipelineHandler(service services.DataPipelineService) *DataPipelineH
 	return &DataPipelineHandler{service: service}
 }
 
-// RunPipeline triggers both CMD_SYNC and CMD_GENERATE sequentially
+// RunPipeline triggers both CMD_SYNC_DAILY and CMD_GENERATE sequentially
 func (h *DataPipelineHandler) RunDataPipeline(c *gin.Context) {
 	if err := h.service.RunDailyPipeline(); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to dispatch data pipeline commands"})

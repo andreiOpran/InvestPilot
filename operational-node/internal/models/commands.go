@@ -1,6 +1,6 @@
 package models
 
-// SyncPayload represents the JSON payload to send for CMD_SYNC
+// SyncPayload represents the JSON payload to send for CMD_SYNC_DAILY and CMD_SYNC_INTRADAY
 type SyncPayload struct {
 	EquityTickers []string `json:"equity_tickers"`
 	BondTickers   []string `json:"bond_tickers"`

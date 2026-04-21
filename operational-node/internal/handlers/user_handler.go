@@ -55,7 +55,7 @@ func SimulateInvestmentHandler(c *gin.Context) {
 		"bond_tickers":   config.Env.Investment.BondTickers,
 	}
 
-	err := clients.Publisher.PublishCommand("CMD_SYNC", payload)
+	err := clients.Publisher.PublishCommand("CMD_SYNC_DAILY", payload)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to queue sync command"})
 		return

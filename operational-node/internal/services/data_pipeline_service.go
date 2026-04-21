@@ -10,6 +10,7 @@ import (
 
 type DataPipelineService interface {
 	RunDailyPipeline() error
+	RunIntradayPipeline() error
 }
 
 type dataPipelineService struct{}
@@ -18,7 +19,7 @@ func NewDataPipelineService() DataPipelineService {
 	return &dataPipelineService{}
 }
 
-// runDataPipeline publishes CMD_SYNC and CMD_GENERATE sequentially to RabbitMQ
+// RunDataPipeline publishes CMD_SYNC_DAILY and CMD_GENERATE sequentially to RabbitMQ
 func (s *dataPipelineService) RunDailyPipeline() error {
 	if clients.Publisher == nil {
 		log.Println("[SERVICE-ERROR] Could not run daily data pipeline: RabbitMQ Publisher is not initialized")
@@ -27,16 +28,16 @@ func (s *dataPipelineService) RunDailyPipeline() error {
 
 	invConfig := config.Env.Investment
 
-	// dispatch CMD_SYNC
+	// dispatch CMD_SYNC_DAILY
 	syncPayload := models.SyncPayload{
 		EquityTickers: invConfig.EquityTickers,
 		BondTickers:   invConfig.BondTickers,
 	}
 
-	log.Println("[INFO] Dispatching CMD_SYNC to publisher...")
-	err := clients.Publisher.PublishCommand("CMD_SYNC", syncPayload)
+	log.Println("[INFO] Dispatching CMD_SYNC_DAILY to publisher...")
+	err := clients.Publisher.PublishCommand("CMD_SYNC_DAILY", syncPayload)
 	if err != nil {
-		log.Printf("[SERVICE-ERROR] Failed to publish CMD_SYNC: %v", err)
+		log.Printf("[SERVICE-ERROR] Failed to publish CMD_SYNC_DAILY: %v", err)
 		return err
 	}
 
@@ -60,4 +61,23 @@ func (s *dataPipelineService) RunDailyPipeline() error {
 	}
 
 	return nil
+}
+
+// RunIntradayPipeline publishes CMD_SYNC_DAILY and CMD_GENERATE sequentially to RabbitMQ
+func (s *dataPipelineService) RunIntradayPipeline() error {
+	if clients.Publisher == nil {
+		log.Println("[SERVICE-ERROR] Could not run daily intraday data pipeline: RabbitMQ Publisher is not initialized")
+		return nil
+	}
+
+	invConfig := config.Env.Investment
+
+	// dispatch CMD_SYNC_INTRADAY
+	syncPayload := models.SyncPayload{
+		EquityTickers: invConfig.EquityTickers,
+		BondTickers:   invConfig.BondTickers,
+	}
+
+	log.Println("[INFO] Dispatching CMD_SYNC_INTRADAY to publisher...")
+	return clients.Publisher.PublishCommand("CMD_SYNC_INTRADAY", syncPayload)
 }

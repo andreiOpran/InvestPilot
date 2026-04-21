@@ -41,6 +41,7 @@ func InitDB() {
 		&models.InvestmentRound{},
 		&models.Holding{},
 		&models.HistoricalMarketData{},
+		&models.IntradayMarketData{},
 		&models.ModelPortfolio{},
 		&models.ForecastResult{},
 	); err != nil {

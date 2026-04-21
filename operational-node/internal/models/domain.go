@@ -104,6 +104,15 @@ type HistoricalMarketData struct {
 	CreatedAt  time.Time
 }
 
+// IntradayMarketData tracks 15 minute interval prices for the 1D and 1W charts
+type IntradayMarketData struct {
+	ID        uint      `gorm:"primaryKey"`
+	Ticker    string    `gorm:"not null;uniqueIndex:idx_ticker_timestamp"` // "LYMS", "XDWI"
+	Timestamp time.Time `gorm:"not null;uniqueIndex:idx_ticker_timestamp"` // timestamp of given price
+	Price     float64   `gorm:"not null"`                                  // instant price
+	CreatedAt time.Time
+}
+
 // pre-computed HRP bucket weights, written daily by
 // decisional-node, read by operational-node on rebalance day
 type ModelPortfolio struct {

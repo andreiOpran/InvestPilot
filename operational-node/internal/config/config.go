@@ -10,58 +10,59 @@ import (
 
 // AppSettings holds application configuration populated from environment
 type AppSettings struct {
-	AppEnv                         string           `env:"APP_ENV" envDefault:"development"` // in production change to "production"
-	DatabaseURL                    string           `env:"DATABASE_URL,required"`
-	AESMasterKey                   string           `env:"AES_MASTER_KEY,required"`
-	StripeKey                      string           `env:"STRIPE_KEY,required"`
-	StripeWebhookKey               string           `env:"STRIPE_WEBHOOK_KEY,required"`
-	JWTSecret                      string           `env:"JWT_SECRET" envDefault:"secret-key"`
-	SMTPHost                       string           `env:"SMTP_HOST"`
-	SMTPPort                       string           `env:"SMTP_PORT"`
-	SMTPUser                       string           `env:"SMTP_USER,required"`
-	SMTPPass                       string           `env:"SMTP_PASS,required"`
-	SMTPFrom                       string           `env:"SMTP_FROM"`
-	SMTPTestDestination            string           `env:"SMTP_TEST_DESTINATION"`
-	PasswordMinLength              int              `env:"PASSWORD_MIN_LENGTH" envDefault:"10"`
-	PasswordMaxLength              int              `env:"PASSWORD_MAX_LENGTH" envDefault:"128"`
-	PasswordMinZxcvbnStrength      int              `env:"PASSWORD_MIN_ZXCVBN_STRENGTH" envDefault:"3"`
-	CookieSecure                   bool             `env:"COOKIE_SECURE" envDefault:"false"`
-	CookieDomain                   string           `env:"COOKIE_DOMAIN" envDefault:"localhost:8081"`
-	LockoutThreshold1              int              `env:"LOCKOUT_THRESHOLD_1" envDefault:"4"`
-	LockoutDuration1               time.Duration    `env:"LOCKOUT_DURATION_1" envDefault:"1m"`
-	LockoutThreshold2              int              `env:"LOCKOUT_THRESHOLD_2" envDefault:"5"`
-	LockoutDuration2               time.Duration    `env:"LOCKOUT_DURATION_2" envDefault:"3m"`
-	LockoutThreshold3              int              `env:"LOCKOUT_THRESHOLD_3" envDefault:"6"`
-	LockoutDuration3               time.Duration    `env:"LOCKOUT_DURATION_3" envDefault:"15m"`
-	LoginAttemptScanningLimit      int              `env:"LOGIN_ATTEMPT_SCANNING_LIMIT" envDefault:"30"`
-	LoginAttemptRetentionDays      int              `env:"LOGIN_ATTEMPT_RETENTION_DAYS" envDefault:"7"`
-	RateLimitRPS                   float64          `env:"RATE_LIMIT_RPS" envDefault:"10.0"`
-	RateLimitBurst                 int              `env:"RATE_LIMIT_BURST" envDefault:"20"`
-	RateLimitCleanupInterval       time.Duration    `env:"RATE_LIMIT_CLEANUP_INTERVAL" envDefault:"1m"`
-	RateLimitRetention             time.Duration    `env:"RATE_LIMIT_RETENTION" envDefault:"3m"`
-	AccessTokenLifetime            time.Duration    `env:"ACCESS_TOKEN_LIFETIME" envDefault:"10m"`
-	RefreshTokenLifetimeHours      time.Duration    `env:"REFRESH_TOKEN_LIFETIME_HOURS" envDefault:"168h"`
-	RefreshTokenLifetimeSecondsInt int              `env:"REFRESH_TOKEN_LIFETIME_SECONDS_INT" envDefault:"604800"`
-	VerifyEmailLifetime            time.Duration    `env:"VERIFY_EMAIL_LIFETIME" envDefault:"24h"`
-	ResetPasswordLifetime          time.Duration    `env:"RESET_PASSWORD_LIFETIME" envDefault:"15m"`
-	CleanupCronSchedule            string           `env:"CLEANUP_CRON" envDefault:"0 3 * * *"`
-	CleanupBatchSize               int              `env:"CLEANUP_BATCH_SIZE" envDefault:"1000"`
-	ServerPort                     string           `env:"PORT" envDefault:"8080"`
-	BcryptCost                     int              `env:"BCRYPT_COST" envDefault:"14"`
-	SecureTokenBytes               int              `env:"SECURE_TOKEN_BYTES" envDefault:"32"`
-	FamilyIDBytes                  int              `env:"FAMILY_ID_BYTES" envDefault:"16"`
-	TimingAttackTarget             time.Duration    `env:"TIMING_ATTACK_TARGET" envDefault:"100ms"`
-	TimingAttackNoise              int              `env:"TIMING_ATTACK_NOISE" envDefault:"20"`
-	CronBatchSleep                 time.Duration    `env:"CRON_BATCH_SLEEP" envDefault:"100ms"`
-	DataPipelineCronSchedule       string           `env:"DATA_PIPELINE_CRON" envDefault:"0 22 * * *"`
-	RebalanceSchedule              string           `env:"REBALANCE_CRON" envDefault:"0 2 1 * *"`
-	RebalanceBatchSize             int              `env:"REBALANCE_BATCH_SIZE" envDefault:"500"`
-	APIBaseURL                     string           `env:"API_BASE_URL" envDefault:"http://localhost:8081/api/v1"`
-	FrontendBaseURL                string           `env:"FRONTEND_BASE_URL" envDefault:"http://localhost:8081"`
-	PythonNodeURL                  string           `env:"PYTHON_NODE_URL" envDefault:"http://python-engine:5000"`
-	PythonClientTimeout            time.Duration    `env:"PYTHON_CLIENT_TIMEOUT" envDefault:"5s"`
-	RabbitMQURL                    string           `env:"RABBITMQ_URL,required"`
-	Investment                     InvestmentConfig `envPrefix:""`
+	AppEnv                           string           `env:"APP_ENV" envDefault:"development"` // in production change to "production"
+	DatabaseURL                      string           `env:"DATABASE_URL,required"`
+	AESMasterKey                     string           `env:"AES_MASTER_KEY,required"`
+	StripeKey                        string           `env:"STRIPE_KEY,required"`
+	StripeWebhookKey                 string           `env:"STRIPE_WEBHOOK_KEY,required"`
+	JWTSecret                        string           `env:"JWT_SECRET" envDefault:"secret-key"`
+	SMTPHost                         string           `env:"SMTP_HOST"`
+	SMTPPort                         string           `env:"SMTP_PORT"`
+	SMTPUser                         string           `env:"SMTP_USER,required"`
+	SMTPPass                         string           `env:"SMTP_PASS,required"`
+	SMTPFrom                         string           `env:"SMTP_FROM"`
+	SMTPTestDestination              string           `env:"SMTP_TEST_DESTINATION"`
+	PasswordMinLength                int              `env:"PASSWORD_MIN_LENGTH" envDefault:"10"`
+	PasswordMaxLength                int              `env:"PASSWORD_MAX_LENGTH" envDefault:"128"`
+	PasswordMinZxcvbnStrength        int              `env:"PASSWORD_MIN_ZXCVBN_STRENGTH" envDefault:"3"`
+	CookieSecure                     bool             `env:"COOKIE_SECURE" envDefault:"false"`
+	CookieDomain                     string           `env:"COOKIE_DOMAIN" envDefault:"localhost:8081"`
+	LockoutThreshold1                int              `env:"LOCKOUT_THRESHOLD_1" envDefault:"4"`
+	LockoutDuration1                 time.Duration    `env:"LOCKOUT_DURATION_1" envDefault:"1m"`
+	LockoutThreshold2                int              `env:"LOCKOUT_THRESHOLD_2" envDefault:"5"`
+	LockoutDuration2                 time.Duration    `env:"LOCKOUT_DURATION_2" envDefault:"3m"`
+	LockoutThreshold3                int              `env:"LOCKOUT_THRESHOLD_3" envDefault:"6"`
+	LockoutDuration3                 time.Duration    `env:"LOCKOUT_DURATION_3" envDefault:"15m"`
+	LoginAttemptScanningLimit        int              `env:"LOGIN_ATTEMPT_SCANNING_LIMIT" envDefault:"30"`
+	LoginAttemptRetentionDays        int              `env:"LOGIN_ATTEMPT_RETENTION_DAYS" envDefault:"7"`
+	RateLimitRPS                     float64          `env:"RATE_LIMIT_RPS" envDefault:"10.0"`
+	RateLimitBurst                   int              `env:"RATE_LIMIT_BURST" envDefault:"20"`
+	RateLimitCleanupInterval         time.Duration    `env:"RATE_LIMIT_CLEANUP_INTERVAL" envDefault:"1m"`
+	RateLimitRetention               time.Duration    `env:"RATE_LIMIT_RETENTION" envDefault:"3m"`
+	AccessTokenLifetime              time.Duration    `env:"ACCESS_TOKEN_LIFETIME" envDefault:"10m"`
+	RefreshTokenLifetimeHours        time.Duration    `env:"REFRESH_TOKEN_LIFETIME_HOURS" envDefault:"168h"`
+	RefreshTokenLifetimeSecondsInt   int              `env:"REFRESH_TOKEN_LIFETIME_SECONDS_INT" envDefault:"604800"`
+	VerifyEmailLifetime              time.Duration    `env:"VERIFY_EMAIL_LIFETIME" envDefault:"24h"`
+	ResetPasswordLifetime            time.Duration    `env:"RESET_PASSWORD_LIFETIME" envDefault:"15m"`
+	CleanupCronSchedule              string           `env:"CLEANUP_CRON" envDefault:"0 3 * * *"`
+	CleanupBatchSize                 int              `env:"CLEANUP_BATCH_SIZE" envDefault:"1000"`
+	ServerPort                       string           `env:"PORT" envDefault:"8080"`
+	BcryptCost                       int              `env:"BCRYPT_COST" envDefault:"14"`
+	SecureTokenBytes                 int              `env:"SECURE_TOKEN_BYTES" envDefault:"32"`
+	FamilyIDBytes                    int              `env:"FAMILY_ID_BYTES" envDefault:"16"`
+	TimingAttackTarget               time.Duration    `env:"TIMING_ATTACK_TARGET" envDefault:"100ms"`
+	TimingAttackNoise                int              `env:"TIMING_ATTACK_NOISE" envDefault:"20"`
+	CronBatchSleep                   time.Duration    `env:"CRON_BATCH_SLEEP" envDefault:"100ms"`
+	DailyDataPipelineCronSchedule    string           `env:"DAILY_DATA_PIPELINE_CRON" envDefault:"0 22 * * *"`
+	IntradayDataPipelineCronSchedule string           `env:"INTRADAY_DATA_PIPELINE_CRON" envDefault:"*/15 * * * *"`
+	RebalanceSchedule                string           `env:"REBALANCE_CRON" envDefault:"0 2 1 * *"`
+	RebalanceBatchSize               int              `env:"REBALANCE_BATCH_SIZE" envDefault:"500"`
+	APIBaseURL                       string           `env:"API_BASE_URL" envDefault:"http://localhost:8081/api/v1"`
+	FrontendBaseURL                  string           `env:"FRONTEND_BASE_URL" envDefault:"http://localhost:8081"`
+	PythonNodeURL                    string           `env:"PYTHON_NODE_URL" envDefault:"http://python-engine:5000"`
+	PythonClientTimeout              time.Duration    `env:"PYTHON_CLIENT_TIMEOUT" envDefault:"5s"`
+	RabbitMQURL                      string           `env:"RABBITMQ_URL,required"`
+	Investment                       InvestmentConfig `envPrefix:""`
 }
 
 type InvestmentConfig struct {
