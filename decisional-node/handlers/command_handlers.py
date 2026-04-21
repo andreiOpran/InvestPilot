@@ -16,7 +16,7 @@ def process_sync_daily(payload: dict, repo: DataRepository):
     DAILY DATA INGESTION PIPELINE - step 1 of daily background job
     
     Fetches 5 years of daily closing prices from Yahoo Finance
-    for all tickers and puts them in historical_market_data
+    for all tickers and puts them in daily_market_data
     table in the db
     """
     

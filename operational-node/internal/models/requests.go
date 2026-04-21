@@ -56,6 +56,11 @@ type RefreshRequest struct {
 	RefreshToken string `json:"refresh_token" binding:"required"`
 }
 
+type PortfolioHistoryResponse struct {
+	Range string                  `json:"range"`
+	Data  []PortfolioHistoryPoint `json:"data"`
+}
+
 type ForecastRequest struct {
 	InitialInvestment   float64 `json:"initial_investment" binding:"required,min=0"`
 	MonthlyContribution float64 `json:"monthly_contribution" binding:"min=0"`

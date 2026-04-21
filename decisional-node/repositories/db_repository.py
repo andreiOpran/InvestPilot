@@ -13,7 +13,7 @@ class DataRepository:
             for row in rows_to_insert:
                 conn.execute(
                     text("""
-                        INSERT INTO historical_market_data (ticker, date, close_price, created_at)
+                        INSERT INTO daily_market_data (ticker, date, close_price, created_at)
                         VALUES (:ticker, :date, :close_price, NOW())
                         ON CONFLICT (ticker, date)
                         DO UPDATE SET close_price = EXCLUDED.close_price
@@ -24,7 +24,7 @@ class DataRepository:
                 )
             # delete rows for data older than 5 years
             conn.execute(text(f"""
-                DELETE FROM historical_market_data
+                DELETE FROM daily_market_data
                 WHERE date < NOW() - INTERVAL '{data_lifetime}'
             """))
             
@@ -51,7 +51,7 @@ class DataRepository:
             """))
 
     def get_historical_prices_tall(self) -> pd.DataFrame:
-        query = "SELECT ticker, date, close_price FROM historical_market_data ORDER BY date ASC"
+        query = "SELECT ticker, date, close_price FROM daily_market_data ORDER BY date ASC"
         return pd.read_sql(query, self.engine)
 
     def save_model_portfolios(self, all_buckets: dict):

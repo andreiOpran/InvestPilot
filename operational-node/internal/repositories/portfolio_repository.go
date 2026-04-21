@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"errors"
+	"time"
 
 	"github.com/andreiOpran/licenta/operational-node/internal/models"
 	"gorm.io/gorm"
@@ -9,6 +10,9 @@ import (
 
 type PortfolioRepository interface {
 	GetRoundWithHoldingsByStatus(userID uint, isActive bool) (*models.InvestmentRound, error)
+	GetHistoricalRounds(userID uint, since time.Time) ([]models.InvestmentRound, error)
+	GetHistoricalFundings(userID uint) ([]models.Funding, error)
+	GetPricingData(tickers []string, since time.Time, isIntraday bool) (map[string][]models.AssetPricePoint, error)
 	ExecuteInvestTransaction(
 		wallet *models.Wallet,
 		txRecord *models.Transaction,
@@ -35,6 +39,64 @@ func (r *portfolioRepository) GetRoundWithHoldingsByStatus(userID uint, isActive
 		return nil, err
 	}
 	return &round, nil
+}
+
+func (r *portfolioRepository) GetHistoricalRounds(userID uint, since time.Time) ([]models.InvestmentRound, error) {
+	var rounds []models.InvestmentRound
+
+	// time condition (get the active one, or the non-active that were created after `since`)
+	timeCondition := r.db.
+		Where("is_active = ?", true).
+		Or("id IN (SELECT id FROM investment_rounds WHERE user_id = ? AND created_at >= ?)", userID, since)
+
+	err := r.db.Preload("Holdings").
+		Where("user_id = ?", userID).
+		Where(timeCondition).
+		Order("created_at asc").
+		Find(&rounds).Error
+
+	return rounds, err
+}
+
+func (r *portfolioRepository) GetHistoricalFundings(userID uint) ([]models.Funding, error) {
+	var fundings []models.Funding
+
+	// fetch all completed fundings
+	err := r.db.Where("user_id = ? AND status = ?", userID, "COMPLETED").
+		Order("created_at asc").
+		Find(&fundings).Error
+	return fundings, err
+}
+
+func (r *portfolioRepository) GetPricingData(
+	tickers []string,
+	since time.Time,
+	isIntraday bool,
+) (map[string][]models.AssetPricePoint, error) {
+	var results []models.AssetPricePoint
+	var err error
+
+	if isIntraday {
+		// look in IntradayMarketData table
+		err = r.db.Model(&models.IntradayMarketData{}).
+			Where("ticker IN ? AND timestamp >= ?", tickers, since).
+			Select("ticker, timestamp, price").
+			Order("timestamp asc").
+			Scan(&results).Error
+	} else {
+		// look in DailyMarketData table
+		err = r.db.Model(&models.DailyMarketData{}).
+			Where("ticker IN ? AND date >= ?", tickers, since).
+			Select("ticker, date AS timestamp, close_price AS price").
+			Order("date asc").
+			Scan(&results).Error
+	}
+
+	grouped := make(map[string][]models.AssetPricePoint)
+	for _, p := range results {
+		grouped[p.Ticker] = append(grouped[p.Ticker], p)
+	}
+	return grouped, err
 }
 
 func (r *portfolioRepository) ExecuteInvestTransaction(

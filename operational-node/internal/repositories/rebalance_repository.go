@@ -63,7 +63,7 @@ func (r *rebalanceRepository) GetLatestPrices() ([]models.DailyMarketData, error
 	var results []models.DailyMarketData
 	err := r.db.Raw(`
 		SELECT DISTINCT ON (ticker) ticker, close_price
-		FROM historical_market_data
+		FROM daily_market_data
 		ORDER BY ticker, date DESC
 	`).Scan(&results).Error
 
