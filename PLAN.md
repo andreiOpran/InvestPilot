@@ -48,14 +48,14 @@ A deliberate decision was made **not** to fetch real-time prices during rebalanc
 
 Real-time pricing would add: a new external API dependency on the rebalance critical path, rate limit risk, and a new failure mode. For passive ETF investing it adds zero value to the user's outcome.
 
-Instead, Go performs a **staleness check** before any rebalance executes: if the most recent price in `historical_market_data` for any ticker is older than 2 trading days, the rebalance aborts and an alert is logged. This catches sync failures without adding live-fetch complexity.
+Instead, Go performs a **staleness check** before any rebalance executes: if the most recent price in `daily_market_data` for any ticker is older than 2 trading days, the rebalance aborts and an alert is logged. This catches sync failures without adding live-fetch complexity.
 
 ### 3.3 Local DailyMarketData vs. Live yfinance Fetching
 
-All ETF price data is persisted in the local PostgreSQL `historical_market_data` table via the daily `/sync` pipeline. Reasons:
+All ETF price data is persisted in the local PostgreSQL `daily_market_data` table via the daily `/sync` pipeline. Reasons:
 
 1. **Frontend Performance:** The Plotly.js dashboard renders portfolio evolution charts on every login. Serving pre-synced data from the local DB enables instant, reliable chart rendering at zero external cost.
-2. **Microservice Decoupling:** Go resolves share counts independently from `historical_market_data` without ever calling Python for price data.
+2. **Microservice Decoupling:** Go resolves share counts independently from `daily_market_data` without ever calling Python for price data.
 3. **Fault Tolerance:** If yfinance is unavailable when the monthly rebalance fires, locally synced prices ensure the cycle completes successfully.
 
 ### 3.4 Model Portfolios: Pre-Computed and Persisted
@@ -272,7 +272,7 @@ type InvestmentConfig struct {
   ├─ Publishes CMD_SYNC to RabbitMQ
   │     Python consumer:
   │       → Fetches 5y of closing prices via yfinance
-  │       → Upserts into historical_market_data (ON CONFLICT DO UPDATE)
+  │       → Upserts into daily_market_data (ON CONFLICT DO UPDATE)
   │       → Acknowledges message
   │
   └─ Publishes CMD_GENERATE to RabbitMQ (after sync completes)
@@ -287,7 +287,7 @@ type InvestmentConfig struct {
             "weight_threshold": 0.02
           }
         Python:
-          → Reads historical_market_data from shared DB
+          → Reads daily_market_data from shared DB
           → Runs HRP separately on equity universe and bond universe
           → Applies macro allocation table to blend equity/bond HRP weights
           → Applies weight threshold cleanup (crumbs redistributed proportionally)
@@ -301,7 +301,7 @@ type InvestmentConfig struct {
 [Go cron: every 30 days]
   │
   ├─ STALENESS CHECK
-  │     Go queries: SELECT MAX(date) FROM historical_market_data GROUP BY ticker
+  │     Go queries: SELECT MAX(date) FROM daily_market_data GROUP BY ticker
   │     If any ticker's latest price > 2 trading days old → ABORT + log alert
   │
   ├─ Go reads model_portfolios (latest row per bucket_key)
@@ -328,7 +328,7 @@ type InvestmentConfig struct {
           3. Returns: { "request_id": "...", "adjusted_targets": {...}, "skipped": [...] }
 
         Go receives adjusted_targets:
-          → Reads latest ClosePrice per ticker from historical_market_data
+          → Reads latest ClosePrice per ticker from daily_market_data
           → Computes: shares = (adjusted_weight × total_value) / close_price
           → Writes new Portfolio rows in a DB transaction
           → Marks old InvestmentRound IsActive=false
@@ -354,7 +354,7 @@ type InvestmentConfig struct {
     → Returns HTTP 202 Accepted: { "task_id": "<uuid>" }
 
   Python consumer:
-    → Reads historical_market_data to compute portfolio mean return & volatility
+    → Reads daily_market_data to compute portfolio mean return & volatility
     → Runs Monte Carlo (10,000 scenarios, Geometric Brownian Motion)
     → Writes percentiles to ForecastResult: {status: "complete", payload: {...}}
 
@@ -418,7 +418,7 @@ An `EmailSender` interface decouples email logic from business logic.
 
 **Investment Strategy:** User clicks Invest → funds held as USD ticker → daily HRP runs produce pre-computed buckets → every 30 days Go rebalances all users using latest pre-computed buckets.
 
-**Python's Contract:** Python is a pure function of its inputs. It reads `historical_market_data`, writes `model_portfolios` and `forecast_results`. It never touches user tables. All policy parameters arrive in the RabbitMQ message payload — nothing is hardcoded in Python source.
+**Python's Contract:** Python is a pure function of its inputs. It reads `daily_market_data`, writes `model_portfolios` and `forecast_results`. It never touches user tables. All policy parameters arrive in the RabbitMQ message payload — nothing is hardcoded in Python source.
 
 - [x] Setup yfinance in Python to fetch closing prices for all ETFs
 - [x] Upsert prices into PostgreSQL using ON CONFLICT (ticker, date) DO UPDATE
@@ -438,7 +438,7 @@ An `EmailSender` interface decouples email logic from business logic.
   - No DB reads during this operation — pure math on inputs
 - [x] Implement RabbitMQ consumer in Python using `pika` to handle CMD_SYNC, CMD_GENERATE, CMD_REBALANCE_USER, CMD_FORECAST
 - [x] Implement Monte Carlo Simulation (10,000 scenarios, Geometric Brownian Motion):
-  - Reads historical_market_data to compute portfolio mean return and volatility
+  - Reads daily_market_data to compute portfolio mean return and volatility
   - Writes percentile results to `forecast_results` table keyed by task_id
 
 ### Phase 4: Orchestration (Go + Python) & Stripe Integration
@@ -448,7 +448,7 @@ An `EmailSender` interface decouples email logic from business logic.
 - [x] Integrate Stripe Sandbox API for POST /deposit (bank → wallet) and POST /cashout (wallet → bank)
 - [x] **POST /invest:** Move wallet balance to portfolio as USD ticker, create InvestmentRound
 - [x] **POST /rebalance (cron, every 30 days):**
-  1. Staleness check: abort if any ticker's latest price in `historical_market_data` is older than `PriceStalenessDays` trading days
+  1. Staleness check: abort if any ticker's latest price in `daily_market_data` is older than `PriceStalenessDays` trading days
   2. Read latest pre-computed weights from `model_portfolios` for all 15 bucket keys
   3. Query all users with active InvestmentRound
   4. For each user:
@@ -456,7 +456,7 @@ An `EmailSender` interface decouples email logic from business logic.
      - Compute current_allocation weight map from Portfolio rows (including USD)
      - Publish CMD_REBALANCE_USER to RabbitMQ (anonymous — no PII)
      - Receive adjusted_targets from Python reply queue
-     - Read latest ClosePrice per ticker from historical_market_data
+     - Read latest ClosePrice per ticker from daily_market_data
      - Compute `shares = (adjusted_weight × total_value) / close_price`
      - DB transaction: write new Portfolio rows + mark old InvestmentRound IsActive=false
 - [x] **POST /forecast:** Accept user parameters, generate UUID (task_id), insert pending ForecastResult row, publish CMD_FORECAST to RabbitMQ, return HTTP 202 with task_id
