@@ -63,6 +63,7 @@ type AppSettings struct {
 	PythonClientTimeout              time.Duration    `env:"PYTHON_CLIENT_TIMEOUT" envDefault:"5s"`
 	RabbitMQURL                      string           `env:"RABBITMQ_URL,required"`
 	Investment                       InvestmentConfig `envPrefix:""`
+	Onboarding                       OnboardingConfig `envPrefix:""`
 }
 
 type InvestmentConfig struct {
@@ -81,6 +82,12 @@ type InvestmentConfig struct {
 	DailyMarketDataLifetime    string             `json:"daily_market_data_lifetime" env:"DAILY_MARKET_DATA_LIFETIME" envDefault:"5 years"`
 	IntradayMarketDataLifetime string             `json:"intraday_market_data_lifetime" env:"INTRADAY_MARKET_DATA_LIFETIME" envDefault:"14 days"`
 	Verbose                    bool               `json:"verbose" env:"VERBOSE_DECISIONAL_NODE" envDefault:"false"`
+}
+
+type OnboardingConfig struct {
+	RiskScores     map[string]int `json:"risk_scores" env:"ONBOARDING_RISK_SCORES" envDefault:"age_20:5,age_30:4,age_45:2,age_60:1,goal_growth:5,goal_balanced:3,goal_preserve:1,drop_buy:5,drop_hold:3,drop_sell:1"`
+	HorizonYrs     map[string]int `json:"horizon_yrs" env:"ONBOARDING_HORIZON_YRS" envDefault:"age_20:10,age_30:7,age_45:4,age_60:2,goal_growth:10,goal_balanced:5,goal_preserve:1,drop_buy:0,drop_hold:0,drop_sell:0"`
+	DefaultHorizon int            `json:"default_horizon" env:"ONBOARDING_DEFAULT_HORIZON" envDefault:"5"`
 }
 
 // Env is the global configuration instance

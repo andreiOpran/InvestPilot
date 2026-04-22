@@ -57,8 +57,8 @@ Install only components actually used — add more as needed:
 - [x] Add Go catch-all `NoRoute` handler to serve `./frontend/index.html` for SPA client-side routing
 
 **Onboarding API Suite**
-- [ ] `GET /api/v1/onboarding/questions`: Fetch the dynamic list of onboarding questions and their available options.
-- [ ] `POST /api/v1/onboarding/submit`: Accept selected answer IDs, calculate `riskTolerance` and `investmentHorizon` server-side, and update the User profile.
+- [x] `GET /api/v1/onboarding/questions`: Fetch the dynamic list of onboarding questions and their available options.
+- [x] `POST /api/v1/onboarding/submit`: Accept selected answer IDs, calculate `riskTolerance` and `investmentHorizon` server-side, and update the User profile.
 
 **Portfolio & Data APIs**
 - [x] `GET /api/v1/portfolio/history?range=`: Aggregate `DailyMarketData` (for 1M, 6M, 1Y, YTD, 5Y with one value per day granularity) and `IntradayMarketData` (for 1D, 1W with 15 minute granularity) and user holdings (from `Funding`) to return time-series data (Date, Portfolio Value, Net Contributions) for requested ranges (1D, 1W, 1M, 6M, 1Y, YTD, 5Y).

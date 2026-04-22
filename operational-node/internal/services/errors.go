@@ -20,4 +20,6 @@ var (
 	ErrRebalancePausedStaleMarketData = errors.New("rebalance paused because market data is stale")
 	ErrForecastUserNoActivePortfolio  = errors.New("user has no active portfolio to forecast")
 	ErrForecastNoAssetsOnlyCash       = errors.New("portfolio consists entirely of uninvested cash; cannot forecast")
+	ErrMissingAnswer                  = errors.New("missing answer for a required question")
+	ErrInvalidOption                  = errors.New("invalid option selected for a question")
 )

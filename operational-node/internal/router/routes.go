@@ -29,6 +29,7 @@ func SetupRoutes(r *gin.Engine) {
 	userService := services.NewUserService(userRepo)
 	securityService := services.NewSecurityService(userRepo)
 	portfolioService := services.NewPortfolioService(portfolioRepo, userRepo)
+	onboardingService := services.NewOnboardingService(userRepo)
 	forecastService := services.NewForecastService(forecastRepo, portfolioRepo)
 	stripeService := services.NewStripeService()
 	rebalanceService := services.NewRebalanceService(rebalanceRepo, userRepo) // for debug endpoint
@@ -39,6 +40,7 @@ func SetupRoutes(r *gin.Engine) {
 	userHandler := handlers.NewUserHandler(userService)
 	securityHandler := handlers.NewSecurityHandler(securityService)
 	portfolioHandler := handlers.NewPortfolioHandler(portfolioService)
+	onboardingHandler := handlers.NewOnboardingHandler(onboardingService)
 	forecastHandler := handlers.NewForecastHandler(forecastService)
 	stripeHandler := handlers.NewStripeHandler(stripeService, userService)
 	rebalanceHandler := handlers.NewRebalanceHandler(rebalanceService)          // for debug endpoint
@@ -75,6 +77,8 @@ func SetupRoutes(r *gin.Engine) {
 			protected.PUT("/user/profile", userHandler.UpdateProfileHandler)
 			protected.GET("/2fa/setup", securityHandler.Setup2FAHandler)
 			protected.POST("/2fa/enable", securityHandler.Enable2FAHandler)
+			protected.GET("/onboarding/questions", onboardingHandler.GetQuestionsHandler)
+			protected.POST("/onboarding/submit", onboardingHandler.SubmitHandler)
 			protected.POST("/deposit", userHandler.DepositHandler)
 			protected.POST("/invest", portfolioHandler.InvestHandler)
 			protected.POST("/deposit/intent", stripeHandler.CreateIntentHandler)
