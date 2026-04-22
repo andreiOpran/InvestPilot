@@ -41,7 +41,7 @@ func (s *portfolioService) Invest(userID uint, amount float64) error {
 	// domain action: create transaction
 	txRecord := &models.Transaction{
 		UserID: userID,
-		Type:   "invest",
+		Type:   "INVEST",
 		Amount: amount,
 	}
 

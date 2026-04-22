@@ -62,7 +62,7 @@ Install only components actually used — add more as needed:
 
 **Portfolio & Data APIs**
 - [x] `GET /api/v1/portfolio/history?range=`: Aggregate `DailyMarketData` (for 1M, 6M, 1Y, YTD, 5Y with one value per day granularity) and `IntradayMarketData` (for 1D, 1W with 15 minute granularity) and user holdings (from `Funding`) to return time-series data (Date, Portfolio Value, Net Contributions) for requested ranges (1D, 1W, 1M, 6M, 1Y, YTD, 5Y).
-- [ ] `GET /api/v1/transactions`: Execute a unified query (e.g., using UNION) across the `Funding` and `Transaction` tables to return a single, paginated, and chronologically sorted list of all financial events (DEPOSIT, CASHOUT, INVEST, SELL).
+- [x] `GET /api/v1/transactions`: Execute a unified query (e.g., using UNION) across the `Funding` and `Transaction` tables to return a single, paginated, and chronologically sorted list of all financial events (DEPOSIT, CASHOUT, INVEST, SELL).
 - [ ] `GET /api/v1/portfolio`: Return the user's currently active `InvestmentRound` and its associated `Holding` array (needed for the Allocation Pie Chart).
 
 ### 1.6 Environment Variables (`.env`)

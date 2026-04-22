@@ -65,9 +65,31 @@ type Wallet struct {
 type Transaction struct {
 	ID        uint    `gorm:"primaryKey"`
 	UserID    uint    `gorm:"not null;index"`
-	Type      string  `gorm:"not null"` // "invest" or "sell"
+	Type      string  `gorm:"not null"` // "INVEST", "SELL"
 	Amount    float64 `gorm:"not null"`
 	CreatedAt time.Time
+}
+
+// tracks fiat money moving in and out of the platform via Stripe or paper trading
+type Funding struct {
+	ID              uint    `gorm:"primaryKey"`
+	UserID          uint    `gorm:"not null;index"`
+	Type            string  `gorm:"not null"` // "DEPOSIT", "WITHDRAWAL"
+	Amount          float64 `gorm:"not null"`
+	StripePaymentID string  `gorm:"index"`    // external reference ID
+	Status          string  `gorm:"not null"` // "COMPLETED", "PENDING", "FAILED"
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
+}
+
+// UnifiedTransaction combines `Transaction` and `Funding` logs for querying
+type UnifiedTransaction struct {
+	ID        uint      `json:"id"`
+	Source    string    `json:"source"` // "FUNDING" or "TRANSACTION"
+	Type      string    `json:"type"`   // "DEPOSIT", "WITHDRAWAL", "INVEST", "SELL"
+	Amount    float64   `json:"amount"`
+	Status    string    `json:"status"` // "COMPLETED", "PENDING", "FAILED"
+	Timestamp time.Time `json:"timestamp"`
 }
 
 // groups all portfolio trades belonging to one optimization run
@@ -147,16 +169,4 @@ type ForecastResult struct {
 	Payload   string // JSON with percentile arrays, nil until complete
 	CreatedAt time.Time
 	UpdatedAt time.Time
-}
-
-// tracks fiat money moving in and out of the platform via Stripe or paper trading
-type Funding struct {
-	ID              uint    `gorm:"primaryKey"`
-	UserID          uint    `gorm:"not null;index"`
-	Type            string  `gorm:"not null"` // "DEPOSIT", "WITHDRAWAL"
-	Amount          float64 `gorm:"not null"`
-	StripePaymentID string  `gorm:"index"`    // external reference ID
-	Status          string  `gorm:"not null"` // "COMPLETED", "PENDING", "FAILED"
-	CreatedAt       time.Time
-	UpdatedAt       time.Time
 }

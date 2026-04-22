@@ -153,7 +153,7 @@ type Wallet struct {
 type Transaction struct {
     ID        uint      `gorm:"primaryKey"`
     UserID    uint      `gorm:"not null;index"`
-    Type      string    `gorm:"not null"` // "invest" | "sell"
+    Type      string    `gorm:"not null"` // "INVEST" | "SELL"
     Amount    float64   `gorm:"not null"` // always positive
     CreatedAt time.Time
 }

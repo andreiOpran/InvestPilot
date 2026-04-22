@@ -21,6 +21,7 @@ func SetupRoutes(r *gin.Engine) {
 	authRepo := repositories.NewAuthRepository(database.DB)
 	userRepo := repositories.NewUserRepository(database.DB)
 	portfolioRepo := repositories.NewPortfolioRepository(database.DB)
+	transactionRepo := repositories.NewTransactionRepository(database.DB)
 	forecastRepo := repositories.NewForecastRepository(database.DB)
 	rebalanceRepo := repositories.NewRebalanceRepository(database.DB) // for debug endpoint
 
@@ -29,6 +30,7 @@ func SetupRoutes(r *gin.Engine) {
 	userService := services.NewUserService(userRepo)
 	securityService := services.NewSecurityService(userRepo)
 	portfolioService := services.NewPortfolioService(portfolioRepo, userRepo)
+	transactionService := services.NewTransactionService(transactionRepo)
 	onboardingService := services.NewOnboardingService(userRepo)
 	forecastService := services.NewForecastService(forecastRepo, portfolioRepo)
 	stripeService := services.NewStripeService()
@@ -40,6 +42,7 @@ func SetupRoutes(r *gin.Engine) {
 	userHandler := handlers.NewUserHandler(userService)
 	securityHandler := handlers.NewSecurityHandler(securityService)
 	portfolioHandler := handlers.NewPortfolioHandler(portfolioService)
+	transactionHandler := handlers.NewTransactionHandler(transactionService)
 	onboardingHandler := handlers.NewOnboardingHandler(onboardingService)
 	forecastHandler := handlers.NewForecastHandler(forecastService)
 	stripeHandler := handlers.NewStripeHandler(stripeService, userService)
@@ -84,6 +87,7 @@ func SetupRoutes(r *gin.Engine) {
 			protected.POST("/deposit/intent", stripeHandler.CreateIntentHandler)
 			protected.POST("/cashout", userHandler.CashoutHandler)
 			protected.GET("/portfolio/history", portfolioHandler.GetPortfolioHistoryHandler)
+			protected.GET("/transactions", transactionHandler.GetTransactionsHandler)
 			protected.POST("/forecast", forecastHandler.RequestForecastHandler)
 			protected.GET("/forecast/status/:task_id", forecastHandler.GetForecastStatusHandler)
 		}

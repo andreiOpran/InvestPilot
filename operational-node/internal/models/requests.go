@@ -61,6 +61,13 @@ type PortfolioHistoryResponse struct {
 	Data  []PortfolioHistoryPoint `json:"data"`
 }
 
+type PaginatedTransactionsResponse struct {
+	Data       []UnifiedTransaction `json:"data"`
+	TotalCount int64                `json:"total_count"`
+	Page       int                  `json:"page"`
+	Limit      int                  `json:"limit"`
+}
+
 type ForecastRequest struct {
 	InitialInvestment   float64 `json:"initial_investment" binding:"required,min=0"`
 	MonthlyContribution float64 `json:"monthly_contribution" binding:"min=0"`

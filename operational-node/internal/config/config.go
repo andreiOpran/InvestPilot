@@ -44,6 +44,8 @@ type AppSettings struct {
 	RefreshTokenLifetimeSecondsInt   int              `env:"REFRESH_TOKEN_LIFETIME_SECONDS_INT" envDefault:"604800"`
 	VerifyEmailLifetime              time.Duration    `env:"VERIFY_EMAIL_LIFETIME" envDefault:"24h"`
 	ResetPasswordLifetime            time.Duration    `env:"RESET_PASSWORD_LIFETIME" envDefault:"15m"`
+	TransactionCountLimit            int              `env:"TRANSACTION_COUNT_LIMIT" envDefault:"100"`
+	TransactionCountDefault          int              `env:"TRANSACTION_COUNT_DEFAULT" envDefault:"10"`
 	CleanupCronSchedule              string           `env:"CLEANUP_CRON" envDefault:"0 3 * * *"`
 	CleanupBatchSize                 int              `env:"CLEANUP_BATCH_SIZE" envDefault:"1000"`
 	ServerPort                       string           `env:"PORT" envDefault:"8080"`
