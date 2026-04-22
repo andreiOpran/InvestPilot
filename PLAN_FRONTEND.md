@@ -73,17 +73,17 @@ Install only components actually used — add more as needed:
 
 ### 1.7 Zod Schema Library (`src/lib/schemas.ts`)
 Define and export all form validation schemas in one file — single source of truth for client-side rules, mirroring Go's `binding` tags:
-- [ ] `registerSchema` — email (valid format), password (min 8, complexity rules matching Go's validator)
-- [ ] `loginSchema` — email, password (required)
-- [ ] `verify2FASchema` — token (exactly 6 digits, numeric)
-- [ ] `enable2FASchema` — token (exactly 6 digits, numeric)
-- [ ] `forgotPasswordSchema` — email (valid format)
-- [ ] `resetPasswordSchema` — token (required), newPassword (min 8, complexity), confirmPassword (must match)
-- [ ] `onboardingSchema` — all questionnaire answer fields (required, each maps to a discrete option set)
-- [ ] `depositSchema` — amount (number, greater than 0)
-- [ ] `cashoutSchema` — amount (number, greater than 0)
-- [ ] `investSchema` — amount (number, greater than 0)
-- [ ] `forecastSchema` — initialInvestment (min 0), monthlyContribution (min 0), years (integer 1–50)
+- [x] `registerSchema` — email (valid format), password (min 8, complexity rules matching Go's validator)
+- [x] `loginSchema` — email, password (required)
+- [x] `verify2FASchema` — token (exactly 6 digits, numeric)
+- [x] `enable2FASchema` — token (exactly 6 digits, numeric)
+- [x] `forgotPasswordSchema` — email (valid format)
+- [x] `resetPasswordSchema` — token (required), newPassword (min 8, complexity), confirmPassword (must match)
+- [x] `onboardingSchema` — all questionnaire answer fields (required, each maps to a discrete option set)
+- [x] `depositSchema` — amount (number, greater than 0)
+- [x] `cashoutSchema` — amount (number, greater than 0)
+- [x] `investSchema` — amount (number, greater than 0)
+- [x] `forecastSchema` — initialInvestment (min 0), monthlyContribution (min 0), years (integer 1–50)
 
 ---
 
