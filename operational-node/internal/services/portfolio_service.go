@@ -10,6 +10,7 @@ import (
 
 type PortfolioService interface {
 	Invest(userID uint, amount float64) error
+	GetPortfolioSummary(userID uint) (*models.PortfolioSummaryResponse, error)
 	GetPortfolioHistory(userID uint, timeRange string) (models.PortfolioHistoryResponse, error)
 }
 
@@ -104,6 +105,90 @@ func (s *portfolioService) Invest(userID uint, amount float64) error {
 
 	// give prepared domain models to repo to execute as one transaction
 	return s.portfolioRepo.ExecuteInvestTransaction(wallet, txRecord, oldRound, newRound)
+}
+
+func (s *portfolioService) GetPortfolioSummary(userID uint) (*models.PortfolioSummaryResponse, error) {
+	// get active round
+	activeRound, err := s.portfolioRepo.GetRoundWithHoldingsByStatus(userID, true)
+	if err != nil {
+		return nil, err
+	}
+
+	// get fundings for net contribution
+	fundings, err := s.portfolioRepo.GetHistoricalFundings(userID)
+	if err != nil {
+		return nil, err
+	}
+
+	netContributions := 0.0
+	for _, f := range fundings {
+		if f.Type == "DEPOSIT" {
+			netContributions += f.Amount
+		} else if f.Type == "WITHDRAWAL" {
+			netContributions += f.Amount
+		}
+	}
+
+	// if no active round exists yet (new user)
+	if activeRound == nil {
+		return &models.PortfolioSummaryResponse{
+			LiveTotalValue:    0.0,
+			NetContributions:  netContributions,
+			AllTimeProfitLoss: 0.0,
+			RoundID:           0,
+			Holdings:          []models.HoldingResponse{},
+		}, nil
+	}
+
+	// extract unique tickers from the active round (skip USD)
+	var tickers []string
+	for _, h := range activeRound.Holdings {
+		if h.Ticker != "USD" {
+			tickers = append(tickers, h.Ticker)
+		}
+	}
+
+	// fetch latest prices for the tickers
+	latestPrices, err := s.portfolioRepo.GetLatestPrices(tickers)
+	if err != nil {
+		return nil, err
+	}
+
+	var holdingResponses []models.HoldingResponse
+	liveTotalValue := 0.0
+
+	// generate holding responses and calculate live baseline
+	for _, h := range activeRound.Holdings {
+		currentPrice := 1.0 // default for USD
+		if h.Ticker != "USD" {
+			currentPrice = latestPrices[h.Ticker]
+			// fallback to purchase price if intraday data is missing for some reason
+			if currentPrice == 0 {
+				currentPrice = h.PurchasePrice
+			}
+		}
+
+		currentValue := h.Shares * currentPrice
+		liveTotalValue += currentValue
+
+		holdingResponses = append(holdingResponses, models.HoldingResponse{
+			Ticker:       h.Ticker,
+			Shares:       h.Shares,
+			CurrentPrice: currentPrice,
+			CurrentValue: currentValue,
+			TargetWeight: h.Weight,
+		})
+	}
+
+	allTimeProfitLoss := liveTotalValue - netContributions
+
+	return &models.PortfolioSummaryResponse{
+		LiveTotalValue:    liveTotalValue,
+		NetContributions:  netContributions,
+		AllTimeProfitLoss: allTimeProfitLoss,
+		RoundID:           activeRound.ID,
+		Holdings:          holdingResponses,
+	}, nil
 }
 
 func (s *portfolioService) GetPortfolioHistory(userID uint, timeRange string) (models.PortfolioHistoryResponse, error) {

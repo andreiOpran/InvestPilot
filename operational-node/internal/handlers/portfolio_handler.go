@@ -48,6 +48,23 @@ func (h *PortfolioHandler) InvestHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Investment successfully added to portfolio under USD"})
 }
 
+func (h *PortfolioHandler) GetPortfolioSummaryHandler(c *gin.Context) {
+	// extract userID from middleware
+	userID, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	summary, err := h.portfolioService.GetPortfolioSummary(userID.(uint))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not fetch portfolio summary"})
+		return
+	}
+
+	c.JSON(http.StatusOK, summary)
+}
+
 func (h *PortfolioHandler) GetPortfolioHistoryHandler(c *gin.Context) {
 	// extract userID from middleware
 	userID, exists := c.Get("userID")

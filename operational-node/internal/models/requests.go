@@ -81,3 +81,19 @@ type DepositIntentRequest struct {
 type CashoutRequest struct {
 	Amount float64 `json:"amount" binding:"required,gt=0"`
 }
+
+type HoldingResponse struct {
+	Ticker       string  `json:"ticker"`
+	Shares       float64 `json:"shares"`
+	CurrentPrice float64 `json:"current_price"`
+	CurrentValue float64 `json:"current_value"`
+	TargetWeight float64 `json:"target_weight"`
+}
+
+type PortfolioSummaryResponse struct {
+	LiveTotalValue    float64           `json:"live_total_value"`
+	NetContributions  float64           `json:"net_contributions"`
+	AllTimeProfitLoss float64           `json:"all_time_profit_loss"`
+	RoundID           uint              `json:"round_id"`
+	Holdings          []HoldingResponse `json:"holdings"`
+}

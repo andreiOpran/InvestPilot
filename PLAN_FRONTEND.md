@@ -63,7 +63,7 @@ Install only components actually used — add more as needed:
 **Portfolio & Data APIs**
 - [x] `GET /api/v1/portfolio/history?range=`: Aggregate `DailyMarketData` (for 1M, 6M, 1Y, YTD, 5Y with one value per day granularity) and `IntradayMarketData` (for 1D, 1W with 15 minute granularity) and user holdings (from `Funding`) to return time-series data (Date, Portfolio Value, Net Contributions) for requested ranges (1D, 1W, 1M, 6M, 1Y, YTD, 5Y).
 - [x] `GET /api/v1/transactions`: Execute a unified query (e.g., using UNION) across the `Funding` and `Transaction` tables to return a single, paginated, and chronologically sorted list of all financial events (DEPOSIT, CASHOUT, INVEST, SELL).
-- [ ] `GET /api/v1/portfolio`: Return the user's currently active `InvestmentRound` and its associated `Holding` array (needed for the Allocation Pie Chart).
+- [x] `GET /api/v1/portfolio`: Return the user's currently active `InvestmentRound` and its associated `Holding` array. Calculate and include the live `TotalPortfolioValue` and `AllTimeReturn` by fetching the latest market prices for each holding from `IntradayMarketData`, enriching the payload for the Allocation Pie Chart and Dashboard Header;
 
 ### 1.6 Environment Variables (`.env`)
 - [ ] `VITE_API_BASE_URL` — production Go VPS base URL

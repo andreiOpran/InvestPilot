@@ -12,6 +12,7 @@ type PortfolioRepository interface {
 	GetRoundWithHoldingsByStatus(userID uint, isActive bool) (*models.InvestmentRound, error)
 	GetHistoricalRounds(userID uint, since time.Time) ([]models.InvestmentRound, error)
 	GetHistoricalFundings(userID uint) ([]models.Funding, error)
+	GetLatestPrices(tickers []string) (map[string]float64, error)
 	GetPricingData(tickers []string, since time.Time, isIntraday bool) (map[string][]models.AssetPricePoint, error)
 	ExecuteInvestTransaction(
 		wallet *models.Wallet,
@@ -66,6 +67,34 @@ func (r *portfolioRepository) GetHistoricalFundings(userID uint) ([]models.Fundi
 		Order("created_at asc").
 		Find(&fundings).Error
 	return fundings, err
+}
+
+func (r *portfolioRepository) GetLatestPrices(tickers []string) (map[string]float64, error) {
+	prices := make(map[string]float64)
+	if len(tickers) == 0 {
+		return prices, nil
+	}
+
+	var results []struct {
+		Ticker string
+		Price  float64
+	}
+
+	// get latest intraday price for each requested ticker
+	err := r.db.Table("intraday_market_data").
+		Select("DISTINCT ON (ticker) ticker, price").
+		Where("ticker IN ?", tickers).
+		Order("ticker, timestamp DESC").
+		Scan(&results).Error
+	if err != nil {
+		return nil, err
+	}
+
+	for _, res := range results {
+		prices[res.Ticker] = res.Price
+	}
+
+	return prices, nil
 }
 
 func (r *portfolioRepository) GetPricingData(
