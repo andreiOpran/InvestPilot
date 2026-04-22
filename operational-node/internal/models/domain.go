@@ -139,6 +139,7 @@ type IntradayMarketData struct {
 type PortfolioHistoryPoint struct {
 	Timestamp        time.Time `json:"timestamp"`
 	PortfolioValue   float64   `json:"portfolio_value"`
+	ReturnPercentage float64   `json:"return_percentage"`
 	NetContributions float64   `json:"net_contributions"`
 }
 

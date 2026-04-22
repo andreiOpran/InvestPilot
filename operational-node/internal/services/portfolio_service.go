@@ -203,7 +203,12 @@ func (s *portfolioService) GetPortfolioHistory(userID uint, timeRange string) (m
 	lastKnownPrices := make(map[string]float64)
 	priceIndices := make(map[string]int)
 
-	for _, t := range allTimestamps {
+	// store values from the first day of the interval
+	// to have as a comparison for return percentages
+	var baselinePortfolioValue float64
+	var baselineNetContributions float64
+
+	for i, t := range allTimestamps {
 		// update current price board for this specific timestamp
 		// advance a pointer for each ticker , using last known
 		// price to handle mismatched pricing timestamps
@@ -257,9 +262,31 @@ func (s *portfolioService) GetPortfolioHistory(userID uint, timeRange string) (m
 			}
 		}
 
+		// calculate percentage for profit/loss
+		if i == 0 {
+			// capture initial values at start of the timeframe
+			baselinePortfolioValue = portfolioValue
+			baselineNetContributions = netContributions
+		}
+
+		// net contributions made strictly during this timeframe
+		timeframeNetContributions := netContributions - baselineNetContributions
+
+		// capital at risk is the portfolio size we started + any new cash we added
+		capitalAtRisk := baselinePortfolioValue + timeframeNetContributions
+
+		returnPercentage := 0.0
+		// ensure its not the first point (which must be 0) and prevent div zero
+		if i > 0 && capitalAtRisk > 0 {
+			// profit generated exclusively in this timeframe
+			timeframeProfit := portfolioValue - capitalAtRisk
+			returnPercentage = (timeframeProfit / capitalAtRisk) * 100
+		}
+
 		dataPoints = append(dataPoints, models.PortfolioHistoryPoint{
 			Timestamp:        t,
 			PortfolioValue:   portfolioValue,
+			ReturnPercentage: returnPercentage,
 			NetContributions: netContributions,
 		})
 	}
