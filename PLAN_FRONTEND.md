@@ -67,9 +67,9 @@ Install only components actually used — add more as needed:
 
 ### 1.6 Environment Variables (`.env`)
 - [ ] `VITE_API_BASE_URL` — production Go VPS base URL
-- [ ] `VITE_STRIPE_PUBLISHABLE_KEY` — Stripe `pk_test_...` key
+- [x] `VITE_STRIPE_PUBLISHABLE_KEY` — Stripe `pk_test_...` key
 - [ ] `VITE_TURNSTILE_SITE_KEY` — Cloudflare Turnstile site key
-- [ ] Create `.env.example` committed to repo; `.env` added to `.gitignore`
+- [x] Create `.env.example` committed to repo; `.env` added to `.gitignore`
 
 ### 1.7 Zod Schema Library (`src/lib/schemas.ts`)
 Define and export all form validation schemas in one file — single source of truth for client-side rules, mirroring Go's `binding` tags:

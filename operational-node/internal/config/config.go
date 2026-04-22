@@ -13,7 +13,7 @@ type AppSettings struct {
 	AppEnv                           string           `env:"APP_ENV" envDefault:"development"` // in production change to "production"
 	DatabaseURL                      string           `env:"DATABASE_URL,required"`
 	AESMasterKey                     string           `env:"AES_MASTER_KEY,required"`
-	StripeKey                        string           `env:"STRIPE_KEY,required"`
+	StripeSecretKey                  string           `env:"STRIPE_SECRET_KEY,required"`
 	StripeWebhookKey                 string           `env:"STRIPE_WEBHOOK_KEY,required"`
 	JWTSecret                        string           `env:"JWT_SECRET" envDefault:"secret-key"`
 	SMTPHost                         string           `env:"SMTP_HOST"`

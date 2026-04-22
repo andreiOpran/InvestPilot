@@ -18,7 +18,7 @@ type StripeService interface {
 type stripeService struct{}
 
 func NewStripeService() StripeService {
-	stripe.Key = config.Env.StripeKey
+	stripe.Key = config.Env.StripeSecretKey
 	return &stripeService{}
 }
 

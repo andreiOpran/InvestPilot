@@ -2,6 +2,7 @@
 build/
 .venv/
 .env*
+!*.example
 private/
 __pycache__/
 decisional-node/debug_output*/
