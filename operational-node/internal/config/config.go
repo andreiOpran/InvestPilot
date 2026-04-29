@@ -15,6 +15,7 @@ type AppSettings struct {
 	AESMasterKey                     string           `env:"AES_MASTER_KEY,required"`
 	StripeSecretKey                  string           `env:"STRIPE_SECRET_KEY,required"`
 	StripeWebhookKey                 string           `env:"STRIPE_WEBHOOK_KEY,required"`
+	TurnstileSecretKey               string           `env:"TURNSTILE_SECRET_KEY" envDefault:"1x0000000000000000000000000000000AA"`
 	JWTSecret                        string           `env:"JWT_SECRET" envDefault:"secret-key"`
 	SMTPHost                         string           `env:"SMTP_HOST"`
 	SMTPPort                         string           `env:"SMTP_PORT"`

@@ -10,6 +10,7 @@ import (
 	"github.com/andreiOpran/licenta/operational-node/internal/models"
 	"github.com/andreiOpran/licenta/operational-node/internal/services"
 	"github.com/andreiOpran/licenta/operational-node/utils/cookie"
+	"github.com/andreiOpran/licenta/operational-node/utils/turnstile"
 	"github.com/andreiOpran/licenta/operational-node/utils/validator"
 )
 
@@ -31,7 +32,14 @@ func (h *AuthHandler) RegisterHandler(c *gin.Context) {
 		return
 	}
 
-	err := h.authService.RegisterUser(req)
+	// turnstile anti-bot check
+	err := turnstile.Verify(req.TurnstileToken, c.ClientIP())
+	if err != nil {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Captcha verification failed."})
+		return
+	}
+
+	err = h.authService.RegisterUser(req)
 	if err != nil {
 		if validator.IsPasswordValidationError(err) {
 			// return specific password requirement that was not met
@@ -73,6 +81,13 @@ func (h *AuthHandler) LoginHandler(c *gin.Context) {
 	var req models.LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// turnstile anti-bot check
+	err := turnstile.Verify(req.TurnstileToken, c.ClientIP())
+	if err != nil {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Captcha verification failed."})
 		return
 	}
 
@@ -224,6 +239,13 @@ func (h *AuthHandler) ForgotPasswordHandler(c *gin.Context) {
 	var req models.ForgotPasswordRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// turnstile anti-bot check
+	err := turnstile.Verify(req.TurnstileToken, c.ClientIP())
+	if err != nil {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Captcha verification failed."})
 		return
 	}
 

@@ -13,8 +13,9 @@ type InvestRequest struct {
 }
 
 type RegisterRequest struct {
-	Email    string `json:"email" binding:"required,email"`
-	Password string `json:"password" binding:"required,min=6"`
+	Email          string `json:"email" binding:"required,email"`
+	Password       string `json:"password" binding:"required,min=6"`
+	TurnstileToken string `json:"turnstile_token" binding:"required"`
 }
 
 // struct used for the onboarding form after the user registers
@@ -24,8 +25,9 @@ type UpdateProfileRequest struct {
 }
 
 type LoginRequest struct {
-	Email    string `json:"email" binding:"required,email"`
-	Password string `json:"password" binding:"required"`
+	Email          string `json:"email" binding:"required,email"`
+	Password       string `json:"password" binding:"required"`
+	TurnstileToken string `json:"turnstile_token" binding:"required"`
 }
 
 type Claims struct {
@@ -44,7 +46,8 @@ type Enable2FARequest struct {
 }
 
 type ForgotPasswordRequest struct {
-	Email string `json:"email" binding:"required,email"`
+	Email          string `json:"email" binding:"required,email"`
+	TurnstileToken string `json:"turnstile_token" binding:"required"`
 }
 
 type ResetPasswordRequest struct {
