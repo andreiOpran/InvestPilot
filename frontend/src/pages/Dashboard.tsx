@@ -6,6 +6,8 @@ import { DepositDialog } from "@/components/transactions/DepositDialog";
 import { StripeDepositDialog } from "@/components/transactions/StripeDepositDialog";
 import { CashoutDialog } from "@/components/transactions/CashoutDialog";
 import { InvestDialog } from "@/components/transactions/InvestDialog";
+import { ValueOverTime } from "@/components/charts/ValueOverTime";
+import { PerformanceChart } from "@/components/charts/PerformanceChart";
 
 export function Dashboard() {
   const { user } = useAuthStore();
@@ -47,6 +49,15 @@ export function Dashboard() {
       <StripeDepositDialog open={stripeDepositOpen} onOpenChange={setStripeDepositOpen} />
       <CashoutDialog open={cashoutOpen} onOpenChange={setCashoutOpen} />
       <InvestDialog open={investOpen} onOpenChange={setInvestOpen} />
+
+      {/* Charts */}
+      <div className="p-6 border rounded-xl bg-card">
+        <ValueOverTime />
+      </div>
+
+      <div className="p-6 border rounded-xl bg-card">
+        <PerformanceChart />
+      </div>
     </div>
   );
 }
