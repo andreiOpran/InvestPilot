@@ -15,6 +15,7 @@ import { format, parseISO } from "date-fns";
 import { TrendingUp } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 import { TimeRangeSelector, type TimeRange } from "./TimeRangeSelector";
 import { ChartErrorBoundary, ChartSkeleton } from "./ChartErrorBoundary";
 import { portfolioApi } from "@/api/portfolio";
@@ -95,7 +96,11 @@ function CustomTooltip({ active, payload, label, showNetContributions }: CustomT
   );
 }
 
-export function ValueOverTime() {
+interface ValueOverTimeProps {
+  onInvestClick?: () => void;
+}
+
+export function ValueOverTime({ onInvestClick }: ValueOverTimeProps) {
   const [range, setRange] = useState<TimeRange>("1M");
   const [showNetContributions, setShowNetContributions] = useState(true);
 
@@ -125,7 +130,7 @@ export function ValueOverTime() {
             Failed to load chart data.
           </div>
         ) : !hasData ? (
-          <EmptyPortfolioState />
+          <EmptyPortfolioState onInvestClick={onInvestClick} />
         ) : (
           <div
             className="transition-opacity duration-300"
@@ -210,7 +215,7 @@ export function ValueOverTime() {
   );
 }
 
-function EmptyPortfolioState() {
+function EmptyPortfolioState({ onInvestClick }: { onInvestClick?: () => void }) {
   return (
     <div className="flex flex-col items-center justify-center h-[400px] rounded-xl border border-dashed border-border bg-muted/20 p-8 text-center gap-4">
       <div className="rounded-full bg-primary/10 p-4">
@@ -222,6 +227,11 @@ function EmptyPortfolioState() {
           Invest to start tracking your portfolio performance
         </p>
       </div>
+      {onInvestClick && (
+        <Button onClick={onInvestClick} variant="outline" size="sm">
+          Invest Now
+        </Button>
+      )}
     </div>
   );
 }

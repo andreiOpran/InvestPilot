@@ -301,10 +301,10 @@ The onboarding flow replaces the client-side scoring logic with a dynamic, backe
 Both charts share a common **Time Range Selector** component and are driven by a `GET /api/v1/portfolio/history` endpoint (add to Go backend) that returns time-series data keyed by range. Both must be wrapped in `<ResponsiveContainer width="100%" height={400}>`.
 
 **Shared Time Range Selector (`src/components/charts/TimeRangeSelector.tsx`)**
-- [ ] Render a segmented control (styled `<Button>` group) with options: `1D | 1W | 1M | 6M | 1Y | YTD | 5Y`
-- [ ] Selected range stored in component state, passed as a query param to the API call
-- [ ] Changing range triggers a TanStack Query refetch; show a subtle loading indicator on the chart during transition (do not replace chart with skeleton — use `isFetching` opacity dim instead)
-- [ ] Default range on page load: `1M`
+- [x] Render a segmented control (styled `<Button>` group) with options: `1D | 1W | 1M | 6M | 1Y | YTD | 5Y`
+- [x] Selected range stored in component state, passed as a query param to the API call
+- [x] Changing range triggers a TanStack Query refetch; show a subtle loading indicator on the chart during transition (do not replace chart with skeleton — use `isFetching` opacity dim instead)
+- [x] Default range on page load: `1M`
 
 ---
 
@@ -312,14 +312,14 @@ Both charts share a common **Time Range Selector** component and are driven by a
 
 Shows the absolute portfolio market value in USD over the selected time range, with an optional "Net Contributions" overlay.
 
-- [ ] Recharts `<AreaChart>` with:
+- [x] Recharts `<AreaChart>` with:
   - Primary `<Area>` — `Portfolio Value (USD)`: filled area line representing the total market value of the active `InvestmentRound` at each data point. Use a brand accent gradient fill.
   - Secondary `<Line>` — `Net Contributions`: the cumulative sum of all deposits and investments made up to that point in time (i.e., money actually put in, with no market returns). Rendered as a dashed line in a neutral color.
-- [ ] **Net Contributions Toggle:** a shadcn/ui `<Checkbox>` labeled "Show Net Contributions" rendered below the chart. When unchecked, the `<Line>` is hidden (`hide` prop on the Recharts `<Line>` or conditional render). Checked by default.
-- [ ] The gap between the two lines is the visual representation of total gain or loss — label this area in the legend as "Unrealized Gain / Loss"
-- [ ] Y-axis: formatted as USD (e.g., `$12,450`); X-axis: date labels appropriate to the selected range (e.g., "Jan 12" for 1M, "2022" for 5Y)
-- [ ] Custom `<Tooltip>` on hover shows: Date, Portfolio Value, Net Contributions (if toggled on), Gain/Loss (calculated as `portfolioValue − netContributions`), and Gain/Loss as a percentage
-- [ ] Skeleton placeholder while loading; `<ChartErrorBoundary>` wrapping the component
+- [x] **Net Contributions Toggle:** a shadcn/ui `<Checkbox>` labeled "Show Net Contributions" rendered below the chart. When unchecked, the `<Line>` is hidden (`hide` prop on the Recharts `<Line>` or conditional render). Checked by default.
+- [x] The gap between the two lines is the visual representation of total gain or loss — label this area in the legend as "Unrealized Gain / Loss"
+- [x] Y-axis: formatted as USD (e.g., `$12,450`); X-axis: date labels appropriate to the selected range (e.g., "Jan 12" for 1M, "2022" for 5Y)
+- [x] Custom `<Tooltip>` on hover shows: Date, Portfolio Value, Net Contributions (if toggled on), Gain/Loss (calculated as `portfolioValue − netContributions`), and Gain/Loss as a percentage
+- [x] Skeleton placeholder while loading; `<ChartErrorBoundary>` wrapping the component
 
 ---
 
@@ -327,21 +327,21 @@ Shows the absolute portfolio market value in USD over the selected time range, w
 
 Shows percentage-based returns relative to the starting value of the selected time range (not all-time).
 
-- [ ] Recharts `<LineChart>` (no fill, clean line) with:
+- [x] Recharts `<LineChart>` (no fill, clean line) with:
   - Single `<Line>` — `Return (%)`: at each data point, value = `((currentValue − startValue) / startValue) × 100`, where `startValue` is the portfolio value at the beginning of the selected time range
   - This means the line always starts at `0%` on the Y-axis for every range selection — the chart answers "how has this portfolio performed *since* [range start]?"
-- [ ] `<ReferenceLine y={0}` rendered as a solid horizontal baseline; values above are styled green, values below are styled red
+- [x] `<ReferenceLine y={0}` rendered as a solid horizontal baseline; values above are styled green, values below are styled red
   - Implement via a custom `<linearGradient>` in SVG defs: stroke above 0 uses a green color variable, stroke below 0 uses a red color variable; alternatively use two overlapping `<Line>` segments clipped at y=0 for a clean two-tone effect
-- [ ] Y-axis: formatted as percentage (e.g., `+4.2%`, `-1.8%`)
-- [ ] Custom `<Tooltip>` shows: Date, Return % since range start, Absolute value change in USD
-- [ ] Skeleton placeholder while loading; `<ChartErrorBoundary>` wrapping the component
+- [x] Y-axis: formatted as percentage (e.g., `+4.2%`, `-1.8%`)
+- [x] Custom `<Tooltip>` shows: Date, Return % since range start, Absolute value change in USD
+- [x] Skeleton placeholder while loading; `<ChartErrorBoundary>` wrapping the component
 
 ---
 
 **Data Requirements for Both Charts**
-- [ ] Add `GET /api/v1/portfolio/history?range=1m` endpoint to Go backend returning `{ date, portfolioValue, netContributions }[]` pre-computed per range — keeps heavy aggregation server-side
-- [ ] TanStack Query key includes the selected range: `["portfolio-history", range]` — switching ranges hits the cache if previously loaded in the session
-- [ ] If user has no active `InvestmentRound`, render an empty state card: "Invest to start tracking your portfolio performance" with a link to the Invest action
+- [x] Add `GET /api/v1/portfolio/history?range=1m` endpoint to Go backend returning `{ date, portfolioValue, netContributions }[]` pre-computed per range — keeps heavy aggregation server-side
+- [x] TanStack Query key includes the selected range: `["portfolio-history", range]` — switching ranges hits the cache if previously loaded in the session
+- [x] If user has no active `InvestmentRound`, render an empty state card: "Invest to start tracking your portfolio performance" with a link to the Invest action
 
 ### 8.5 Allocation Pie Chart (`src/components/charts/AllocationPie.tsx`)
 - [ ] Fetch active portfolio holdings (requires a `GET /api/v1/portfolio` endpoint — add to Go backend if not present; returns active `InvestmentRound` with `Holding[]`)

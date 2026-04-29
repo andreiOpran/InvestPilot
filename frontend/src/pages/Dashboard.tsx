@@ -52,11 +52,11 @@ export function Dashboard() {
 
       {/* Charts */}
       <div className="p-6 border rounded-xl bg-card">
-        <ValueOverTime />
+        <ValueOverTime onInvestClick={() => setInvestOpen(true)} />
       </div>
 
       <div className="p-6 border rounded-xl bg-card">
-        <PerformanceChart />
+        <PerformanceChart onInvestClick={() => setInvestOpen(true)} />
       </div>
     </div>
   );

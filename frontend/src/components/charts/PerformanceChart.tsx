@@ -12,6 +12,7 @@ import {
 } from "recharts";
 import { format, parseISO } from "date-fns";
 import { TrendingUp } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { TimeRangeSelector, type TimeRange } from "./TimeRangeSelector";
 import { ChartErrorBoundary, ChartSkeleton } from "./ChartErrorBoundary";
 import { portfolioApi } from "@/api/portfolio";
@@ -107,7 +108,11 @@ function CustomDot(props: any) {
   return <circle cx={cx} cy={cy} r={3} fill={color} stroke={color} strokeWidth={1} />;
 }
 
-export function PerformanceChart() {
+interface PerformanceChartProps {
+  onInvestClick?: () => void;
+}
+
+export function PerformanceChart({ onInvestClick }: PerformanceChartProps) {
   const [range, setRange] = useState<TimeRange>("1M");
 
   const { data, isLoading, isFetching, isError } = useQuery({
@@ -148,7 +153,7 @@ export function PerformanceChart() {
             Failed to load chart data.
           </div>
         ) : !hasData ? (
-          <EmptyPortfolioState />
+          <EmptyPortfolioState onInvestClick={onInvestClick} />
         ) : (
           <div
             className="transition-opacity duration-300"
@@ -211,7 +216,7 @@ export function PerformanceChart() {
   );
 }
 
-function EmptyPortfolioState() {
+function EmptyPortfolioState({ onInvestClick }: { onInvestClick?: () => void }) {
   return (
     <div className="flex flex-col items-center justify-center h-[400px] rounded-xl border border-dashed border-border bg-muted/20 p-8 text-center gap-4">
       <div className="rounded-full bg-primary/10 p-4">
@@ -223,6 +228,11 @@ function EmptyPortfolioState() {
           Invest to start tracking your portfolio performance
         </p>
       </div>
+      {onInvestClick && (
+        <Button onClick={onInvestClick} variant="outline" size="sm">
+          Invest Now
+        </Button>
+      )}
     </div>
   );
 }
