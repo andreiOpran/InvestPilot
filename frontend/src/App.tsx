@@ -13,6 +13,7 @@ import { ResetPassword } from '@/pages/auth/ResetPassword';
 import { LogoutButton } from '@/components/auth/LogoutButton';
 import { Settings } from '@/pages/Settings';
 import { Onboarding } from '@/pages/Onboarding';
+import { Dashboard } from '@/pages/Dashboard';
 
 function AppRoutes() {
   // restore session silently on mount
@@ -30,13 +31,7 @@ function AppRoutes() {
 
       {/* Protected routes (require authentication) */}
       <Route element={<ProtectedRoute />}>
-        <Route path="/dashboard" element={
-          <div className="p-8">
-            <h1 className="text-2xl font-bold">Dashboard</h1>
-            <p className="text-muted-foreground mt-2 mb-6">Coming soon...</p>
-            <LogoutButton />
-          </div>
-        } />
+        <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/onboarding" element={<Onboarding />} />
       </Route>
