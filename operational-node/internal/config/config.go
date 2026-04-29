@@ -27,7 +27,7 @@ type AppSettings struct {
 	PasswordMaxLength                int              `env:"PASSWORD_MAX_LENGTH" envDefault:"128"`
 	PasswordMinZxcvbnStrength        int              `env:"PASSWORD_MIN_ZXCVBN_STRENGTH" envDefault:"3"`
 	CookieSecure                     bool             `env:"COOKIE_SECURE" envDefault:"false"`
-	CookieDomain                     string           `env:"COOKIE_DOMAIN" envDefault:"localhost:8081"`
+	CookieDomain                     string           `env:"COOKIE_DOMAIN" envDefault:"localhost"`
 	LockoutThreshold1                int              `env:"LOCKOUT_THRESHOLD_1" envDefault:"4"`
 	LockoutDuration1                 time.Duration    `env:"LOCKOUT_DURATION_1" envDefault:"1m"`
 	LockoutThreshold2                int              `env:"LOCKOUT_THRESHOLD_2" envDefault:"5"`
@@ -61,7 +61,7 @@ type AppSettings struct {
 	RebalanceSchedule                string           `env:"REBALANCE_CRON" envDefault:"0 2 1 * *"`
 	RebalanceBatchSize               int              `env:"REBALANCE_BATCH_SIZE" envDefault:"500"`
 	APIBaseURL                       string           `env:"API_BASE_URL" envDefault:"http://localhost:8081/api/v1"`
-	FrontendBaseURL                  string           `env:"FRONTEND_BASE_URL" envDefault:"http://localhost:8081"`
+	FrontendBaseURL                  string           `env:"FRONTEND_BASE_URL" envDefault:"http://localhost:3000"`
 	PythonNodeURL                    string           `env:"PYTHON_NODE_URL" envDefault:"http://python-engine:5000"`
 	PythonClientTimeout              time.Duration    `env:"PYTHON_CLIENT_TIMEOUT" envDefault:"5s"`
 	RabbitMQURL                      string           `env:"RABBITMQ_URL,required"`
