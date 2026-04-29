@@ -1,4 +1,5 @@
 import { z } from "zod";
+import zxcvbn from "zxcvbn";
 
 
 // Reusable Base Schemas
@@ -13,6 +14,7 @@ const emailValidation = z
 const passwordComplexity = z
   .string()
   .min(10, "Password must be at least 10 characters long")
+  .max(128, "Password must be at most 128 characters long")
   .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
   .regex(/[a-z]/, "Password must contain at least one lowercase letter")
   .regex(/[0-9]/, "Password must contain at least one number")
@@ -35,6 +37,13 @@ const amountSchema = z.coerce
 export const registerSchema = z.object({
   email: emailValidation,
   password: passwordComplexity,
+}).refine((data) => {
+  if (!data.password || !data.email) return true;
+  const result = zxcvbn(data.password, [data.email]);
+  return result.score >= 3;
+}, {
+  message: "Password is too weak, easily guessable, or commonly used. Please make it stronger.",
+  path: ["password"],
 });
 
 export const loginSchema = z.object({
@@ -73,7 +82,7 @@ export const resetPasswordSchema = z
 export const onboardingSchema = z.object({
   // validates the map[string]string structure from backend OnboardingSubmitRequest
   answers: z.record(
-    z.string(), 
+    z.string(),
     z.string().min(1, "Please select an answer for this question")
   ).refine(record => Object.keys(record).length > 0, "You must answer the questions"),
 });

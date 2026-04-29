@@ -66,7 +66,7 @@ Install only components actually used — add more as needed:
 - [x] `GET /api/v1/portfolio`: Return the user's currently active `InvestmentRound` and its associated `Holding` array. Calculate and include the live `TotalPortfolioValue` and `AllTimeReturn` by fetching the latest market prices for each holding from `IntradayMarketData`, enriching the payload for the Allocation Pie Chart and Dashboard Header;
 
 ### 1.6 Environment Variables (`.env`)
-- [ ] `VITE_API_BASE_URL` — production Go VPS base URL
+- [x] `VITE_API_BASE_URL` — production Go VPS base URL
 - [x] `VITE_STRIPE_PUBLISHABLE_KEY` — Stripe `pk_test_...` key
 - [ ] `VITE_TURNSTILE_SITE_KEY` — Cloudflare Turnstile site key
 - [x] Create `.env.example` committed to repo; `.env` added to `.gitignore`
@@ -90,9 +90,9 @@ Define and export all form validation schemas in one file — single source of t
 ## Section 2 — API Client Layer
 
 ### 2.1 Axios Instance (`src/api/client.ts`)
-- [ ] Create singleton `axios` instance with `baseURL`, `withCredentials: true` (required for httpOnly cookie to be sent)
-- [ ] **Request interceptor:** attach `Authorization: Bearer {accessToken}` from Zustand store on every outgoing request
-- [ ] **Response interceptor — 401 handling:**
+- [x] Create singleton `axios` instance with `baseURL`, `withCredentials: true` (required for httpOnly cookie to be sent)
+- [x] **Request interceptor:** attach `Authorization: Bearer {accessToken}` from Zustand store on every outgoing request
+- [x] **Response interceptor — 401 handling:**
   - Check if a refresh is already in-flight (`isRefreshing` flag)
   - If yes: push original request into a `requestQueue` promise and wait
   - If no: set `isRefreshing = true`, call `POST /api/v1/refresh-token` (browser sends httpOnly cookie automatically)
@@ -100,58 +100,58 @@ Define and export all form validation schemas in one file — single source of t
     - **409 Conflict** (`"Concurrent request detected"`): wait 500ms, retry refresh exactly once
     - **401 on refresh:** clear Zustand store, redirect to `/login` via `window.location`
     - **"Token reuse detected" message:** clear store, redirect to `/login`, set a `securityAlert: true` flag in Zustand so the Login page renders the security warning banner
-- [ ] **Response interceptor — 429 handling:** call `toast.error("Too many requests. Please slow down.")` via Sonner and reject the promise
-- [ ] **Response interceptor — 423/403 Account Lockout:** call `toast.error("Account temporarily locked. Try again in 15 minutes.")` and reject
-- [ ] **Response interceptor — 5xx handling:** call `toast.error("Server error. Please try again shortly.")` for unhandled 500+ responses
-- [ ] Export typed API call functions from domain modules: `src/api/auth.ts`, `src/api/user.ts`, `src/api/portfolio.ts`, `src/api/forecast.ts`
+- [x] **Response interceptor — 429 handling:** call `toast.error("Too many requests. Please slow down.")` via Sonner and reject the promise
+- [x] **Response interceptor — 423/403 Account Lockout:** call `toast.error("Account temporarily locked. Try again in 15 minutes.")` and reject
+- [x] **Response interceptor — 5xx handling:** call `toast.error("Server error. Please try again shortly.")` for unhandled 500+ responses
+- [x] Export typed API call functions from domain modules: `src/api/auth.ts`, `src/api/user.ts`, `src/api/portfolio.ts`, `src/api/forecast.ts`
 
 ### 2.2 Auth API (`src/api/auth.ts`)
-- [ ] `register(email, password, turnstileToken)` → `POST /api/v1/register`
-- [ ] `verifyEmail(token)` → `GET /api/v1/verify-email?token=`
-- [ ] `login(email, password, turnstileToken)` → `POST /api/v1/login`
-- [ ] `verify2FA(email, password, totpToken)` → `POST /api/v1/verify-2fa`
-- [ ] `logout(refreshToken)` → `POST /api/v1/logout`
-- [ ] `refreshToken()` → `POST /api/v1/refresh-token` (no body — browser sends httpOnly cookie)
-- [ ] `forgotPassword(email, turnstileToken)` → `POST /api/v1/forgot-password`
-- [ ] `resetPassword(token, newPassword)` → `POST /api/v1/reset-password`
-- [ ] `setup2FA()` → `GET /api/v1/2fa/setup` (protected)
-- [ ] `enable2FA(token)` → `POST /api/v1/2fa/enable` (protected)
+- [x] `register(email, password, turnstileToken)` → `POST /api/v1/register`
+- [x] `verifyEmail(token)` → `GET /api/v1/verify-email?token=`
+- [x] `login(email, password, turnstileToken)` → `POST /api/v1/login`
+- [x] `verify2FA(email, password, totpToken)` → `POST /api/v1/verify-2fa`
+- [x] `logout(refreshToken)` → `POST /api/v1/logout`
+- [x] `refreshToken()` → `POST /api/v1/refresh-token` (no body — browser sends httpOnly cookie)
+- [x] `forgotPassword(email, turnstileToken)` → `POST /api/v1/forgot-password`
+- [x] `resetPassword(token, newPassword)` → `POST /api/v1/reset-password`
+- [x] `setup2FA()` → `GET /api/v1/2fa/setup` (protected)
+- [x] `enable2FA(token)` → `POST /api/v1/2fa/enable` (protected)
 
 ### 2.3 User API (`src/api/user.ts`)
-- [ ] `getUser()` → `GET /api/v1/user`
-- [ ] `updateProfile(riskTolerance, investmentHorizon)` → `PUT /api/v1/user/profile`
-- [ ] `deposit(amount)` → `POST /api/v1/deposit`
-- [ ] `cashout(amount)` → `POST /api/v1/cashout`
-- [ ] `createDepositIntent(amount)` → `POST /api/v1/deposit/intent`
+- [x] `getUser()` → `GET /api/v1/user`
+- [x] `updateProfile(riskTolerance, investmentHorizon)` → `PUT /api/v1/user/profile`
+- [x] `deposit(amount)` → `POST /api/v1/deposit`
+- [x] `cashout(amount)` → `POST /api/v1/cashout`
+- [x] `createDepositIntent(amount)` → `POST /api/v1/deposit/intent`
 
 ### 2.4 Portfolio API (`src/api/portfolio.ts`)
-- [ ] `invest(amount)` → `POST /api/v1/invest`
+- [x] `invest(amount)` → `POST /api/v1/invest`
 
 ### 2.5 Forecast API (`src/api/forecast.ts`)
-- [ ] `requestForecast(payload)` → `POST /api/v1/forecast` → returns `{ task_id }`
-- [ ] `getForecastStatus(taskId)` → `GET /api/v1/forecast/status/:task_id` → returns `{ status, payload? }`
+- [x] `requestForecast(payload)` → `POST /api/v1/forecast` → returns `{ task_id }`
+- [x] `getForecastStatus(taskId)` → `GET /api/v1/forecast/status/:task_id` → returns `{ status, payload? }`
 
 ---
 
 ## Section 3 — Auth Store & Route Guards
 
 ### 3.1 Zustand Auth Store (`src/stores/authStore.ts`)
-- [ ] State shape: `{ accessToken, user, status, securityAlert }`
+- [x] State shape: `{ accessToken, user, status, securityAlert }`
   - `status`: `"loading" | "authenticated" | "unauthenticated"`
   - `securityAlert`: `boolean` — set true when token reuse is detected; Login page reads and renders the warning banner, then resets it
-- [ ] Actions: `setAccessToken`, `setUser`, `setStatus`, `setSecurityAlert`, `clearAuth`
+- [x] Actions: `setAccessToken`, `setUser`, `setStatus`, `setSecurityAlert`, `clearAuth`
 
 ### 3.2 Silent Token Restore (`src/hooks/useSilentRestore.ts`)
-- [ ] On app mount (`useEffect` with empty deps), call `POST /refresh-token`
-- [ ] On success: store new `accessToken` in Zustand, call `GET /user` to populate user profile, set `status = "authenticated"`
-- [ ] On failure: set `status = "unauthenticated"` (do not redirect here — let `ProtectedRoute` handle it)
-- [ ] Keep `status = "loading"` during this entire sequence so the UI shows a skeleton, never a flash of unauthenticated content
+- [x] On app mount (`useEffect` with empty deps), call `POST /refresh-token`
+- [x] On success: store new `accessToken` in Zustand, call `GET /user` to populate user profile, set `status = "authenticated"`
+- [x] On failure: set `status = "unauthenticated"` (do not redirect here — let `ProtectedRoute` handle it)
+- [x] Keep `status = "loading"` during this entire sequence so the UI shows a skeleton, never a flash of unauthenticated content
 
 ### 3.3 Protected Route Guard (`src/components/layout/ProtectedRoute.tsx`)
-- [ ] If `status === "loading"`: render full-page skeleton loader
-- [ ] If `status === "unauthenticated"`: `<Navigate to="/login" replace />`
-- [ ] If `status === "authenticated"`: render `<Outlet />`
-- [ ] Bonus: if `user.riskTolerance === 0` (profile not yet set up), redirect to `/onboarding`
+- [x] If `status === "loading"`: render full-page skeleton loader
+- [x] If `status === "unauthenticated"`: `<Navigate to="/login" replace />`
+- [x] If `status === "authenticated"`: render `<Outlet />`
+- [x] Bonus: if `user.riskTolerance === 0` (profile not yet set up), redirect to `/onboarding`
 
 ---
 
@@ -160,67 +160,67 @@ Define and export all form validation schemas in one file — single source of t
 All auth forms use `react-hook-form` + `zod` via `zodResolver`. Error messages render inline beneath each field using shadcn/ui `<FormMessage>`. Turnstile widget is mounted where indicated.
 
 ### 4.1 Register Page (`/register`)
-- [ ] Fields: Email, Password — validated by `registerSchema`
-- [ ] Mount `<Turnstile siteKey={VITE_TURNSTILE_SITE_KEY} onSuccess={setToken} />` above submit button
-- [ ] On submit: call `register(email, password, turnstileToken)`; disable submit until Turnstile token is present
-- [ ] On success (`200`): navigate to a `/register-success` static page ("Check your inbox")
-- [ ] On error (`409` email conflict): set field-level error on email field via `form.setError`
-- [ ] On Turnstile failure or missing token: show `toast.error("Anti-bot check failed. Please try again.")`
+- [x] Fields: Email, Password — validated by `registerSchema`
+- [x] Mount `<Turnstile siteKey={VITE_TURNSTILE_SITE_KEY} onSuccess={setToken} />` above submit button
+- [x] On submit: call `register(email, password, turnstileToken)`; disable submit until Turnstile token is present
+- [x] On success (`200`): navigate to a `/register-success` static page ("Check your inbox")
+- [x] On error (`409` email conflict): set field-level error on email field via `form.setError`
+- [x] On Turnstile failure or missing token: show `toast.error("Anti-bot check failed. Please try again.")`
 
 ### 4.2 Verify Email Page (`/verify-email`)
-- [ ] Read `?token=` from URL via `useSearchParams`
-- [ ] On mount, call `verifyEmail(token)` — no user interaction needed
-- [ ] Show loading state, then success ("Email verified. You can log in.") or error ("Link invalid or expired.")
-- [ ] Success state shows a button linking to `/login`
+- [x] Read `?token=` from URL via `useSearchParams`
+- [x] On mount, call `verifyEmail(token)` — no user interaction needed
+- [x] Show loading state, then success ("Email verified. You can log in.") or error ("Link invalid or expired.")
+- [x] Success state shows a button linking to `/login`
 
 ### 4.3 Login Page (`/login`)
-- [ ] **Security Alert Banner:** if `authStore.securityAlert === true`, render a prominent destructive `<Alert>` at the top: "Your session was invalidated due to suspicious activity. Please log in again." Reset `securityAlert` to false after display.
-- [ ] Fields: Email, Password — validated by `loginSchema`
-- [ ] Mount `<Turnstile />` widget; disable submit until token is resolved
-- [ ] On submit: call `login(email, password, turnstileToken)`
+- [x] **Security Alert Banner:** if `authStore.securityAlert === true`, render a prominent destructive `<Alert>` at the top: "Your session was invalidated due to suspicious activity. Please log in again." Reset `securityAlert` to false after display.
+- [x] Fields: Email, Password — validated by `loginSchema`
+- [x] Mount `<Turnstile />` widget; disable submit until token is resolved
+- [x] On submit: call `login(email, password, turnstileToken)`
   - `200` with `status: "success"`: store `accessToken`, fetch user, navigate to `/dashboard`
   - `200` with `status: "2fa_required"`: transition local state to `"2fa"` step (do not navigate)
   - `401`: set form-level error "Invalid email or password"
   - `429`: interceptor handles toast; additionally disable form for 5 seconds
-- [ ] **2FA Gate (conditional render within same page):**
+- [x] **2FA Gate (conditional render within same page):**
   - Renders when local state === `"2fa"`; shows the original email for context
   - Field: TOTP code (6-digit numeric) — validated by `verify2FASchema`
   - On submit: call `verify2FA(email, password, totpToken)` — re-sends credentials because the Go handler requires them
   - On success: store `accessToken`, navigate to `/dashboard`
   - On `401`: inline error "Invalid code"
   - "Back" link resets local state to `"credentials"`
-- [ ] "Forgot password?" link navigates to `/forgot-password`
+- [x] "Forgot password?" link navigates to `/forgot-password`
 
 ### 4.4 Forgot Password Page (`/forgot-password`)
-- [ ] Field: Email — validated by `forgotPasswordSchema`
-- [ ] Mount `<Turnstile />` widget
-- [ ] On submit: call `forgotPassword(email, turnstileToken)`
-- [ ] Always show success message regardless of response (Go intentionally obscures whether email exists): "If an account with that email exists, a reset link has been sent."
+- [x] Field: Email — validated by `forgotPasswordSchema`
+- [x] Mount `<Turnstile />` widget
+- [x] On submit: call `forgotPassword(email, turnstileToken)`
+- [x] Always show success message regardless of response (Go intentionally obscures whether email exists): "If an account with that email exists, a reset link has been sent."
 
 ### 4.5 Reset Password Page (`/reset-password`)
-- [ ] Read `?token=` from URL via `useSearchParams`
-- [ ] Fields: New Password, Confirm Password — validated by `resetPasswordSchema` (passwords must match via Zod `.refine()`)
-- [ ] On submit: call `resetPassword(token, newPassword)`
-- [ ] `200`: show success message and link to `/login`
-- [ ] `400` (token invalid/expired): show error with link to `/forgot-password`
+- [x] Read `?token=` from URL via `useSearchParams`
+- [x] Fields: New Password, Confirm Password — validated by `resetPasswordSchema` (passwords must match via Zod `.refine()`)
+- [x] On submit: call `resetPassword(token, newPassword)`
+- [x] `200`: show success message and link to `/login`
+- [x] `400` (token invalid/expired): show error with link to `/forgot-password`
 
 ### 4.6 Logout
-- [ ] Logout `<Button>` in sidebar/header calls `logout()` (fires-and-forgets — Go will delete the session server-side)
-- [ ] Immediately call `clearAuth()` on Zustand store regardless of API response
-- [ ] Navigate to `/login`
+- [x] Logout `<Button>` in sidebar/header calls `logout()` (fires-and-forgets — Go will delete the session server-side)
+- [x] Immediately call `clearAuth()` on Zustand store regardless of API response
+- [x] Navigate to `/login`
 
 ---
 
 ## Section 5 — 2FA Management
 
 ### 5.1 2FA Setup Flow (within Settings/Security page)
-- [ ] `GET /2fa/setup` returns `{ secret, uri, qr_code_b64 }`
-- [ ] Render QR code: `<img src={qr_code_b64} alt="Scan with authenticator app" />` (Go already prepends `data:image/png;base64,`)
-- [ ] Display plaintext secret below QR for manual entry
-- [ ] Field: TOTP confirmation code — validated by `enable2FASchema`
-- [ ] On submit: call `enable2FA(token)`; on success show `toast.success("2FA enabled successfully")`
-- [ ] Error `400` (invalid code): inline field error "Incorrect code. Authenticator not linked."
-- [ ] Error `400` (already enabled): show info state "2FA is already active on your account"
+- [x] `GET /2fa/setup` returns `{ secret, uri, qr_code_b64 }`
+- [x] Render QR code: `<img src={qr_code_b64} alt="Scan with authenticator app" />` (Go already prepends `data:image/png;base64,`)
+- [x] Display plaintext secret below QR for manual entry
+- [x] Field: TOTP confirmation code — validated by `enable2FASchema`
+- [x] On submit: call `enable2FA(token)`; on success show `toast.success("2FA enabled successfully")`
+- [x] Error `400` (invalid code): inline field error "Incorrect code. Authenticator not linked."
+- [x] Error `400` (already enabled): show info state "2FA is already active on your account"
 
 ---
 
@@ -248,28 +248,28 @@ All auth forms use `react-hook-form` + `zod` via `zodResolver`. Error messages r
 The onboarding flow replaces the client-side scoring logic with a dynamic, backend-driven architecture. The frontend acts purely as a presentation layer that fetches questions, collects user responses, and submits the selected answer IDs to the server for evaluation.
 
 **Dynamic Fetching & State Initialization**
-- [ ] On component mount, call `GET /api/v1/onboarding/questions` to fetch the complete JSON payload of the questionnaire.
-- [ ] Initialize a local state (or `react-hook-form` state) to store the user's selected option ID for each question ID (e.g., `{ q1: "opt_3", q2: "opt_1" }`).
+- [x] On component mount, call `GET /api/v1/onboarding/questions` to fetch the complete JSON payload of the questionnaire.
+- [x] Initialize a local state (or `react-hook-form` state) to store the user's selected option ID for each question ID (e.g., `{ q1: "opt_3", q2: "opt_1" }`).
 
 **Dynamic UI Rendering & Navigation**
-- [ ] Render a shadcn/ui `<Progress>` bar at the top showing the current step based on the total number of questions fetched.
-- [ ] Iterate over the fetched JSON payload to dynamically render each question prompt and its corresponding options using shadcn/ui `<RadioGroup>`.
-- [ ] Implement "Back" and "Next" buttons to navigate between steps sequentially; hide "Back" on the first step.
-- [ ] Disable the "Next" button until the user selects an answer for the current step's question.
-- [ ] Preserve all intermediate answers in the frontend state without making API calls until the final submission.
+- [x] Render a shadcn/ui `<Progress>` bar at the top showing the current step based on the total number of questions fetched.
+- [x] Iterate over the fetched JSON payload to dynamically render each question prompt and its corresponding options using shadcn/ui `<RadioGroup>`.
+- [x] Implement "Back" and "Next" buttons to navigate between steps sequentially; hide "Back" on the first step.
+- [x] Disable the "Next" button until the user selects an answer for the current step's question.
+- [x] Preserve all intermediate answers in the frontend state without making API calls until the final submission.
 
 **Submission & Backend Scoring (Final Step)**
-- [ ] On the final question step, swap the "Next" button for a "Calculate My Profile" button.
-- [ ] On click, submit the answers payload (`{ answers: { "q1": "opt_3", [...] } }`) via `POST /api/v1/onboarding/submit`.
-- [ ] Handle loading states during the API call (e.g., show a spinner and disable the button).
-- [ ] Ensure the backend independently computes both `riskTolerance` and `investmentHorizon` and persists them to the database.
+- [x] On the final question step, swap the "Next" button for a "Calculate My Profile" button.
+- [x] On click, submit the answers payload (`{ answers: { "q1": "opt_3", [...] } }`) via `POST /api/v1/onboarding/submit`.
+- [x] Handle loading states during the API call (e.g., show a spinner and disable the button).
+- [x] Ensure the backend independently computes both `riskTolerance` and `investmentHorizon` and persists them to the database.
 
 **Success Summary Screen**
-- [ ] Upon a successful `POST` response, transition the UI to a "Summary Screen".
-- [ ] Extract the newly calculated `riskTolerance` (e.g., 3) and `investmentHorizon` (e.g., 18 years) from the backend response.
-- [ ] Display these results clearly to the user (e.g., "Your Risk Level is 3" and "Your Investment Horizon is 18 years") along with a brief, plain-language description of what this means for their portfolio.
-- [ ] Provide a "Go to Dashboard" button to navigate the user to `/dashboard`.
-- [ ] On API error during submission, display a `toast.error(...)` and keep the user on the final step so their answers are not lost.
+- [x] Upon a successful `POST` response, transition the UI to a "Summary Screen".
+- [x] Extract the newly calculated `riskTolerance` (e.g., 3) and `investmentHorizon` (e.g., 18 years) from the backend response.
+- [x] Display these results clearly to the user (e.g., "Your Risk Level is 3" and "Your Investment Horizon is 18 years") along with a brief, plain-language description of what this means for their portfolio.
+- [x] Provide a "Go to Dashboard" button to navigate the user to `/dashboard`.
+- [x] On API error during submission, display a `toast.error(...)` and keep the user on the final step so their answers are not lost.
 
 ### 7.2 Profile Edit (within `/settings`)
 - [ ] Allow the user to view their current `riskTolerance` and `investmentHorizon` read-only within the settings page.
