@@ -272,9 +272,9 @@ The onboarding flow replaces the client-side scoring logic with a dynamic, backe
 - [x] On API error during submission, display a `toast.error(...)` and keep the user on the final step so their answers are not lost.
 
 ### 7.2 Profile Edit (within `/settings`)
-- [ ] Allow the user to view their current `riskTolerance` and `investmentHorizon` read-only within the settings page.
-- [ ] Provide a "Retake Questionnaire" button that navigates to `/onboarding?edit=true`.
-- [ ] On completion of the re-take flow (hitting the Summary Screen), modify the final button to say "Return to Settings" and navigate back to `/settings` instead of the dashboard.
+- [x] Allow the user to view their current `riskTolerance` and `investmentHorizon` read-only within the settings page.
+- [x] Provide a "Retake Questionnaire" button that navigates to `/onboarding?edit=true`.
+- [x] On completion of the re-take flow (hitting the Summary Screen), modify the final button to say "Return to Settings" and navigate back to `/settings` instead of the dashboard.
 - [ ] If the backend `GET /api/v1/onboarding/questions` provides the user's previously selected answer IDs as default values, pre-populate the form state when `?edit=true` is present.
 
 ---
@@ -282,19 +282,19 @@ The onboarding flow replaces the client-side scoring logic with a dynamic, backe
 ## Section 8 — Portfolio & Transactions
 
 ### 8.1 Deposit Flow
-- [ ] **Paper Trading path:** `<DepositDialog>` modal with amount input (`depositSchema`); calls `POST /api/v1/deposit`; on success `toast.success("Funds added")`; invalidate `getUser` query to refresh wallet balance
-- [ ] **Stripe path:** `<StripeDepositDialog>` modal; call `createDepositIntent(amount)` to get `clientSecret`; mount `<PaymentElement>` from `@stripe/react-stripe-js`; on Stripe confirmation success show "Deposit submitted — funds arrive after webhook confirmation"
-- [ ] Handle Stripe JS loading state (Stripe.js loads asynchronously)
+- [x] **Paper Trading path:** `<DepositDialog>` modal with amount input (`depositSchema`); calls `POST /api/v1/deposit`; on success `toast.success("Funds added")`; invalidate `getUser` query to refresh wallet balance
+- [x] **Stripe path:** `<StripeDepositDialog>` modal; call `createDepositIntent(amount)` to get `clientSecret`; mount `<PaymentElement>` from `@stripe/react-stripe-js`; on Stripe confirmation success show "Deposit submitted — funds arrive after webhook confirmation"
+- [x] Handle Stripe JS loading state (Stripe.js loads asynchronously)
 
 ### 8.2 Cashout Form
-- [ ] `<CashoutDialog>` modal with amount input (`cashoutSchema`)
-- [ ] Display current wallet balance inside modal for reference
-- [ ] Calls `POST /api/v1/cashout`; on `400` insufficient balance: inline error "Insufficient balance"; on success `toast.success("Withdrawal processed")`; invalidate `getUser` query
+- [x] `<CashoutDialog>` modal with amount input (`cashoutSchema`)
+- [x] Display current wallet balance inside modal for reference
+- [x] Calls `POST /api/v1/cashout`; on `400` insufficient balance: inline error "Insufficient balance"; on success `toast.success("Withdrawal processed")`; invalidate `getUser` query
 
 ### 8.3 Invest Form
-- [ ] `<InvestDialog>` modal with amount input (`investSchema`)
-- [ ] Calls `POST /api/v1/invest`; on success `toast.success("Investment added to portfolio")`; invalidate portfolio and user queries
-- [ ] On `400` insufficient balance: inline error
+- [x] `<InvestDialog>` modal with amount input (`investSchema`)
+- [x] Calls `POST /api/v1/invest`; on success `toast.success("Investment added to portfolio")`; invalidate portfolio and user queries
+- [x] On `400` insufficient balance: inline error
 
 ### 8.4 Portfolio History Charts (`src/components/charts/`)
 
