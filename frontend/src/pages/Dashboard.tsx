@@ -8,6 +8,7 @@ import { CashoutDialog } from "@/components/transactions/CashoutDialog";
 import { InvestDialog } from "@/components/transactions/InvestDialog";
 import { ValueOverTime } from "@/components/charts/ValueOverTime";
 import { PerformanceChart } from "@/components/charts/PerformanceChart";
+import { AllocationPie } from "@/components/charts/AllocationPie";
 
 export function Dashboard() {
   const { user } = useAuthStore();
@@ -57,6 +58,10 @@ export function Dashboard() {
 
       <div className="p-6 border rounded-xl bg-card">
         <PerformanceChart onInvestClick={() => setInvestOpen(true)} />
+      </div>
+
+      <div className="p-6 border rounded-xl bg-card">
+        <AllocationPie />
       </div>
     </div>
   );

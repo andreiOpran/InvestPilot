@@ -344,12 +344,12 @@ Shows percentage-based returns relative to the starting value of the selected ti
 - [x] If user has no active `InvestmentRound`, render an empty state card: "Invest to start tracking your portfolio performance" with a link to the Invest action
 
 ### 8.5 Allocation Pie Chart (`src/components/charts/AllocationPie.tsx`)
-- [ ] Fetch active portfolio holdings (requires a `GET /api/v1/portfolio` endpoint — add to Go backend if not present; returns active `InvestmentRound` with `Holding[]`)
-- [ ] Transform `Holding[]` into `{ name: ticker, value: weight }` array for Recharts `<PieChart>`
-- [ ] USD ("cash") holding rendered in a visually distinct neutral color
-- [ ] Custom `<Tooltip>` shows: ticker, weight as percentage, allocated dollar amount
-- [ ] Legend below chart lists all tickers with their weights
-- [ ] Skeleton placeholder (shadcn/ui `<Skeleton>`) while loading
+- [x] Fetch active portfolio holdings (requires a `GET /api/v1/portfolio` endpoint — add to Go backend if not present; returns active `InvestmentRound` with `Holding[]`)
+- [x] Transform `Holding[]` into `{ name: ticker, value: weight }` array for Recharts `<PieChart>`
+- [x] USD ("cash") holding rendered in a visually distinct neutral color
+- [x] Custom `<Tooltip>` shows: ticker, weight as percentage, allocated dollar amount
+- [x] Legend below chart lists all tickers with their weights
+- [x] Skeleton placeholder (shadcn/ui `<Skeleton>`) while loading
 
 ### 8.6 Transaction History Data Table (`src/components/portfolio/TransactionTable.tsx`)
 
