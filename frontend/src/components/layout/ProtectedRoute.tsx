@@ -1,13 +1,12 @@
-import { Navigate, Outlet } from 'react-router-dom';
+import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuthStore } from '@/stores/authStore';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export function ProtectedRoute() {
   const { status, user } = useAuthStore();
+  const location = useLocation();
 
   // Show the loading skeleton ONLY when we have no user yet.
-  // If we already have a user (e.g. right after a fresh login while useSilentRestore
-  // briefly flips status back to 'loading'), render the outlet to avoid a blank screen.
   if (status === 'loading' && !user) {
     return (
       <div className="flex h-screen w-full bg-background">
@@ -41,17 +40,21 @@ export function ProtectedRoute() {
   }
 
   if (status === 'unauthenticated') {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  if (status === 'authenticated' && user && user.risk_tolerance === 0) {
-    // Only redirect to onboarding if they are not already going there or to settings
-    const isAllowedPath = window.location.pathname === '/onboarding' || window.location.pathname === '/settings';
-    if (!isAllowedPath) {
+  // If authenticated but onboarding is not complete
+  if (status === 'authenticated' && user && user.risk_tolerance === 0 && user.investment_horizon === 0) {
+    const isOnboardingPath = location.pathname === '/onboarding';
+    const isSettingsPath = location.pathname === '/settings';
+    
+    // Check if the user is already on a path they are allowed to be on
+    if (!isOnboardingPath && !isSettingsPath) {
       return <Navigate to="/onboarding" replace />;
     }
   }
 
   return <Outlet />;
 }
+
 

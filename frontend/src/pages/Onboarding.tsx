@@ -213,7 +213,7 @@ export function Onboarding() {
         {/* Header */}
         <div className="text-center space-y-1">
           <p className="text-sm text-muted-foreground font-medium">
-            Question {currentStep + 1} of {totalSteps}
+            {totalSteps > 0 ? `Question ${currentStep + 1} of ${totalSteps}` : 'Loading questions...'}
           </p>
           <Progress value={progress} className="h-2" />
         </div>
@@ -229,12 +229,14 @@ export function Onboarding() {
             {/* Options */}
             <RadioGroup
               value={currentAnswer ?? ''}
-              onValueChange={(value) =>
-                setAnswers((prev) => ({ ...prev, [currentQuestion.id]: value }))
-              }
+              onValueChange={(value) => {
+                if (currentQuestion) {
+                  setAnswers((prev) => ({ ...prev, [currentQuestion.id]: value }));
+                }
+              }}
               className="space-y-3"
             >
-              {currentQuestion?.options.map((option) => {
+              {currentQuestion?.options?.map((option) => {
                 const isSelected = currentAnswer === option.id;
                 return (
                   <label

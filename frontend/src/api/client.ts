@@ -61,8 +61,12 @@ apiClient.interceptors.response.use(
       isRefreshing = true;
 
       try {
+        const refreshUrl = import.meta.env.VITE_API_BASE_URL 
+          ? `${import.meta.env.VITE_API_BASE_URL}/refresh-token` 
+          : '/api/v1/refresh-token';
+
         const refreshResponse = await axios.post(
-          `${import.meta.env.VITE_API_BASE_URL || ''}/api/v1/refresh-token`,
+          refreshUrl,
           {},
           { withCredentials: true }
         );
@@ -81,8 +85,12 @@ apiClient.interceptors.response.use(
         if (refreshError.response?.status === 409) {
           await new Promise((resolve) => setTimeout(resolve, 500));
           try {
+            const refreshUrl = import.meta.env.VITE_API_BASE_URL 
+              ? `${import.meta.env.VITE_API_BASE_URL}/refresh-token` 
+              : '/api/v1/refresh-token';
+
             const retryRefreshResponse = await axios.post(
-              `${import.meta.env.VITE_API_BASE_URL || ''}/api/v1/refresh-token`,
+              refreshUrl,
               {},
               { withCredentials: true }
             );
