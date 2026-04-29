@@ -6,6 +6,8 @@ import { Toaster } from "@/components/ui/sonner"
 import './index.css'
 import App from './App.tsx'
 
+import { ThemeProvider } from "@/components/theme-provider"
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -18,9 +20,11 @@ const queryClient = new QueryClient({
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
-      <App />
-      <Toaster richColors position="top-right" />
-      <ReactQueryDevtools initialIsOpen={false} />
+      <ThemeProvider defaultTheme="dark" enableSystem={false} attribute="class">
+        <App />
+        <Toaster richColors position="top-right" />
+        <ReactQueryDevtools initialIsOpen={false} />
+      </ThemeProvider>
     </QueryClientProvider>
   </StrictMode>
 );
