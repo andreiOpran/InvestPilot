@@ -44,6 +44,7 @@ func (h *AuthHandler) RegisterHandler(c *gin.Context) {
 		if validator.IsPasswordValidationError(err) {
 			// return specific password requirement that was not met
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
 		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 		return
@@ -121,7 +122,7 @@ func (h *AuthHandler) LoginHandler(c *gin.Context) {
 		"refresh_token",     // name
 		result.RefreshToken, // value
 		config.Env.RefreshTokenLifetimeSecondsInt, // maxAge
-		"/api/v1",                                 // path
+		"/api/v1", // path
 	)
 
 	// frontend will store just the access token
@@ -181,7 +182,7 @@ func (h *AuthHandler) Verify2FAHandler(c *gin.Context) {
 		"refresh_token", // name
 		refreshToken,    // value
 		config.Env.RefreshTokenLifetimeSecondsInt, // maxAge
-		"/api/v1",                                 // path
+		"/api/v1", // path
 	)
 
 	c.JSON(http.StatusOK, gin.H{
@@ -227,7 +228,7 @@ func (h *AuthHandler) RefreshTokenHandler(c *gin.Context) {
 		"refresh_token", // name
 		refreshToken,    // value
 		config.Env.RefreshTokenLifetimeSecondsInt, // maxAge
-		"/api/v1",                                 // path
+		"/api/v1", // path
 	)
 
 	c.JSON(http.StatusOK, gin.H{
