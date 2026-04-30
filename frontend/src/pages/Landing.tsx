@@ -61,14 +61,14 @@ const allocationSegments = [
 ];
 
 const tickerItems = [
-  { symbol: 'VTI', change: '+1.24%', positive: true },
-  { symbol: 'VXUS', change: '-0.37%', positive: false },
-  { symbol: 'BND', change: '+0.08%', positive: true },
-  { symbol: 'VNQ', change: '+2.11%', positive: true },
-  { symbol: 'GLD', change: '-0.54%', positive: false },
-  { symbol: 'TIP', change: '+0.19%', positive: true },
-  { symbol: 'EMB', change: '-0.82%', positive: false },
-  { symbol: 'IGSB', change: '+0.33%', positive: true },
+  { symbol: 'VTI', change: '+0.42%', positive: true },  // Broad market slight gain
+  { symbol: 'VOO', change: '-0.02%', positive: false }, // Flat/Marginal dip (Highly correlated to VTI)
+  { symbol: 'QQQ', change: '+0.15%', positive: true },  // Tech holding steady
+  { symbol: 'VTV', change: '+0.88%', positive: true },  // Value outperforming (Cyclical rotation)
+  { symbol: 'IWM', change: '-0.31%', positive: false }, // Small caps lagging
+  { symbol: 'BNDX', change: '+0.04%', positive: true }, // International bonds (low volatility)
+  { symbol: 'TLT', change: '-0.56%', positive: false }, // Long-term rates rising
+  { symbol: 'LQD', change: '+0.12%', positive: true },  // Credit spreads tightening
 ];
 
 function AllocationBar() {
@@ -190,7 +190,7 @@ export function Landing() {
 
             <div className="fade-up delay-4 pt-2 max-w-sm">
               <p className="text-[10px] text-muted-foreground/50 uppercase tracking-[0.12em] mb-3 font-mono">
-                Sample allocation
+                Sample allocations
               </p>
               <AllocationBar />
             </div>
