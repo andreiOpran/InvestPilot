@@ -139,7 +139,7 @@ export function AppShell() {
                 className="text-sm font-medium hidden sm:block truncate max-w-[220px] hover:text-primary transition-colors"
                 title={user?.email}
               >
-                {user?.email}
+                {user?.email?.split("@")[0]}
               </Link>
               <LogoutButton variant="outline" className="h-9 px-3" showText={false} />
             </div>

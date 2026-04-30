@@ -162,7 +162,7 @@ export function Dashboard() {
       <div className="space-y-0.5">
         <h1 className="text-xl font-semibold tracking-tight">Dashboard</h1>
         <p className="text-sm text-muted-foreground">
-          {user?.email ? `Signed in as ${user.email}` : "Overview of your account"}
+          {user?.email ? `Signed in as ${user.email.split("@")[0]}` : "Overview of your account"}
         </p>
       </div>
 
