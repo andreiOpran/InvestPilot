@@ -9,6 +9,7 @@ import { InvestDialog } from "@/components/transactions/InvestDialog";
 import { ValueOverTime } from "@/components/charts/ValueOverTime";
 import { PerformanceChart } from "@/components/charts/PerformanceChart";
 import { AllocationPie } from "@/components/charts/AllocationPie";
+import { TransactionTable } from "@/components/portfolio/TransactionTable";
 
 export function Dashboard() {
   const { user } = useAuthStore();
@@ -62,6 +63,11 @@ export function Dashboard() {
 
       <div className="p-6 border rounded-xl bg-card">
         <AllocationPie />
+      </div>
+
+      {/* Transaction History */}
+      <div className="p-6 border rounded-xl bg-card">
+        <TransactionTable />
       </div>
     </div>
   );
