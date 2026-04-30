@@ -12,6 +12,7 @@ type PortfolioRepository interface {
 	GetRoundWithHoldingsByStatus(userID uint, isActive bool) (*models.InvestmentRound, error)
 	GetHistoricalRounds(userID uint, since time.Time) ([]models.InvestmentRound, error)
 	GetHistoricalFundings(userID uint) ([]models.Funding, error)
+	GetInvestTransactions(userID uint) ([]models.Transaction, error)
 	GetLatestPrices(tickers []string) (map[string]float64, error)
 	GetPricingData(tickers []string, since time.Time, isIntraday bool) (map[string][]models.AssetPricePoint, error)
 	ExecuteInvestTransaction(
@@ -67,6 +68,14 @@ func (r *portfolioRepository) GetHistoricalFundings(userID uint) ([]models.Fundi
 		Order("created_at asc").
 		Find(&fundings).Error
 	return fundings, err
+}
+
+func (r *portfolioRepository) GetInvestTransactions(userID uint) ([]models.Transaction, error) {
+	var txs []models.Transaction
+	err := r.db.Where("user_id = ? AND type IN ?", userID, []string{"INVEST", "SELL"}).
+		Order("created_at asc").
+		Find(&txs).Error
+	return txs, err
 }
 
 func (r *portfolioRepository) GetLatestPrices(tickers []string) (map[string]float64, error) {

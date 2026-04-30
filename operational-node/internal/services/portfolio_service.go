@@ -114,18 +114,18 @@ func (s *portfolioService) GetPortfolioSummary(userID uint) (*models.PortfolioSu
 		return nil, err
 	}
 
-	// get fundings for net contribution
-	fundings, err := s.portfolioRepo.GetHistoricalFundings(userID)
+	// get transactions for net contribution (INVEST minus SELL)
+	investTxs, err := s.portfolioRepo.GetInvestTransactions(userID)
 	if err != nil {
 		return nil, err
 	}
 
 	netContributions := 0.0
-	for _, f := range fundings {
-		if f.Type == "DEPOSIT" {
-			netContributions += f.Amount
-		} else if f.Type == "WITHDRAWAL" {
-			netContributions += f.Amount
+	for _, tx := range investTxs {
+		if tx.Type == "INVEST" {
+			netContributions += tx.Amount
+		} else if tx.Type == "SELL" {
+			netContributions -= tx.Amount
 		}
 	}
 
