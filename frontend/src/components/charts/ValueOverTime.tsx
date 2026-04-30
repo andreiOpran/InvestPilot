@@ -47,12 +47,13 @@ function CustomTooltip({ active, payload, label, showNetContributions, range }: 
   const isGain = gainLoss >= 0;
 
   const displayDate = label
-    ? format(parseISO(label), range === "1D" ? "HH:mm" : range === "1W" ? "HH:mm EEE" : "PPP")
+    ? format(parseISO(label), range === "1D" ? "HH:mm, d MMM" : range === "1W" ? "HH:mm, d MMM" : "PPP")
     : "";
 
   return (
     <div className="rounded-lg border bg-popover p-3 shadow-lg text-sm space-y-1.5 min-w-[200px]">
       <p className="font-medium text-foreground">{displayDate}</p>
+      <div className=" pt-1.5" />
       <div className="flex justify-between gap-4">
         <span className="text-muted-foreground">Portfolio Value</span>
         <span className="font-mono font-semibold">{formatUSD(portfolioValue)}</span>
