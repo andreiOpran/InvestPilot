@@ -396,8 +396,8 @@ func (s *portfolioService) GetPortfolioHistory(userID uint, timeRange string) (m
 		return models.PortfolioHistoryResponse{}, err
 	}
 
-	// fetch funding data (used in contributions line on the chart)
-	fundings, err := s.portfolioRepo.GetHistoricalFundings(userID)
+	// fetch transactions data (used in contributions line on the chart, INVEST minus SELL)
+	transactions, err := s.portfolioRepo.GetInvestTransactions(userID)
 	if err != nil {
 		return models.PortfolioHistoryResponse{}, err
 	}
@@ -484,12 +484,12 @@ func (s *portfolioService) GetPortfolioHistory(userID uint, timeRange string) (m
 
 		// calculate total net contributions up to 't'
 		netContributions := 0.0
-		for _, f := range fundings {
-			if f.CreatedAt.Before(t) || f.CreatedAt.Equal(t) {
-				if f.Type == "DEPOSIT" {
-					netContributions += f.Amount
-				} else if f.Type == "WITHDRAWAL" {
-					netContributions -= f.Amount
+		for _, tx := range transactions {
+			if tx.CreatedAt.Before(t) || tx.CreatedAt.Equal(t) {
+				if tx.Type == "INVEST" {
+					netContributions += tx.Amount
+				} else if tx.Type == "SELL" {
+					netContributions -= tx.Amount
 				}
 			}
 		}
