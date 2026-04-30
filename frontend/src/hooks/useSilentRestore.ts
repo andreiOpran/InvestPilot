@@ -1,49 +1,74 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
+import axios from 'axios';
 import { useAuthStore } from '@/stores/authStore';
-import { authApi } from '@/api/auth';
-import { userApi } from '@/api/user';
+import { apiClient } from '@/api/client';
+
+// Module-level flag prevents StrictMode double-invocation from firing two
+// simultaneous /refresh-token requests (which triggers backend token-reuse detection).
+let restoreInProgress = false;
+
+const refreshUrl = import.meta.env.VITE_API_BASE_URL
+  ? `${import.meta.env.VITE_API_BASE_URL}/refresh-token`
+  : '/api/v1/refresh-token';
 
 export function useSilentRestore() {
   const { setAccessToken, setUser, setStatus } = useAuthStore();
+  const isMounted = useRef(true);
 
   useEffect(() => {
-    // Read the LIVE store state at effect execution time (not stale closure).
-    // If we're already authenticated (e.g. right after a fresh login), skip
-    // the restore flow entirely to prevent a race that would blank protected pages.
-    const currentStatus = useAuthStore.getState().status;
-    if (currentStatus === 'authenticated') return;
+    isMounted.current = true;
 
-    let isMounted = true;
+    if (useAuthStore.getState().status === 'authenticated') return;
+    if (restoreInProgress) return;
 
-    const restoreSession = async () => {
+    restoreInProgress = true;
+
+    const restore = async () => {
       try {
-        const refreshResponse = await authApi.refreshToken();
-        const token = refreshResponse.data.access_token;
-
-        if (isMounted) {
-          setAccessToken(token);
+        // Use raw axios (not apiClient) to bypass the response interceptor entirely.
+        // The interceptor is designed for authenticated requests — it must not interfere
+        // with the unauthenticated restore flow.
+        let refreshResponse;
+        try {
+          refreshResponse = await axios.post(refreshUrl, {}, { withCredentials: true });
+        } catch (err: any) {
+          // 409 = concurrent refresh (e.g. two tabs refreshed simultaneously).
+          // Retry once after a short delay — the other tab's rotation will have
+          // written the new cookie by then.
+          if (err.response?.status === 409) {
+            await new Promise((r) => setTimeout(r, 600));
+            refreshResponse = await axios.post(refreshUrl, {}, { withCredentials: true });
+          } else {
+            throw err;
+          }
         }
 
-        const userResponse = await userApi.getUser();
+        const token: string = refreshResponse.data.access_token;
 
-        if (isMounted) {
-          setUser(userResponse.data);
-          setStatus('authenticated');
-        }
+        if (!isMounted.current) return;
+        setAccessToken(token);
+
+        // Fetch user profile with the new access token via the normal client.
+        const userResponse = await apiClient.get('/user', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        if (!isMounted.current) return;
+        setUser(userResponse.data);
+        setStatus('authenticated');
       } catch {
-        if (isMounted) {
+        if (isMounted.current) {
           setStatus('unauthenticated');
         }
+      } finally {
+        restoreInProgress = false;
       }
     };
 
-    restoreSession();
+    restore();
 
     return () => {
-      isMounted = false;
+      isMounted.current = false;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Run only on mount — live store state is read inside the effect
+  }, [setAccessToken, setUser, setStatus]);
 }
-
-
