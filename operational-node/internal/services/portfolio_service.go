@@ -357,12 +357,16 @@ func (s *portfolioService) GetPortfolioHistory(userID uint, timeRange string) (m
 		since = now.AddDate(0, -1, 0)
 	case "6M":
 		since = now.AddDate(0, -6, 0)
+		interval = 24 * time.Hour
 	case "1Y":
 		since = now.AddDate(-1, 0, 0)
+		interval = 24 * time.Hour
 	case "YTD":
 		since = time.Date(now.Year(), 1, 1, 0, 0, 0, 0, now.Location())
+		interval = 24 * time.Hour
 	case "5Y":
 		since = now.AddDate(-5, 0, 0)
+		interval = 5 * 24 * time.Hour
 	default:
 		// default to 1M
 		since = now.AddDate(0, -1, 0)

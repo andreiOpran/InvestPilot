@@ -181,7 +181,7 @@ export function PerformanceChart({ onInvestClick }: PerformanceChartProps) {
                   dataKey="return_percentage"
                   stroke="url(#performanceGradient)"
                   strokeWidth={2}
-                  dot={<CustomDot />}
+                  dot={["6M", "1Y", "YTD", "5Y"].includes(range) ? false : <CustomDot />}
                   activeDot={{ r: 5 }}
                   name="Return (%)"
                 />
