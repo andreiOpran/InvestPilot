@@ -20,7 +20,7 @@ export function Settings() {
   const { user } = useAuthStore();
 
   return (
-    <div className="p-6 md:p-8 space-y-6 max-w-2xl mx-auto">
+    <div className="p-6 md:p-8 space-y-6 max-w-3xl mx-auto">
 
       {/* Header */}
       <div className="space-y-0.5">

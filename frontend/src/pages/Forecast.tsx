@@ -44,7 +44,7 @@ export function Forecast() {
   const isDisabled = status === "submitting" || status === "polling" || status === "complete";
 
   return (
-    <div className="p-6 md:p-8 space-y-6 max-w-6xl mx-auto">
+    <div className="p-6 md:p-8 space-y-6 max-w-7xl mx-auto">
 
       {/* Header */}
       <div className="flex items-start justify-between">
