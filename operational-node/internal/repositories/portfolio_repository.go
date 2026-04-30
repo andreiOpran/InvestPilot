@@ -21,6 +21,13 @@ type PortfolioRepository interface {
 		oldRound *models.InvestmentRound,
 		newRound *models.InvestmentRound,
 	) error
+	// ExecuteSellTransaction is the same as ExecuteInvestTransaction but newRound may be nil (full liquidation)
+	ExecuteSellTransaction(
+		wallet *models.Wallet,
+		txRecord *models.Transaction,
+		oldRound *models.InvestmentRound,
+		newRound *models.InvestmentRound,
+	) error
 }
 
 type portfolioRepository struct {
@@ -164,6 +171,36 @@ func (r *portfolioRepository) ExecuteInvestTransaction(
 		// create new round
 		if err := tx.Create(newRound).Error; err != nil {
 			return err
+		}
+
+		return nil
+	})
+}
+
+func (r *portfolioRepository) ExecuteSellTransaction(
+	wallet *models.Wallet,
+	txRecord *models.Transaction,
+	oldRound *models.InvestmentRound,
+	newRound *models.InvestmentRound,
+) error {
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Save(wallet).Error; err != nil {
+			return err
+		}
+
+		if err := tx.Create(txRecord).Error; err != nil {
+			return err
+		}
+
+		if err := tx.Save(oldRound).Error; err != nil {
+			return err
+		}
+
+		// newRound is nil on full liquidation — skip creation
+		if newRound != nil {
+			if err := tx.Create(newRound).Error; err != nil {
+				return err
+			}
 		}
 
 		return nil

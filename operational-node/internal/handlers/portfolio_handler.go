@@ -48,6 +48,35 @@ func (h *PortfolioHandler) InvestHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Investment successfully added to portfolio under USD"})
 }
 
+func (h *PortfolioHandler) SellHandler(c *gin.Context) {
+	userIDRaw, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+	userID := userIDRaw.(uint)
+
+	var req models.InvestRequest // reuses the same {amount} shape
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request: " + err.Error()})
+		return
+	}
+
+	if err := h.portfolioService.Sell(userID, req.Amount); err != nil {
+		switch {
+		case errors.Is(err, services.ErrNoActivePortfolio):
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		case errors.Is(err, services.ErrSellExceedsPortfolioValue):
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		default:
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to process sell"})
+		}
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Portfolio liquidated and funds returned to wallet"})
+}
+
 func (h *PortfolioHandler) GetPortfolioSummaryHandler(c *gin.Context) {
 	// extract userID from middleware
 	userID, exists := c.Get("userID")

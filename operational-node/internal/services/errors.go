@@ -22,4 +22,6 @@ var (
 	ErrForecastNoAssetsOnlyCash       = errors.New("portfolio consists entirely of uninvested cash; cannot forecast")
 	ErrMissingAnswer                  = errors.New("missing answer for a required question")
 	ErrInvalidOption                  = errors.New("invalid option selected for a question")
+	ErrNoActivePortfolio              = errors.New("no active portfolio to sell from")
+	ErrSellExceedsPortfolioValue      = errors.New("sell amount exceeds current portfolio value")
 )

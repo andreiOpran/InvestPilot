@@ -10,6 +10,7 @@ import (
 
 type PortfolioService interface {
 	Invest(userID uint, amount float64) error
+	Sell(userID uint, amount float64) error
 	GetPortfolioSummary(userID uint) (*models.PortfolioSummaryResponse, error)
 	GetPortfolioHistory(userID uint, timeRange string) (models.PortfolioHistoryResponse, error)
 }
@@ -105,6 +106,152 @@ func (s *portfolioService) Invest(userID uint, amount float64) error {
 
 	// give prepared domain models to repo to execute as one transaction
 	return s.portfolioRepo.ExecuteInvestTransaction(wallet, txRecord, oldRound, newRound)
+}
+
+func (s *portfolioService) Sell(userID uint, amount float64) error {
+	activeRound, err := s.portfolioRepo.GetRoundWithHoldingsByStatus(userID, true)
+	if err != nil {
+		return err
+	}
+	if activeRound == nil {
+		return ErrNoActivePortfolio
+	}
+
+	// resolve current prices for all non-USD holdings
+	var tickers []string
+	for _, h := range activeRound.Holdings {
+		if h.Ticker != "USD" {
+			tickers = append(tickers, h.Ticker)
+		}
+	}
+	latestPrices, err := s.portfolioRepo.GetLatestPrices(tickers)
+	if err != nil {
+		return err
+	}
+
+	// calculate live total value
+	liveTotalValue := 0.0
+	for _, h := range activeRound.Holdings {
+		price := 1.0
+		if h.Ticker != "USD" {
+			price = latestPrices[h.Ticker]
+			if price == 0 {
+				price = h.PurchasePrice
+			}
+		}
+		liveTotalValue += h.Shares * price
+	}
+
+	if amount > liveTotalValue {
+		return ErrSellExceedsPortfolioValue
+	}
+
+	remainingToSell := amount
+	var newHoldings []models.Holding
+
+	// pass 1: drain USD first (1 share = $1, no price lookup needed)
+	for _, h := range activeRound.Holdings {
+		if h.Ticker != "USD" {
+			continue
+		}
+		consumed := h.Shares
+		if remainingToSell < consumed {
+			consumed = remainingToSell
+		}
+		remainingToSell -= consumed
+		newUSDShares := h.Shares - consumed
+		if newUSDShares >= 0.01 {
+			newHoldings = append(newHoldings, models.Holding{
+				UserID:          userID,
+				Ticker:          "USD",
+				Weight:          h.Weight,
+				Shares:          newUSDShares,
+				PurchasePrice:   h.PurchasePrice,
+				AllocatedAmount: h.AllocatedAmount - consumed,
+			})
+		}
+		break // only one USD holding per round
+	}
+
+	// pass 2: if USD was not enough, sell proportionally from ETF holdings
+	if remainingToSell > 0.005 {
+		totalETFValue := 0.0
+		for _, h := range activeRound.Holdings {
+			if h.Ticker == "USD" {
+				continue
+			}
+			price := latestPrices[h.Ticker]
+			if price == 0 {
+				price = h.PurchasePrice
+			}
+			totalETFValue += h.Shares * price
+		}
+		fraction := remainingToSell / totalETFValue
+		for _, h := range activeRound.Holdings {
+			if h.Ticker == "USD" {
+				continue // already handled
+			}
+			price := latestPrices[h.Ticker]
+			if price == 0 {
+				price = h.PurchasePrice
+			}
+			newShares := h.Shares * (1 - fraction)
+			if newShares*price < 0.01 {
+				continue // drop dust positions
+			}
+			newHoldings = append(newHoldings, models.Holding{
+				UserID:          userID,
+				Ticker:          h.Ticker,
+				Weight:          h.Weight,
+				Shares:          newShares,
+				PurchasePrice:   h.PurchasePrice,
+				AllocatedAmount: h.AllocatedAmount * (1 - fraction),
+			})
+		}
+	} else {
+		// USD covered the full sell — copy ETF holdings unchanged
+		for _, h := range activeRound.Holdings {
+			if h.Ticker == "USD" {
+				continue
+			}
+			newHoldings = append(newHoldings, models.Holding{
+				UserID:          userID,
+				Ticker:          h.Ticker,
+				Weight:          h.Weight,
+				Shares:          h.Shares,
+				PurchasePrice:   h.PurchasePrice,
+				AllocatedAmount: h.AllocatedAmount,
+			})
+		}
+	}
+
+	wallet, err := s.userRepo.FindWalletByUserID(userID)
+	if err != nil {
+		return err
+	}
+	wallet.Balance += amount
+
+	activeRound.IsActive = false
+
+	txRecord := &models.Transaction{
+		UserID: userID,
+		Type:   "SELL",
+		Amount: amount,
+	}
+
+	// newRound is nil when the portfolio is fully liquidated
+	var newRound *models.InvestmentRound
+	remainingValue := liveTotalValue - amount
+	if len(newHoldings) > 0 && remainingValue > 0.01 {
+		newRound = &models.InvestmentRound{
+			UserID:     userID,
+			TotalValue: remainingValue,
+			IsActive:   true,
+			Holdings:   newHoldings,
+		}
+	}
+
+	return s.portfolioRepo.ExecuteSellTransaction(wallet, txRecord, activeRound, newRound)
 }
 
 func (s *portfolioService) GetPortfolioSummary(userID uint) (*models.PortfolioSummaryResponse, error) {

@@ -84,6 +84,7 @@ func SetupRoutes(r *gin.Engine) {
 			protected.POST("/onboarding/submit", onboardingHandler.SubmitHandler)
 			protected.POST("/deposit", userHandler.DepositHandler)
 			protected.POST("/invest", portfolioHandler.InvestHandler)
+			protected.POST("/sell", portfolioHandler.SellHandler)
 			protected.POST("/deposit/intent", stripeHandler.CreateIntentHandler)
 			protected.POST("/cashout", userHandler.CashoutHandler)
 			protected.GET("/portfolio", portfolioHandler.GetPortfolioSummaryHandler)
