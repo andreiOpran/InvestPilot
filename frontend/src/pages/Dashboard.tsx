@@ -2,10 +2,20 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import {
+  LineChart as LineChartIcon,
+  Line,
+  XAxis,
+  YAxis,
+  ReferenceLine,
+  ResponsiveContainer,
+  Tooltip,
+} from "recharts";
+import { format, parseISO } from "date-fns";
+import {
   Wallet,
   TrendingUp,
   TrendingDown,
-  LineChart,
+  LineChart as LineChartIcon2,
   ArrowRight,
   ClipboardList,
   PlusCircle,
@@ -47,6 +57,82 @@ const riskLabels: Record<number, string> = {
   4: "Growth",
   5: "Aggressive Growth",
 };
+
+function MiniPerfTooltip({ active, payload, label }: any) {
+  if (!active || !payload?.length) return null;
+  const val: number = payload[0]?.value ?? 0;
+  const isGain = val >= 0;
+  const date = label ? format(parseISO(label), "PPP") : "";
+  return (
+    <div className="rounded-md border bg-popover px-2.5 py-1.5 shadow-md text-xs space-y-0.5 min-w-[140px]">
+      <p className="text-muted-foreground">{date}</p>
+      <p className={`font-mono font-semibold ${isGain ? "text-emerald-400" : "text-red-400"}`}>
+        {isGain ? "+" : ""}{val.toFixed(2)}%
+      </p>
+    </div>
+  );
+}
+
+function MiniPerformanceChart() {
+  const { data, isLoading } = useQuery({
+    queryKey: ["portfolio-history", "1M"],
+    queryFn: () => portfolioApi.getHistory("1M").then((res) => res.data),
+    staleTime: 60_000,
+  });
+
+  const points = data?.data ?? [];
+  const hasData = points.length > 0;
+
+  if (isLoading) {
+    return <div className="h-[260px] animate-pulse rounded-lg bg-muted/30" />;
+  }
+
+  if (!hasData) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[260px] rounded-xl border border-dashed border-border bg-muted/10 text-center gap-2">
+        <LineChartIcon className="h-6 w-6 text-muted-foreground/40" />
+        <p className="text-xs text-muted-foreground">No performance data yet</p>
+      </div>
+    );
+  }
+
+  const last = points[points.length - 1]?.return_percentage ?? 0;
+  const isGain = last >= 0;
+  const lineColor = isGain ? "#10b981" : "#ef4444";
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-baseline gap-2">
+        <span className={`text-lg font-bold font-mono tracking-tight ${isGain ? "text-emerald-500" : "text-red-500"}`}>
+          {isGain ? "+" : ""}{last.toFixed(2)}%
+        </span>
+        <span className="text-xs text-muted-foreground">past 30 days</span>
+      </div>
+      <ResponsiveContainer width="100%" height={220}>
+        <LineChartIcon data={points} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
+          <XAxis dataKey="timestamp" tick={false} axisLine={false} tickLine={false} />
+          <YAxis
+            tickFormatter={(v) => `${v > 0 ? "+" : ""}${v.toFixed(0)}%`}
+            tick={{ fontSize: 10, fill: "var(--muted-foreground)" }}
+            axisLine={false}
+            tickLine={false}
+            width={48}
+          />
+          <Tooltip content={<MiniPerfTooltip />} cursor={{ stroke: "var(--border)", strokeWidth: 1 }} />
+          <ReferenceLine y={0} stroke="var(--border)" strokeWidth={1} strokeDasharray="3 3" />
+          <Line
+            type="monotone"
+            dataKey="return_percentage"
+            stroke={lineColor}
+            strokeWidth={1.5}
+            dot={false}
+            activeDot={{ r: 3, fill: lineColor }}
+          />
+        </LineChartIcon>
+      </ResponsiveContainer>
+    </div>
+  );
+}
 
 export function Dashboard() {
   const { user } = useAuthStore();
@@ -205,7 +291,7 @@ export function Dashboard() {
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Forecast Engine</p>
-              <LineChart className="h-4 w-4 text-muted-foreground/50" />
+              <LineChartIcon2 className="h-4 w-4 text-muted-foreground/50" />
             </div>
             <CardTitle className="text-base font-semibold tracking-tight">Monte Carlo Simulator</CardTitle>
           </CardHeader>
@@ -225,24 +311,44 @@ export function Dashboard() {
         </Card>
       </div>
 
-      {/* Allocation preview */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between pb-3">
-          <div className="space-y-0.5">
-            <CardTitle className="text-sm font-semibold tracking-tight">Asset Allocation</CardTitle>
-            <CardDescription className="text-xs">Current distribution of your portfolio</CardDescription>
-          </div>
-          <Button asChild variant="ghost" size="sm" className="gap-1.5 text-xs shrink-0 h-8">
-            <Link to="/portfolio">
-              View details
-              <ArrowRight className="h-3.5 w-3.5" />
-            </Link>
-          </Button>
-        </CardHeader>
-        <CardContent>
-          <AllocationPie showTitle={false} />
-        </CardContent>
-      </Card>
+      {/* Allocation + Performance */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-3">
+            <div className="space-y-0.5">
+              <CardTitle className="text-sm font-semibold tracking-tight">Asset Allocation</CardTitle>
+              <CardDescription className="text-xs">Current distribution of your portfolio</CardDescription>
+            </div>
+            <Button asChild variant="ghost" size="sm" className="gap-1.5 text-xs shrink-0 h-8">
+              <Link to="/portfolio">
+                View details
+                <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
+            </Button>
+          </CardHeader>
+          <CardContent>
+            <AllocationPie showTitle={false} />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-3">
+            <div className="space-y-0.5">
+              <CardTitle className="text-sm font-semibold tracking-tight">Performance</CardTitle>
+              <CardDescription className="text-xs">Portfolio return over time</CardDescription>
+            </div>
+            <Button asChild variant="ghost" size="sm" className="gap-1.5 text-xs shrink-0 h-8">
+              <Link to="/portfolio">
+                View details
+                <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
+            </Button>
+          </CardHeader>
+          <CardContent>
+            <MiniPerformanceChart />
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Dialogs */}
       <DepositDialog open={paperDepositOpen} onOpenChange={setPaperDepositOpen} />
