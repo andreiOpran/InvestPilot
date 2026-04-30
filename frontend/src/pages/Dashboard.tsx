@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { useAuthStore } from "@/stores/authStore";
 import { Button } from "@/components/ui/button";
 import { LogoutButton } from "@/components/auth/LogoutButton";
@@ -43,6 +44,18 @@ export function Dashboard() {
           </Button>
           <Button variant="default" className="bg-primary hover:bg-primary/90" onClick={() => setInvestOpen(true)}>
             Invest
+          </Button>
+        </div>
+      </div>
+
+      <div className="p-6 border rounded-xl bg-card">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h2 className="text-xl font-semibold mb-1">Forecast Engine</h2>
+            <p className="text-muted-foreground text-sm">Project your portfolio's future value using Monte Carlo simulations based on your personal risk profile.</p>
+          </div>
+          <Button asChild className="shrink-0">
+            <Link to="/forecast">Launch Forecaster</Link>
           </Button>
         </div>
       </div>

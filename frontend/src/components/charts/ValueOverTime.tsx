@@ -20,13 +20,6 @@ import { TimeRangeSelector, type TimeRange } from "./TimeRangeSelector";
 import { ChartErrorBoundary, ChartSkeleton } from "./ChartErrorBoundary";
 import { portfolioApi } from "@/api/portfolio";
 
-interface HistoryPoint {
-  timestamp: string;
-  portfolio_value: number;
-  net_contributions: number;
-  return_percentage: number;
-}
-
 function formatUSD(value: number) {
   return new Intl.NumberFormat("en-US", {
     style: "currency",

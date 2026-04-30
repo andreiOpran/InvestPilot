@@ -123,7 +123,7 @@ export function PerformanceChart({ onInvestClick }: PerformanceChartProps) {
 
   // Enrich data points with absoluteChange from start value
   const enriched: PerformancePoint[] =
-    data?.data?.map((point: any, i: number) => {
+    data?.data?.map((point: any) => {
       const startValue = data.data[0]?.portfolio_value ?? 0;
       return {
         ...point,

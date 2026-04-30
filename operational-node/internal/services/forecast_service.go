@@ -72,7 +72,7 @@ func (s *forecastService) RequestForecast(userID uint, req models.ForecastReques
 	payload := models.ForecastPayload{
 		TaskID:              taskID,
 		Weights:             weights,
-		InitialInvestment:   req.InitialInvestment,
+		InitialInvestment:   *req.InitialInvestment,
 		MonthlyContribution: req.MonthlyContribution,
 		Years:               req.Years,
 		Verbose:             config.Env.Investment.Verbose,

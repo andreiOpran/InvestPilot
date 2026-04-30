@@ -117,7 +117,7 @@ export const forecastSchema = z.object({
     .min(0, "Initial investment cannot be negative"),
   monthly_contribution: z.coerce
     .number({ message: "Must be a valid number" })
-    .min(0, "Monthly contribution cannot be negative")
+    .min(0, "Contribution cannot be negative")
     .optional()
     .default(0),
   years: z.coerce

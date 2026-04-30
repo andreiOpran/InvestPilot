@@ -10,10 +10,10 @@ import { VerifyEmail } from '@/pages/auth/VerifyEmail';
 import { Login } from '@/pages/auth/Login';
 import { ForgotPassword } from '@/pages/auth/ForgotPassword';
 import { ResetPassword } from '@/pages/auth/ResetPassword';
-import { LogoutButton } from '@/components/auth/LogoutButton';
 import { Settings } from '@/pages/Settings';
 import { Onboarding } from '@/pages/Onboarding';
 import { Dashboard } from '@/pages/Dashboard';
+import { Forecast } from '@/pages/Forecast';
 
 function AppRoutes() {
   // restore session silently on mount
@@ -34,6 +34,7 @@ function AppRoutes() {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/onboarding" element={<Onboarding />} />
+        <Route path="/forecast" element={<Forecast />} />
       </Route>
 
       {/* Fallback */}
