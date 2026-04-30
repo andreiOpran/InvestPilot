@@ -227,11 +227,11 @@ All auth forms use `react-hook-form` + `zod` via `zodResolver`. Error messages r
 ## Section 6 — Dashboard Shell
 
 ### 6.1 App Shell Layout (`src/components/layout/AppShell.tsx`)
-- [ ] Sidebar with navigation links: Dashboard, Portfolio, Forecast, Settings
-- [ ] Sidebar top: App Logo and Brand Name (acts as home link)
-- [ ] Header: wallet balance badge (live query, `staleTime: 10_000`), user email, Logout button
-- [ ] Mobile-responsive: sidebar collapses to a `<Sheet>` drawer on small screens (shadcn/ui `<Sheet>`)
-- [ ] Active route highlighted in sidebar using `NavLink` from `react-router-dom`
+- [x] Sidebar with navigation links: Dashboard, Portfolio, Forecast, Settings
+- [x] Sidebar top: App Logo and Brand Name (acts as home link)
+- [x] Header: wallet balance badge (live query, `staleTime: 10_000`), user email, Logout button
+- [x] Mobile-responsive: sidebar collapses to a `<Sheet>` drawer on small screens (shadcn/ui `<Sheet>`)
+- [x] Active route highlighted in sidebar using `NavLink` from `react-router-dom`
 
 ### 6.2 Dashboard Overview Page (`/dashboard`)
 - [ ] Wallet balance card (from `GET /user`)
@@ -355,52 +355,52 @@ Shows percentage-based returns relative to the starting value of the selected ti
 
 Displays the complete financial event log for the user, covering all four transaction types sourced from two backend models: `Transaction` (invest/sell) and `Funding` (deposit/cashout).
 
-- [ ] Requires a `GET /api/v1/transactions` endpoint on the Go backend that **unifies and returns** all four event types as a single sorted list: `{ id, type, amount, createdAt }[]`
+- [x] Requires a `GET /api/v1/transactions` endpoint on the Go backend that **unifies and returns** all four event types as a single sorted list: `{ id, type, amount, createdAt }[]`
   - `type` values: `"DEPOSIT"` (wallet funded via Stripe or paper trading), `"CASHOUT"` (wallet withdrawal), `"INVEST"` (wallet → portfolio, buying assets), `"SELL"` (portfolio → wallet, selling assets)
   - Sourced from two tables: `Funding` records (`DEPOSIT`, `CASHOUT`) and `Transaction` records (`invest` → mapped to `"INVEST"`, `sell` → mapped to `"SELL"`)
   - Unified, sorted descending by `createdAt`; supports pagination via `?page=` and `?limit=` query params
-- [ ] Render using shadcn/ui `<Table>` with columns: **Date**, **Type** (badge), **Amount** (formatted as USD), **Direction** (implicit in badge color)
-- [ ] **Type badge color coding:**
+- [x] Render using shadcn/ui `<Table>` with columns: **Date**, **Type** (badge), **Amount** (formatted as USD), **Direction** (implicit in badge color)
+- [x] **Type badge color coding:**
   - `DEPOSIT` → blue (money arriving in wallet from outside)
   - `CASHOUT` → orange (money leaving wallet to outside)
   - `INVEST` → green (money moving from wallet into active portfolio)
   - `SELL` → red (portfolio liquidation back to wallet)
-- [ ] **Client-side filtering:** `<Select>` or tab group above the table to filter by type: "All", "Deposits & Cashouts", "Investments & Sells"
-- [ ] **Client-side sorting** by Date (default: newest first) and Amount
-- [ ] **Pagination:** display 10 rows per page; shadcn/ui pagination controls below the table
-- [ ] Empty state: "No transactions yet" with a prompt to make a first deposit
-- [ ] Skeleton rows (5 placeholder rows) while loading
+- [x] **Client-side filtering:** `<Select>` or tab group above the table to filter by type: "All", "Deposits & Cashouts", "Investments & Sells"
+- [x] **Client-side sorting** by Date (default: newest first) and Amount
+- [x] **Pagination:** display 10 rows per page; shadcn/ui pagination controls below the table
+- [x] Empty state: "No transactions yet" with a prompt to make a first deposit
+- [x] Skeleton rows (5 placeholder rows) while loading
 
 ---
 
 ## Section 9 — Forecast Engine
 
 ### 9.1 Forecast Request Form (`/forecast`)
-- [ ] Fields: Initial Investment (number), Monthly Contribution (number, optional — min 0), Years (1–50 slider) — validated by `forecastSchema`
-- [ ] Display user's current risk tolerance and investment horizon as read-only context (so they understand the forecast is personalized)
-- [ ] On submit: call `requestForecast(payload)`; store returned `task_id` in component state; transition UI to polling view
+- [x] Fields: Initial Investment (number), Monthly Contribution (number, optional — min 0), Years (1–50 slider) — validated by `forecastSchema`
+- [x] Display user's current risk tolerance and investment horizon as read-only context (so they understand the forecast is personalized)
+- [x] On submit: call `requestForecast(payload)`; store returned `task_id` in component state; transition UI to polling view
 
 ### 9.2 Forecast Polling Hook (`src/hooks/useForecast.ts`)
-- [ ] Internal state machine: `"idle" | "submitting" | "polling" | "complete" | "error"`
-- [ ] After receiving `task_id`, enable TanStack Query `useQuery` for `getForecastStatus(taskId)` with:
+- [x] Internal state machine: `"idle" | "submitting" | "polling" | "complete" | "error"`
+- [x] After receiving `task_id`, enable TanStack Query `useQuery` for `getForecastStatus(taskId)` with:
   - `refetchInterval: 2000` (2 seconds)
   - `enabled: !!taskId && forecastStatus !== "complete" && forecastStatus !== "error"`
   - TanStack Query stops polling automatically when `enabled` becomes false
-- [ ] On `status === "pending"`: show progress indicator with elapsed time counter
-- [ ] On `status === "complete"`: parse `payload` JSON, set state to `"complete"`, pass data to chart
-- [ ] On `status === "error"`: set state to `"error"`, show `toast.error("Forecast computation failed")`
-- [ ] Expose `reset()` action to allow user to request a new forecast
+- [x] On `status === "pending"`: show progress indicator with elapsed time counter
+- [x] On `status === "complete"`: parse `payload` JSON, set state to `"complete"`, pass data to chart
+- [x] On `status === "error"`: set state to `"error"`, show `toast.error("Forecast computation failed")`
+- [x] Expose `reset()` action to allow user to request a new forecast
 
 ### 9.3 Cone of Uncertainty Chart (`src/components/charts/ConeOfUncertainty.tsx`)
-- [ ] Composite Recharts `<AreaChart>` with multiple `<Area>` layers:
+- [x] Composite Recharts `<AreaChart>` with multiple `<Area>` layers:
   - Outer band: P10–P90 (wide, low-opacity fill) — "full uncertainty range"
   - Inner band: P25–P75 (medium-opacity fill) — "likely range" *(if Python payload includes these)*
   - Median line: P50 `<Line>` — "expected outcome"
-- [ ] Data transformation: Python payload percentile arrays → `{ year: N, p10: X, p25: X, p50: X, p75: X, p90: X }[]`
-- [ ] X-axis: years (0 → input years); Y-axis: portfolio value formatted as USD
-- [ ] `<ReferenceLine>` at initial investment amount labeled "Initial Investment"
-- [ ] Custom `<Tooltip>` on hover: displays all percentile values for that year
-- [ ] Responsive container wrapping (`<ResponsiveContainer width="100%" height={400}>`)
+- [x] Data transformation: Python payload percentile arrays → `{ year: N, p10: X, p25: X, p50: X, p75: X, p90: X }[]`
+- [x] X-axis: years (0 → input years); Y-axis: portfolio value formatted as USD
+- [x] `<ReferenceLine>` at initial investment amount labeled "Initial Investment"
+- [x] Custom `<Tooltip>` on hover: displays all percentile values for that year
+- [x] Responsive container wrapping (`<ResponsiveContainer width="100%" height={400}>`)
 
 ---
 

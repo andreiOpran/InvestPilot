@@ -6,7 +6,6 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  ReferenceLine,
   Line,
   ComposedChart,
 } from "recharts";
@@ -41,7 +40,7 @@ export function ConeOfUncertainty({ data, inputs }: ConeOfUncertaintyProps) {
     }));
   }, [data, inputs]);
 
-  const initialInvestment = data.expected_50th_percentile[0];
+
 
   return (
     <div className="w-full mt-6 space-y-2 relative">

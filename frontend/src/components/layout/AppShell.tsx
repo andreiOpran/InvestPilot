@@ -1,0 +1,133 @@
+import { NavLink, Outlet } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { 
+  LayoutDashboard, 
+  PieChart, 
+  LineChart, 
+  Settings, 
+  Menu,
+  Wallet,
+  Landmark
+} from 'lucide-react';
+import { useAuthStore } from '@/stores/authStore';
+import { userApi } from '@/api/user';
+import { LogoutButton } from '@/components/auth/LogoutButton';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+
+const navItems = [
+  { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
+  { name: 'Portfolio', path: '/portfolio', icon: PieChart },
+  { name: 'Forecast', path: '/forecast', icon: LineChart },
+  { name: 'Settings', path: '/settings', icon: Settings },
+];
+
+export function AppShell() {
+  const { user, setUser } = useAuthStore();
+
+  // Live wallet query
+  useQuery({
+    queryKey: ['userBalance'],
+    queryFn: async () => {
+      const res = await userApi.getUser();
+      setUser(res.data);
+      return res.data;
+    },
+    refetchInterval: 10000, // 10 seconds
+  });
+
+  const NavLinks = () => (
+    <nav className="flex flex-col gap-2">
+      {navItems.map((item) => (
+        <NavLink
+          key={item.path}
+          to={item.path}
+          className={({ isActive }) =>
+            `flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+              isActive
+                ? 'bg-primary/10 text-primary'
+                : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+            }`
+          }
+        >
+          <item.icon className="h-4 w-4" />
+          {item.name}
+        </NavLink>
+      ))}
+    </nav>
+  );
+
+  return (
+    <div className="flex min-h-screen w-full bg-background">
+      {/* Desktop Sidebar */}
+      <aside className="hidden border-r bg-card md:flex md:w-64 md:flex-col">
+        <div className="flex h-16 items-center px-6 border-b">
+          <Landmark className="h-6 w-6 text-primary mr-2" />
+          <span className="text-lg font-bold">RoboAdvisor</span>
+        </div>
+        <div className="flex-1 overflow-auto py-6 px-4">
+          <NavLinks />
+        </div>
+      </aside>
+
+      {/* Main Content Area */}
+      <div className="flex flex-1 flex-col overflow-hidden">
+        {/* Header */}
+        <header className="flex h-16 items-center justify-between border-b bg-card px-4 md:px-6">
+          <div className="flex items-center gap-4">
+            {/* Mobile Sidebar Trigger */}
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon" className="md:hidden">
+                  <Menu className="h-5 w-5" />
+                  <span className="sr-only">Toggle navigation menu</span>
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left" className="w-64 p-0">
+                <div className="flex h-16 items-center px-6 border-b">
+                  <Landmark className="h-6 w-6 text-primary mr-2" />
+                  <span className="text-lg font-bold">RoboAdvisor</span>
+                </div>
+                <div className="py-6 px-4">
+                  <NavLinks />
+                </div>
+              </SheetContent>
+            </Sheet>
+
+            {/* Title / Breadcrumb can go here */}
+          </div>
+
+          <div className="flex items-center gap-4">
+            {/* Wallet Balance Badge */}
+            <Badge variant="secondary" className="hidden sm:flex h-9 px-4 py-2 gap-2 text-sm">
+              <Wallet className="h-4 w-4 text-primary" />
+              <span>
+                {new Intl.NumberFormat('en-US', {
+                  style: 'currency',
+                  currency: 'USD',
+                }).format(user?.wallet_balance || 0)}
+              </span>
+            </Badge>
+
+            <Separator orientation="vertical" className="h-8 hidden sm:block" />
+
+            {/* User Profile / Logout */}
+            <div className="flex items-center gap-3">
+              <span className="text-sm font-medium hidden sm:block truncate max-w-[150px]">
+                {user?.email}
+              </span>
+              <LogoutButton variant="outline" className="h-9 px-3" showText={false} />
+            </div>
+          </div>
+        </header>
+
+        {/* Page Content */}
+        <main className="flex-1 overflow-auto bg-muted/20">
+          <Outlet />
+        </main>
+      </div>
+    </div>
+  );
+}

@@ -1,6 +1,7 @@
-import { Navigate, Outlet, useLocation } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '@/stores/authStore';
 import { Skeleton } from '@/components/ui/skeleton';
+import { AppShell } from '@/components/layout/AppShell';
 
 export function ProtectedRoute() {
   const { status, user } = useAuthStore();
@@ -54,7 +55,7 @@ export function ProtectedRoute() {
     }
   }
 
-  return <Outlet />;
+  return <AppShell />;
 }
 
 

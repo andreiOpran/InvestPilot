@@ -1,35 +1,31 @@
-import { useNavigate } from 'react-router-dom';
 import { LogOut } from 'lucide-react';
-import { Button, type ButtonProps } from '@/components/ui/button';
-import { authApi } from '@/api/auth';
+import { Button } from '@/components/ui/button';
 import { useAuthStore } from '@/stores/authStore';
+import { authApi } from '@/api/auth';
+import { useNavigate } from 'react-router-dom';
 
-export function LogoutButton({ className, variant = 'outline', ...props }: ButtonProps) {
+interface LogoutButtonProps {
+  variant?: "default" | "destructive" | "outline" | "secondary" | "ghost" | "link";
+  className?: string;
+  showIcon?: boolean;
+  showText?: boolean;
+}
+
+export function LogoutButton({ variant = "ghost", className, showIcon = true, showText = true }: LogoutButtonProps) {
+  const { clearAuth } = useAuthStore();
   const navigate = useNavigate();
-  const clearAuth = useAuthStore((state) => state.clearAuth);
 
   const handleLogout = async () => {
-    // Optimistically clear the auth state and navigate
+    // Fire and forget
+    authApi.logout().catch(() => {});
     clearAuth();
-    navigate('/login');
-
-    // Fire and forget the server-side logout to invalidate the refresh token
-    try {
-      await authApi.logout();
-    } catch (error) {
-      // Ignored: the user is already logged out locally.
-    }
+    navigate('/login', { replace: true });
   };
 
   return (
-    <Button 
-      variant={variant} 
-      className={className} 
-      onClick={handleLogout}
-      {...props}
-    >
-      <LogOut className="mr-2 h-4 w-4" />
-      Log out
+    <Button variant={variant} className={className} onClick={handleLogout}>
+      {showIcon && <LogOut className={`h-4 w-4 ${showText ? "mr-2" : ""}`} />}
+      {showText && "Logout"}
     </Button>
   );
 }
