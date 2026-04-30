@@ -1,4 +1,4 @@
-import { NavLink, Outlet } from 'react-router-dom';
+import { NavLink, Link, Outlet } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
   LayoutDashboard,
@@ -78,8 +78,10 @@ export function AppShell() {
       {/* Desktop Sidebar */}
       <aside className="hidden border-r bg-card md:flex md:w-64 md:flex-col">
         <div className="flex h-16 items-center px-6 border-b">
-          <Landmark className="h-6 w-6 text-primary mr-2" />
-          <span className="text-lg font-bold">RoboAdvisor</span>
+          <Link to="/dashboard" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+            <Landmark className="h-6 w-6 text-primary" />
+            <span className="text-lg font-bold">RoboAdvisor</span>
+          </Link>
         </div>
         <div className="flex-1 overflow-auto py-6 px-4">
           <NavLinks />
@@ -132,9 +134,13 @@ export function AppShell() {
 
             {/* User Profile / Logout */}
             <div className="flex items-center gap-3">
-              <span className="text-sm font-medium hidden sm:block truncate max-w-[150px]">
+              <Link
+                to="/settings"
+                className="text-sm font-medium hidden sm:block truncate max-w-[220px] hover:text-primary transition-colors"
+                title={user?.email}
+              >
                 {user?.email}
-              </span>
+              </Link>
               <LogoutButton variant="outline" className="h-9 px-3" showText={false} />
             </div>
           </div>

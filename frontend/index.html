@@ -4,9 +4,18 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>frontend</title>
+    <title>RoboAdvisor</title>
+    <script>
+      (function() {
+        var theme = localStorage.getItem('theme') || 'dark';
+        if (theme === 'dark') {
+          document.documentElement.classList.add('dark');
+          document.documentElement.style.backgroundColor = 'oklch(0.141 0.005 285.823);';
+        }
+      })();
+    </script>
   </head>
-  <body>
+  <body style="background-color: oklch(0.141 0.005 285.823);">
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

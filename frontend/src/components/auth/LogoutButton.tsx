@@ -1,5 +1,16 @@
 import { LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { useAuthStore } from '@/stores/authStore';
 import { authApi } from '@/api/auth';
 import { useNavigate } from 'react-router-dom';
@@ -16,16 +27,31 @@ export function LogoutButton({ variant = "ghost", className, showIcon = true, sh
   const navigate = useNavigate();
 
   const handleLogout = async () => {
-    // Fire and forget
     authApi.logout().catch(() => {});
     clearAuth();
-    navigate('/login', { replace: true });
+    navigate('/', { replace: true });
   };
 
   return (
-    <Button variant={variant} className={className} onClick={handleLogout}>
-      {showIcon && <LogOut className={`h-4 w-4 ${showText ? "mr-2" : ""}`} />}
-      {showText && "Logout"}
-    </Button>
+    <AlertDialog>
+      <AlertDialogTrigger asChild>
+        <Button variant={variant} className={className}>
+          {showIcon && <LogOut className={`h-4 w-4 ${showText ? "mr-2" : ""}`} />}
+          {showText && "Logout"}
+        </Button>
+      </AlertDialogTrigger>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Sign out?</AlertDialogTitle>
+          <AlertDialogDescription>
+            You will be signed out and returned to the home page.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction onClick={handleLogout}>Sign out</AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }

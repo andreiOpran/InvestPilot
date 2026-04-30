@@ -3,6 +3,8 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useSilentRestore } from '@/hooks/useSilentRestore';
 import { ProtectedRoute } from '@/components/layout/ProtectedRoute';
 
+import { Landing } from '@/pages/Landing';
+
 // Auth pages
 import { Register } from '@/pages/auth/Register';
 import { RegisterSuccess } from '@/pages/auth/RegisterSuccess';
@@ -22,6 +24,9 @@ function AppRoutes() {
 
   return (
     <Routes>
+      {/* Landing */}
+      <Route path="/" element={<Landing />} />
+
       {/* Public auth routes */}
       <Route path="/register" element={<Register />} />
       <Route path="/register-success" element={<RegisterSuccess />} />
@@ -40,7 +45,7 @@ function AppRoutes() {
       </Route>
 
       {/* Fallback */}
-      <Route path="*" element={<Navigate to="/login" replace />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }
