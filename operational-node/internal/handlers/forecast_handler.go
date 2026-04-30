@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 
 	"github.com/andreiOpran/licenta/operational-node/internal/models"
@@ -34,6 +35,10 @@ func (h *ForecastHandler) RequestForecastHandler(c *gin.Context) {
 
 	taskID, err := h.forecastService.RequestForecast(userID, req)
 	if err != nil {
+		if errors.Is(err, services.ErrForecastUserNoActivePortfolio) {
+			c.JSON(http.StatusUnprocessableEntity, gin.H{"error": err.Error()})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}

@@ -53,9 +53,15 @@ export function useForecast() {
       const res = await forecastApi.requestForecast(initialInvestment, monthlyContribution, years);
       setTaskId(res.data.task_id);
       setStatus("polling");
-    } catch (err) {
+    } catch (err: any) {
       setStatus("error");
-      toast.error("Failed to submit forecast request");
+      const status = err.response?.status;
+      const serverMsg: string = err.response?.data?.error ?? "";
+      if (status === 422 || serverMsg.toLowerCase().includes("no active portfolio")) {
+        toast.error("You need an active portfolio before running a forecast. Invest first.");
+      } else {
+        toast.error("Failed to submit forecast request");
+      }
     }
   };
 
