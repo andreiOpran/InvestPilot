@@ -1,8 +1,11 @@
 import { apiClient } from './client';
 
 export const portfolioApi = {
-  invest: (amount: number) => 
+  invest: (amount: number) =>
     apiClient.post('/invest', { amount }),
+
+  sell: (amount: number) =>
+    apiClient.post('/sell', { amount }),
   
   getHistory: (range: string) => 
     apiClient.get(`/portfolio/history?range=${range}`),

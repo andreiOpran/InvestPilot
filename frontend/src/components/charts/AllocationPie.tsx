@@ -68,7 +68,11 @@ function CustomTooltip({ active, payload, totalValue }: CustomTooltipProps) {
   );
 }
 
-export function AllocationPie() {
+interface AllocationPieProps {
+  showTitle?: boolean;
+}
+
+export function AllocationPie({ showTitle = true }: AllocationPieProps) {
   const [chartType, setChartType] = useState<"pie" | "bar">("pie");
 
   const { data, isLoading, isError } = useQuery({
@@ -106,12 +110,14 @@ export function AllocationPie() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <div>
-          <h3 className="text-lg font-semibold">Asset Allocation</h3>
-          <p className="text-sm text-muted-foreground">
-            Current distribution of your active portfolio
-          </p>
-        </div>
+        {showTitle ? (
+          <div>
+            <h3 className="text-lg font-semibold">Asset Allocation</h3>
+            <p className="text-sm text-muted-foreground">
+              Current distribution of your active portfolio
+            </p>
+          </div>
+        ) : <div />}
         {hasData && (
           <div className="flex bg-muted/50 p-1 rounded-lg">
             <Button

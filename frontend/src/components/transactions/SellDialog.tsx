@@ -1,0 +1,152 @@
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { Loader2, TrendingDown } from "lucide-react";
+
+import { sellSchema, type SellFormValues } from "@/lib/schemas";
+import { portfolioApi } from "@/api/portfolio";
+import { userApi } from "@/api/user";
+import { useAuthStore } from "@/stores/authStore";
+
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+
+interface SellDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  portfolioValue?: number;
+}
+
+export function SellDialog({ open, onOpenChange, portfolioValue }: SellDialogProps) {
+  const { setUser } = useAuthStore();
+  const queryClient = useQueryClient();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const form = useForm<SellFormValues>({
+    resolver: zodResolver(sellSchema) as any,
+    defaultValues: { amount: 0 },
+  });
+
+  const onSubmit = async (data: SellFormValues) => {
+    setIsSubmitting(true);
+    try {
+      await portfolioApi.sell(data.amount);
+
+      // refresh wallet balance and portfolio cache
+      const userRes = await userApi.getUser();
+      setUser(userRes.data);
+      queryClient.invalidateQueries({ queryKey: ["portfolio-allocation"] });
+
+      toast.success("Funds returned to wallet");
+      onOpenChange(false);
+      form.reset();
+    } catch (error: any) {
+      const msg = error.response?.data?.error || "Failed to process sell";
+      if (
+        error.response?.status === 400 &&
+        msg.toLowerCase().includes("exceeds")
+      ) {
+        form.setError("amount", {
+          type: "manual",
+          message: "Amount exceeds current portfolio value",
+        });
+      } else if (
+        error.response?.status === 400 &&
+        msg.toLowerCase().includes("no active")
+      ) {
+        toast.error("No active portfolio to sell from");
+      } else {
+        toast.error(msg);
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[425px]">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <TrendingDown className="h-5 w-5 text-red-500" />
+            Sell Portfolio
+          </DialogTitle>
+          <DialogDescription>
+            Liquidate a portion of your portfolio and return funds to your
+            wallet. Shares are reduced proportionally across all holdings.
+          </DialogDescription>
+        </DialogHeader>
+
+        {portfolioValue !== undefined && (
+          <div className="bg-muted p-4 rounded-md text-sm flex justify-between items-center">
+            <span className="text-muted-foreground">Available to Sell:</span>
+            <span className="font-semibold text-foreground">
+              {new Intl.NumberFormat("en-US", {
+                style: "currency",
+                currency: "USD",
+              }).format(portfolioValue)}
+            </span>
+          </div>
+        )}
+
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <FormField
+              control={form.control}
+              name="amount"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Sell Amount (USD)</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      placeholder="Enter amount..."
+                      {...field}
+                      value={field.value || ""}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <div className="flex justify-end pt-2">
+              <Button
+                type="submit"
+                disabled={isSubmitting}
+                className="w-full bg-red-600 hover:bg-red-700 text-white"
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Selling...
+                  </>
+                ) : (
+                  "Confirm Sell"
+                )}
+              </Button>
+            </div>
+          </form>
+        </Form>
+      </DialogContent>
+    </Dialog>
+  );
+}

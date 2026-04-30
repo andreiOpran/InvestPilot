@@ -10,7 +10,6 @@ import { authApi } from '@/api/auth';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   Card,
@@ -194,50 +193,45 @@ export function TwoFactorSetup() {
       <CardHeader>
         <CardTitle>Two-Factor Authentication</CardTitle>
         <CardDescription>
-          Add an extra layer of security to your account using a TOTP authenticator app
-          (e.g. Google Authenticator, Authy).
+          Add an extra layer of security using a TOTP authenticator app (e.g. Google Authenticator, Authy).
         </CardDescription>
       </CardHeader>
 
-      <CardContent className="space-y-8">
+      <CardContent className="space-y-6">
 
         {/* Step 1 — Scan QR */}
-        <div className="space-y-4">
-          <div className="flex items-center gap-2">
-            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-[11px] font-bold text-primary-foreground">1</span>
+        <div className="rounded-lg border border-border/60 bg-muted/20 p-5 space-y-4">
+          <div className="flex items-center gap-3">
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-[11px] font-bold text-primary-foreground">1</span>
             <h3 className="text-sm font-semibold">Scan the QR code</h3>
           </div>
-          <p className="text-sm text-muted-foreground pl-8">
+          <p className="text-sm text-muted-foreground">
             Open your authenticator app and scan the QR code below to add your account.
           </p>
-
           {setupData?.qr_code_b64 && (
-            <div className="flex justify-center">
+            <div className="flex justify-center pt-1">
               <div className="rounded-xl border border-border/50 bg-white p-3 shadow-sm">
                 <img
                   src={setupData.qr_code_b64}
                   alt="Scan with authenticator app"
-                  className="h-48 w-48 rounded-lg"
+                  className="h-44 w-44 rounded-md"
                 />
               </div>
             </div>
           )}
         </div>
 
-        <Separator />
-
         {/* Step 2 — Manual entry */}
-        <div className="space-y-4">
-          <div className="flex items-center gap-2">
-            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-[11px] font-bold text-primary-foreground">2</span>
+        <div className="rounded-lg border border-border/60 bg-muted/20 p-5 space-y-4">
+          <div className="flex items-center gap-3">
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-[11px] font-bold text-primary-foreground">2</span>
             <h3 className="text-sm font-semibold">Or enter the secret manually</h3>
           </div>
-          <p className="text-sm text-muted-foreground pl-8">
+          <p className="text-sm text-muted-foreground">
             If you can&apos;t scan the QR code, enter this secret key into your authenticator app.
           </p>
-
-          <div className="flex items-center gap-2 pl-8">
-            <code className="flex-1 rounded-md border border-border/60 bg-muted px-3 py-2 font-mono text-sm tracking-wider select-all break-all">
+          <div className="flex items-center gap-2">
+            <code className="flex-1 rounded-md border border-border/60 bg-background px-3 py-2 font-mono text-sm tracking-wider select-all break-all">
               {setupData?.secret}
             </code>
             <Button
@@ -245,27 +239,25 @@ export function TwoFactorSetup() {
               variant="outline"
               size="sm"
               onClick={copySecret}
-              className="shrink-0"
+              className="shrink-0 h-9 w-9 p-0"
             >
               {copied ? <Check className="h-4 w-4 text-emerald-500" /> : <Copy className="h-4 w-4" />}
             </Button>
           </div>
         </div>
 
-        <Separator />
-
         {/* Step 3 — Confirm code */}
-        <div className="space-y-4">
-          <div className="flex items-center gap-2">
-            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-[11px] font-bold text-primary-foreground">3</span>
+        <div className="rounded-lg border border-border/60 bg-muted/20 p-5 space-y-4">
+          <div className="flex items-center gap-3">
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-[11px] font-bold text-primary-foreground">3</span>
             <h3 className="text-sm font-semibold">Enter the confirmation code</h3>
           </div>
-          <p className="text-sm text-muted-foreground pl-8">
+          <p className="text-sm text-muted-foreground">
             Enter the 6-digit code shown in your authenticator app to confirm the link.
           </p>
 
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="pl-8 space-y-4">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <FormField
                 control={form.control}
                 name="token"
@@ -278,10 +270,9 @@ export function TwoFactorSetup() {
                         placeholder="000000"
                         maxLength={6}
                         onChange={(e) => {
-                          // digits only
                           field.onChange(e.target.value.replace(/\D/g, ''));
                         }}
-                        className="h-12 max-w-[160px] text-center text-2xl tracking-[0.5em] font-mono"
+                        className="h-11 max-w-[160px] text-center text-xl tracking-[0.4em] font-mono"
                       />
                     </FormControl>
                     <FormMessage />
@@ -292,7 +283,7 @@ export function TwoFactorSetup() {
               <Button
                 type="submit"
                 disabled={form.formState.isSubmitting}
-                className="h-10 font-semibold"
+                className="h-10 px-6 font-semibold"
               >
                 {form.formState.isSubmitting ? 'Verifying...' : 'Enable 2FA'}
               </Button>

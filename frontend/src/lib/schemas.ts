@@ -108,6 +108,10 @@ export const investSchema = z.object({
   amount: amountSchema,
 });
 
+export const sellSchema = z.object({
+  amount: amountSchema,
+});
+
 
 // Analysis and Tools Schemas
 
@@ -139,4 +143,5 @@ export type UpdateProfileFormValues = z.infer<typeof updateProfileSchema>;
 export type DepositFormValues = z.infer<typeof depositSchema>;
 export type CashoutFormValues = z.infer<typeof cashoutSchema>;
 export type InvestFormValues = z.infer<typeof investSchema>;
+export type SellFormValues = z.infer<typeof sellSchema>;
 export type ForecastFormValues = z.infer<typeof forecastSchema>;

@@ -13,6 +13,7 @@ import { ResetPassword } from '@/pages/auth/ResetPassword';
 import { Settings } from '@/pages/Settings';
 import { Onboarding } from '@/pages/Onboarding';
 import { Dashboard } from '@/pages/Dashboard';
+import { Portfolio } from '@/pages/Portfolio';
 import { Forecast } from '@/pages/Forecast';
 
 function AppRoutes() {
@@ -32,6 +33,7 @@ function AppRoutes() {
       {/* Protected routes (require authentication) */}
       <Route element={<ProtectedRoute />}>
         <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/portfolio" element={<Portfolio />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/onboarding" element={<Onboarding />} />
         <Route path="/forecast" element={<Forecast />} />

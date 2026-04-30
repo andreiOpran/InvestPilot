@@ -1,16 +1,18 @@
 import { NavLink, Outlet } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { 
-  LayoutDashboard, 
-  PieChart, 
-  LineChart, 
-  Settings, 
+import {
+  LayoutDashboard,
+  PieChart,
+  LineChart,
+  Settings,
   Menu,
   Wallet,
-  Landmark
+  Landmark,
+  TrendingUp,
 } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
 import { userApi } from '@/api/user';
+import { portfolioApi } from '@/api/portfolio';
 import { LogoutButton } from '@/components/auth/LogoutButton';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
@@ -35,8 +37,20 @@ export function AppShell() {
       setUser(res.data);
       return res.data;
     },
-    refetchInterval: 10000, // 10 seconds
+    refetchInterval: 10000,
   });
+
+  const { data: portfolioData } = useQuery({
+    queryKey: ['portfolio-allocation'],
+    queryFn: () => portfolioApi.getPortfolio().then((res) => res.data),
+    staleTime: 60_000,
+  });
+
+  const portfolioValue = portfolioData?.live_total_value ?? 0;
+  const hasPortfolio = portfolioData?.holdings && portfolioData.holdings.length > 0;
+
+  const formatUSD = (v: number) =>
+    new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(v);
 
   const NavLinks = () => (
     <nav className="flex flex-col gap-2">
@@ -99,17 +113,20 @@ export function AppShell() {
             {/* Title / Breadcrumb can go here */}
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             {/* Wallet Balance Badge */}
             <Badge variant="secondary" className="hidden sm:flex h-9 px-4 py-2 gap-2 text-sm">
               <Wallet className="h-4 w-4 text-primary" />
-              <span>
-                {new Intl.NumberFormat('en-US', {
-                  style: 'currency',
-                  currency: 'USD',
-                }).format(user?.wallet_balance || 0)}
-              </span>
+              <span>{formatUSD(user?.wallet_balance || 0)}</span>
             </Badge>
+
+            {/* Portfolio Value Badge */}
+            {hasPortfolio && (
+              <Badge variant="outline" className="hidden sm:flex h-9 px-4 py-2 gap-2 text-sm border-emerald-500/40 text-emerald-600 dark:text-emerald-400">
+                <TrendingUp className="h-4 w-4" />
+                <span>{formatUSD(portfolioValue)}</span>
+              </Badge>
+            )}
 
             <Separator orientation="vertical" className="h-8 hidden sm:block" />
 
