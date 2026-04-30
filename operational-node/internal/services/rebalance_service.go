@@ -35,8 +35,8 @@ func (s *rebalanceService) RunMonthlyRebalance() error {
 	// trading paused on weekends, so we add 2 days when checking
 	daysOld := int(time.Since(maxDate).Hours() / 24)
 	maxDaysStaleness := config.Env.Investment.PriceStalenessDays
-	if daysOld+2 > maxDaysStaleness {
-		log.Printf("[REBALANCE ABORTED] %v", err)
+	if daysOld > maxDaysStaleness+2 {
+		log.Printf("[REBALANCE ABORTED] %v", ErrRebalancePausedStaleMarketData)
 		return ErrRebalancePausedStaleMarketData
 	}
 
