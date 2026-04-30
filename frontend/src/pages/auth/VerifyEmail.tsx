@@ -1,15 +1,14 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
-import { CheckCircle2, XCircle, Loader2 } from 'lucide-react';
+import { CheckCircle2, XCircle, Loader2, Landmark } from 'lucide-react';
 
 import { authApi } from '@/api/auth';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 export function VerifyEmail() {
   const [searchParams] = useSearchParams();
   const token = searchParams.get('token');
-  
+
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
 
   useEffect(() => {
@@ -31,56 +30,74 @@ export function VerifyEmail() {
 
     verify();
 
-    return () => {
-      isMounted = false;
-    };
+    return () => { isMounted = false; };
   }, [token]);
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-muted/30 p-6">
-      <Card className="w-full max-w-md shadow-xl border-border/50">
-        <CardHeader className="text-center pb-2">
-          <CardTitle className="text-2xl font-bold tracking-tight">Email Verification</CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-col items-center justify-center space-y-6 pt-6 pb-8">
-          
-          {status === 'loading' && (
-            <div className="flex flex-col items-center space-y-4 animate-in fade-in zoom-in duration-300">
-              <Loader2 className="h-16 w-16 text-primary animate-spin" />
-              <CardDescription className="text-base">Verifying your email address...</CardDescription>
-            </div>
-          )}
+    <div className="flex min-h-screen flex-col items-center justify-center bg-muted/30 px-4 py-12">
+      <div className="w-full max-w-sm space-y-6">
 
-          {status === 'success' && (
-            <div className="flex flex-col items-center space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-              <CheckCircle2 className="h-20 w-20 text-emerald-500" />
-              <div className="space-y-2 text-center">
-                <h3 className="text-xl font-semibold text-foreground">Verification Complete</h3>
-                <p className="text-muted-foreground">Your email has been successfully verified.</p>
+        {/* Logo */}
+        <div className="flex flex-col items-center gap-2 text-center">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl border bg-background shadow-sm">
+            <Landmark className="h-5 w-5 text-primary" />
+          </div>
+          <p className="text-sm font-semibold tracking-tight">RoboAdvisor</p>
+        </div>
+
+        {/* Card */}
+        <div className="rounded-xl border bg-card shadow-sm p-8">
+          <div className="flex flex-col items-center text-center space-y-4">
+
+            {status === 'loading' && (
+              <>
+                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary/10">
+                  <Loader2 className="h-7 w-7 text-primary animate-spin" />
+                </div>
+                <div className="space-y-1">
+                  <p className="font-semibold tracking-tight">Verifying email</p>
+                  <p className="text-xs text-muted-foreground">Please wait a moment...</p>
+                </div>
+              </>
+            )}
+
+            {status === 'success' && (
+              <div className="flex flex-col items-center space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-500/10">
+                  <CheckCircle2 className="h-7 w-7 text-emerald-500" />
+                </div>
+                <div className="space-y-1.5">
+                  <p className="font-semibold tracking-tight">Email verified</p>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    Your email has been successfully verified. You can now sign in.
+                  </p>
+                </div>
+                <Button asChild className="w-full h-10 font-medium mt-2">
+                  <Link to="/login">Go to login</Link>
+                </Button>
               </div>
-              <Button asChild className="w-full h-11 text-base font-semibold shadow-md">
-                <Link to="/login">Go to Login</Link>
-              </Button>
-            </div>
-          )}
+            )}
 
-          {status === 'error' && (
-            <div className="flex flex-col items-center space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-              <XCircle className="h-20 w-20 text-destructive" />
-              <div className="space-y-2 text-center">
-                <h3 className="text-xl font-semibold text-foreground">Verification Failed</h3>
-                <p className="text-muted-foreground text-sm">
-                  The link is invalid, has expired, or is missing a token.
-                </p>
+            {status === 'error' && (
+              <div className="flex flex-col items-center space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-destructive/10">
+                  <XCircle className="h-7 w-7 text-destructive" />
+                </div>
+                <div className="space-y-1.5">
+                  <p className="font-semibold tracking-tight">Verification failed</p>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    The link is invalid, has expired, or is missing a token.
+                  </p>
+                </div>
+                <Button asChild variant="outline" className="w-full h-10 font-medium mt-2">
+                  <Link to="/register">Back to register</Link>
+                </Button>
               </div>
-              <Button asChild variant="outline" className="w-full h-11 text-base shadow-sm">
-                <Link to="/register">Return to Register</Link>
-              </Button>
-            </div>
-          )}
+            )}
 
-        </CardContent>
-      </Card>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

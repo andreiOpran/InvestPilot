@@ -11,13 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Form,
   FormControl,
@@ -27,6 +21,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Separator } from '@/components/ui/separator';
 
 interface Setup2FAData {
   secret: string;
@@ -87,55 +82,51 @@ export function TwoFactorSetup() {
       if (err.response?.status === 400 && msg.toLowerCase().includes('already enabled')) {
         setViewState('already_enabled');
       } else if (err.response?.status === 400) {
-        form.setError('token', {
-          type: 'manual',
-          message: 'Incorrect code. Authenticator not linked.',
-        });
+        form.setError('token', { type: 'manual', message: 'Incorrect code. Authenticator not linked.' });
       } else {
         toast.error('Something went wrong. Please try again.');
       }
     }
   };
 
-  // ─── Loading skeleton ────────────────────────────────────────────
+  // Loading
   if (viewState === 'loading') {
     return (
       <Card>
-        <CardHeader>
-          <Skeleton className="h-6 w-48" />
-          <Skeleton className="h-4 w-72 mt-1" />
+        <CardHeader className="pb-4">
+          <Skeleton className="h-5 w-48" />
+          <Skeleton className="h-3.5 w-72 mt-1" />
         </CardHeader>
-        <CardContent className="space-y-6">
-          <Skeleton className="h-48 w-48 mx-auto rounded-lg" />
-          <Skeleton className="h-10 w-full" />
-          <Skeleton className="h-10 w-full" />
+        <CardContent className="space-y-4">
+          <Skeleton className="h-44 w-44 mx-auto rounded-lg" />
+          <Skeleton className="h-9 w-full" />
+          <Skeleton className="h-9 w-full" />
         </CardContent>
       </Card>
     );
   }
 
-  // ─── Already enabled ─────────────────────────────────────────────
+  // Already enabled
   if (viewState === 'already_enabled') {
     return (
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            Two-Factor Authentication
-            <Badge variant="secondary" className="text-emerald-600 bg-emerald-500/10">
+        <CardHeader className="pb-4">
+          <div className="flex items-center gap-2">
+            <CardTitle className="text-sm font-semibold tracking-tight">Two-Factor Authentication</CardTitle>
+            <Badge variant="secondary" className="text-emerald-600 bg-emerald-500/10 text-[10px] h-4 px-1.5">
               Active
             </Badge>
-          </CardTitle>
-          <CardDescription>
+          </div>
+          <CardDescription className="text-xs">
             Your account is protected with two-factor authentication.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <Alert>
             <ShieldCheck className="h-4 w-4 text-emerald-500" />
-            <AlertTitle>2FA is already active on your account</AlertTitle>
-            <AlertDescription>
-              You are already enrolled in two-factor authentication. Every login requires
-              a 6-digit code from your authenticator app.
+            <AlertTitle className="text-sm font-medium">2FA is active</AlertTitle>
+            <AlertDescription className="text-xs">
+              Every login requires a 6-digit code from your authenticator app.
             </AlertDescription>
           </Alert>
         </CardContent>
@@ -143,16 +134,16 @@ export function TwoFactorSetup() {
     );
   }
 
-  // ─── Error state ─────────────────────────────────────────────────
+  // Error
   if (viewState === 'error') {
     return (
       <Card>
-        <CardHeader>
-          <CardTitle>Two-Factor Authentication</CardTitle>
+        <CardHeader className="pb-4">
+          <CardTitle className="text-sm font-semibold tracking-tight">Two-Factor Authentication</CardTitle>
         </CardHeader>
         <CardContent>
           <Alert variant="destructive">
-            <AlertDescription>
+            <AlertDescription className="text-xs">
               Failed to load 2FA setup. Please refresh the page and try again.
             </AlertDescription>
           </Alert>
@@ -161,24 +152,24 @@ export function TwoFactorSetup() {
     );
   }
 
-  // ─── Successfully enabled ────────────────────────────────────────
+  // Successfully enabled
   if (enabled) {
     return (
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            Two-Factor Authentication
-            <Badge variant="secondary" className="text-emerald-600 bg-emerald-500/10">
+        <CardHeader className="pb-4">
+          <div className="flex items-center gap-2">
+            <CardTitle className="text-sm font-semibold tracking-tight">Two-Factor Authentication</CardTitle>
+            <Badge variant="secondary" className="text-emerald-600 bg-emerald-500/10 text-[10px] h-4 px-1.5">
               Active
             </Badge>
-          </CardTitle>
-          <CardDescription>Your account is now protected with 2FA.</CardDescription>
+          </div>
+          <CardDescription className="text-xs">Your account is now protected with 2FA.</CardDescription>
         </CardHeader>
         <CardContent>
           <Alert>
             <ShieldCheck className="h-4 w-4 text-emerald-500" />
-            <AlertTitle>2FA enabled successfully</AlertTitle>
-            <AlertDescription>
+            <AlertTitle className="text-sm font-medium">2FA enabled successfully</AlertTitle>
+            <AlertDescription className="text-xs">
               Every future login will require a 6-digit code from your authenticator app.
             </AlertDescription>
           </Alert>
@@ -187,51 +178,64 @@ export function TwoFactorSetup() {
     );
   }
 
-  // ─── Setup form ──────────────────────────────────────────────────
+  // Setup form
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>Two-Factor Authentication</CardTitle>
-        <CardDescription>
+      <CardHeader className="pb-4">
+        <CardTitle className="text-sm font-semibold tracking-tight">Two-Factor Authentication</CardTitle>
+        <CardDescription className="text-xs">
           Add an extra layer of security using a TOTP authenticator app (e.g. Google Authenticator, Authy).
         </CardDescription>
       </CardHeader>
+      <Separator />
 
-      <CardContent className="space-y-6">
+      <CardContent className="pt-6 space-y-0">
 
         {/* Step 1 — Scan QR */}
-        <div className="rounded-lg border border-border/60 bg-muted/20 p-5 space-y-4">
+        <div className="space-y-4 pb-6">
           <div className="flex items-center gap-3">
-            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-[11px] font-bold text-primary-foreground">1</span>
-            <h3 className="text-sm font-semibold">Scan the QR code</h3>
+            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+              1
+            </span>
+            <div>
+              <p className="text-sm font-medium">Scan the QR code</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Open your authenticator app and scan the code below.
+              </p>
+            </div>
           </div>
-          <p className="text-sm text-muted-foreground">
-            Open your authenticator app and scan the QR code below to add your account.
-          </p>
+
           {setupData?.qr_code_b64 && (
-            <div className="flex justify-center pt-1">
-              <div className="rounded-xl border border-border/50 bg-white p-3 shadow-sm">
+            <div className="flex justify-center py-2">
+              <div className="rounded-xl border bg-white p-3 shadow-sm">
                 <img
                   src={setupData.qr_code_b64}
                   alt="Scan with authenticator app"
-                  className="h-44 w-44 rounded-md"
+                  className="h-44 w-44 rounded-md block"
                 />
               </div>
             </div>
           )}
         </div>
 
+        <Separator />
+
         {/* Step 2 — Manual entry */}
-        <div className="rounded-lg border border-border/60 bg-muted/20 p-5 space-y-4">
+        <div className="space-y-4 py-6">
           <div className="flex items-center gap-3">
-            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-[11px] font-bold text-primary-foreground">2</span>
-            <h3 className="text-sm font-semibold">Or enter the secret manually</h3>
+            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+              2
+            </span>
+            <div>
+              <p className="text-sm font-medium">Or enter the secret manually</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                If you can&apos;t scan the QR code, type this key into your authenticator app.
+              </p>
+            </div>
           </div>
-          <p className="text-sm text-muted-foreground">
-            If you can&apos;t scan the QR code, enter this secret key into your authenticator app.
-          </p>
+
           <div className="flex items-center gap-2">
-            <code className="flex-1 rounded-md border border-border/60 bg-background px-3 py-2 font-mono text-sm tracking-wider select-all break-all">
+            <code className="flex-1 rounded-lg border bg-muted/30 px-3 py-2.5 font-mono text-xs tracking-wider select-all break-all leading-relaxed">
               {setupData?.secret}
             </code>
             <Button
@@ -241,38 +245,44 @@ export function TwoFactorSetup() {
               onClick={copySecret}
               className="shrink-0 h-9 w-9 p-0"
             >
-              {copied ? <Check className="h-4 w-4 text-emerald-500" /> : <Copy className="h-4 w-4" />}
+              {copied ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Copy className="h-3.5 w-3.5" />}
             </Button>
           </div>
         </div>
 
+        <Separator />
+
         {/* Step 3 — Confirm code */}
-        <div className="rounded-lg border border-border/60 bg-muted/20 p-5 space-y-4">
+        <div className="space-y-4 pt-6">
           <div className="flex items-center gap-3">
-            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-[11px] font-bold text-primary-foreground">3</span>
-            <h3 className="text-sm font-semibold">Enter the confirmation code</h3>
+            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+              3
+            </span>
+            <div>
+              <p className="text-sm font-medium">Enter the confirmation code</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Enter the 6-digit code from your authenticator app to confirm the link.
+              </p>
+            </div>
           </div>
-          <p className="text-sm text-muted-foreground">
-            Enter the 6-digit code shown in your authenticator app to confirm the link.
-          </p>
 
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col items-center gap-4">
               <FormField
                 control={form.control}
                 name="token"
                 render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Confirmation Code</FormLabel>
+                  <FormItem className="flex flex-col items-center text-center">
+                    <FormLabel className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                      Confirmation Code
+                    </FormLabel>
                     <FormControl>
                       <Input
                         {...field}
                         placeholder="000000"
                         maxLength={6}
-                        onChange={(e) => {
-                          field.onChange(e.target.value.replace(/\D/g, ''));
-                        }}
-                        className="h-11 max-w-[160px] text-center text-xl tracking-[0.4em] font-mono"
+                        onChange={(e) => field.onChange(e.target.value.replace(/\D/g, ''))}
+                        className="h-11 w-40 text-center text-xl tracking-[0.4em] font-mono"
                       />
                     </FormControl>
                     <FormMessage />
@@ -283,7 +293,7 @@ export function TwoFactorSetup() {
               <Button
                 type="submit"
                 disabled={form.formState.isSubmitting}
-                className="h-10 px-6 font-semibold"
+                className="h-9 px-6 text-sm font-medium"
               >
                 {form.formState.isSubmitting ? 'Verifying...' : 'Enable 2FA'}
               </Button>

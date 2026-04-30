@@ -11,9 +11,10 @@ import { InvestDialog } from "@/components/transactions/InvestDialog";
 import { SellDialog } from "@/components/transactions/SellDialog";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Separator } from "@/components/ui/separator";
 
 function formatUSD(value: number) {
   return new Intl.NumberFormat("en-US", {
@@ -41,30 +42,28 @@ interface StatCardProps {
 function StatCard({ label, value, sub, subPositive, icon, loading }: StatCardProps) {
   return (
     <Card>
-      <CardContent className="pt-6">
+      <CardContent className="pt-2 pb-2">
         {loading ? (
           <div className="space-y-2">
-            <Skeleton className="h-4 w-24" />
-            <Skeleton className="h-7 w-32" />
             <Skeleton className="h-3 w-20" />
+            <Skeleton className="h-6 w-28" />
+            <Skeleton className="h-3 w-16" />
           </div>
         ) : (
           <div className="space-y-1">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              {icon}
-              {label}
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{label}</p>
+              <span className="text-muted-foreground/40">{icon}</span>
             </div>
-            <p className="text-2xl font-bold tracking-tight">{value}</p>
+            <p className="text-xl font-bold tracking-tight">{value}</p>
             {sub !== undefined && (
-              <p
-                className={`text-xs font-medium ${
-                  subPositive === undefined
-                    ? "text-muted-foreground"
-                    : subPositive
-                    ? "text-emerald-500"
-                    : "text-red-500"
-                }`}
-              >
+              <p className={`text-xs font-medium ${
+                subPositive === undefined
+                  ? "text-muted-foreground"
+                  : subPositive
+                  ? "text-emerald-500"
+                  : "text-red-500"
+              }`}>
                 {sub}
               </p>
             )}
@@ -88,50 +87,31 @@ export function Portfolio() {
   const liveTotal = data?.live_total_value ?? 0;
   const netContributions = data?.net_contributions ?? 0;
   const allTimePL = data?.all_time_profit_loss ?? 0;
-  const allTimePct =
-    netContributions > 0 ? (allTimePL / netContributions) * 100 : 0;
+  const allTimePct = netContributions > 0 ? (allTimePL / netContributions) * 100 : 0;
   const isGain = allTimePL >= 0;
+  const hasHoldings = Boolean(data?.holdings?.length);
 
   return (
-    <div className="p-6 space-y-6 max-w-7xl mx-auto">
-      {/* Page header */}
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Portfolio</h1>
-          <p className="text-muted-foreground text-sm mt-0.5">
-            Live overview of your active investment round
-          </p>
-        </div>
-        <div className="flex items-center gap-3 shrink-0">
-          <Button
-            variant="outline"
-            size="lg"
-            className="h-11 px-5 border-red-500/40 text-red-600 hover:bg-red-500/10 hover:text-red-600 dark:text-red-400 font-semibold"
-            onClick={() => setSellOpen(true)}
-            disabled={!data?.holdings?.length}
-          >
-            <TrendingDown className="h-4 w-4 mr-2" />
-            Sell
-          </Button>
-          <Button size="lg" className="h-11 px-5 font-semibold" onClick={() => setInvestOpen(true)}>
-            <TrendingUp className="h-4 w-4 mr-2" />
-            Invest
-          </Button>
-        </div>
+    <div className="p-6 md:p-8 space-y-6 max-w-7xl mx-auto">
+
+      {/* Header */}
+      <div className="space-y-0.5">
+        <h1 className="text-xl font-semibold tracking-tight">Portfolio</h1>
+        <p className="text-sm text-muted-foreground">Live overview of your active investment round</p>
       </div>
 
-      {/* Stats row */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Stats + action strip */}
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
         <StatCard
           label="Portfolio Value"
           value={formatUSD(liveTotal)}
-          icon={<DollarSign className="h-4 w-4" />}
+          icon={<DollarSign className="h-3.5 w-3.5" />}
           loading={isLoading}
         />
         <StatCard
           label="Net Contributions"
           value={formatUSD(netContributions)}
-          icon={<BarChart3 className="h-4 w-4" />}
+          icon={<BarChart3 className="h-3.5 w-3.5" />}
           loading={isLoading}
         />
         <StatCard
@@ -139,12 +119,9 @@ export function Portfolio() {
           value={formatUSD(allTimePL)}
           sub={netContributions > 0 ? formatPct(allTimePct) : undefined}
           subPositive={netContributions > 0 ? isGain : undefined}
-          icon={
-            isGain ? (
-              <TrendingUp className="h-4 w-4 text-emerald-500" />
-            ) : (
-              <TrendingDown className="h-4 w-4 text-red-500" />
-            )
+          icon={isGain
+            ? <TrendingUp className="h-3.5 w-3.5 text-emerald-500" />
+            : <TrendingDown className="h-3.5 w-3.5 text-red-500" />
           }
           loading={isLoading}
         />
@@ -153,15 +130,34 @@ export function Portfolio() {
           value={netContributions > 0 ? formatPct(allTimePct) : "—"}
           sub={netContributions > 0 ? `on ${formatUSD(netContributions)} invested` : "No investments yet"}
           subPositive={netContributions > 0 ? isGain : undefined}
-          icon={
-            isGain ? (
-              <TrendingUp className="h-4 w-4 text-emerald-500" />
-            ) : (
-              <TrendingDown className="h-4 w-4 text-red-500" />
-            )
+          icon={isGain
+            ? <TrendingUp className="h-3.5 w-3.5 text-emerald-500" />
+            : <TrendingDown className="h-3.5 w-3.5 text-red-500" />
           }
           loading={isLoading}
         />
+
+        {/* Action card */}
+        <Card className="flex flex-col col-span-2 lg:col-span-1">
+          <CardContent className="flex-1 flex flex-col justify-center gap-2 pt-2 pb-2">
+            <Button
+              className="w-full h-9 text-xs font-medium gap-1.5"
+              onClick={() => setInvestOpen(true)}
+            >
+              <TrendingUp className="h-3.5 w-3.5" />
+              Invest
+            </Button>
+            <Button
+              variant="outline"
+              className="w-full h-9 text-xs font-medium gap-1.5 border-red-500/30 text-red-600 hover:bg-red-500/10 hover:text-red-600 dark:text-red-400"
+              onClick={() => setSellOpen(true)}
+              disabled={!hasHoldings}
+            >
+              <TrendingDown className="h-3.5 w-3.5" />
+              Sell
+            </Button>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Allocation + Charts */}

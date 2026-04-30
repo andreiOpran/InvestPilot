@@ -1,63 +1,326 @@
 import { Link } from 'react-router-dom';
-import { Landmark, TrendingUp, ShieldCheck, BarChart3 } from 'lucide-react';
+import {
+  Landmark,
+  TrendingUp,
+  BarChart3,
+  ShieldCheck,
+  ArrowRight,
+  RefreshCw,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+
+const displayFont = { fontFamily: "'DM Serif Display', Georgia, serif" };
+
+const stats = [
+  { value: '10,000+', label: 'Monte Carlo simulations per forecast', index: '01' },
+  { value: '19', label: 'ETF asset universe', index: '02' },
+  { value: 'Monthly', label: 'Automated rebalancing', index: '03' },
+  { value: '5', label: 'Configurable risk profiles', index: '04' },
+];
+
+const features = [
+  {
+    icon: TrendingUp,
+    title: 'Hierarchical Risk Parity',
+    description:
+      'HRP allocates capital based on risk contribution rather than arbitrary weights. Your portfolio is mathematically balanced across equities and bonds every month.',
+    index: '01',
+  },
+  {
+    icon: BarChart3,
+    title: 'Monte Carlo Forecasting',
+    description:
+      'Run 10,000 simulated portfolio scenarios using Geometric Brownian Motion. Visualise the cone of uncertainty across your chosen investment horizon.',
+    index: '02',
+  },
+  {
+    icon: ShieldCheck,
+    title: 'Institutional Security',
+    description:
+      'TOTP two-factor authentication, refresh token rotation with reuse detection, IP-based rate limiting, and AES-256 encrypted secrets.',
+    index: '03',
+  },
+  {
+    icon: RefreshCw,
+    title: 'Passive Rebalancing',
+    description:
+      'Set your risk profile once. The engine evaluates drift thresholds every 30 days and rebalances only when delta exceeds tolerance, minimising unnecessary trades.',
+    index: '04',
+  },
+];
+
+const allocationSegments = [
+  { pct: 28, label: 'US Equities', opacity: 1 },
+  { pct: 18, label: 'Intl Equities', opacity: 0.75 },
+  { pct: 22, label: 'Fixed Income', opacity: 0.55 },
+  { pct: 14, label: 'Real Assets', opacity: 0.38 },
+  { pct: 10, label: 'Alternatives', opacity: 0.22 },
+  { pct: 8, label: 'Cash', opacity: 0.12 },
+];
+
+const tickerItems = [
+  { symbol: 'VTI', change: '+1.24%', positive: true },
+  { symbol: 'VXUS', change: '-0.37%', positive: false },
+  { symbol: 'BND', change: '+0.08%', positive: true },
+  { symbol: 'VNQ', change: '+2.11%', positive: true },
+  { symbol: 'GLD', change: '-0.54%', positive: false },
+  { symbol: 'TIP', change: '+0.19%', positive: true },
+  { symbol: 'EMB', change: '-0.82%', positive: false },
+  { symbol: 'IGSB', change: '+0.33%', positive: true },
+];
+
+function AllocationBar() {
+  return (
+    <div className="w-full space-y-3">
+      <div className="flex h-1.5 w-full overflow-hidden rounded-full gap-[2px]">
+        {allocationSegments.map((s) => (
+          <div
+            key={s.label}
+            style={{
+              width: `${s.pct}%`,
+              backgroundColor: `hsl(var(--primary) / ${s.opacity})`,
+            }}
+          />
+        ))}
+      </div>
+      <div className="flex flex-wrap gap-x-4 gap-y-1">
+        {allocationSegments.map((s) => (
+          <div key={s.label} className="flex items-center gap-1.5">
+            <div
+              className="h-1.5 w-1.5 rounded-full flex-shrink-0"
+              style={{ backgroundColor: `hsl(var(--primary) / ${s.opacity})` }}
+            />
+            <span className="text-[10px] text-muted-foreground/70 tracking-wide">{s.label}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 export function Landing() {
   return (
-    <div className="flex min-h-screen flex-col bg-background">
+    <div className="flex min-h-screen flex-col bg-background text-foreground">
+      <style>{`
+        @keyframes fadeUp {
+          from { opacity: 0; transform: translateY(14px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+        .fade-up { animation: fadeUp 0.55s ease forwards; opacity: 0; }
+        .delay-1 { animation-delay: 0.05s; }
+        .delay-2 { animation-delay: 0.15s; }
+        .delay-3 { animation-delay: 0.27s; }
+        .delay-4 { animation-delay: 0.40s; }
+        .hero-grid {
+          background-image:
+            linear-gradient(hsl(var(--border) / 0.5) 1px, transparent 1px),
+            linear-gradient(90deg, hsl(var(--border) / 0.5) 1px, transparent 1px);
+          background-size: 52px 52px;
+        }
+        .feature-card:hover .feature-index { color: hsl(var(--primary)); }
+      `}</style>
+
       {/* Nav */}
-      <header className="flex h-16 items-center justify-between px-6 border-b">
-        <div className="flex items-center gap-2">
-          <Landmark className="h-6 w-6 text-primary" />
-          <span className="text-lg font-bold">RoboAdvisor</span>
+      <header className="sticky top-0 z-50 flex h-16 items-center justify-between border-b bg-background/90 backdrop-blur-md px-6 md:px-16">
+        <div className="flex items-center gap-2.5">
+          <Landmark className="h-4 w-4 text-primary" />
+          <span className="text-sm font-semibold tracking-tight" style={displayFont}>
+            RoboAdvisor
+          </span>
         </div>
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" asChild>
+        <nav className="flex items-center gap-1">
+          <Button variant="ghost" size="sm" asChild className="text-muted-foreground hover:text-foreground">
             <Link to="/login">Log in</Link>
           </Button>
-          <Button asChild>
-            <Link to="/register">Get started</Link>
+          <Button size="sm" asChild>
+            <Link to="/register" className="flex items-center gap-1.5">
+              Get started
+              <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
           </Button>
-        </div>
+        </nav>
       </header>
 
       {/* Hero */}
-      <main className="flex flex-1 flex-col items-center justify-center text-center px-6 gap-8">
-        <div className="space-y-4 max-w-2xl">
-          <h1 className="text-5xl font-extrabold tracking-tight">
-            Automated investing,{' '}
-            <span className="text-primary">intelligently managed.</span>
-          </h1>
-          <p className="text-lg text-muted-foreground">
-            Set your risk profile once. RoboAdvisor builds and rebalances your portfolio using Hierarchical Risk Parity — hands-free.
-          </p>
-        </div>
+      <section className="relative overflow-hidden border-b">
+        <div className="hero-grid absolute inset-0 opacity-40" />
+        <div className="relative max-w-6xl mx-auto px-6 md:px-16 py-24 md:py-36 grid md:grid-cols-[1fr_auto] gap-16 items-center">
 
-        <div className="flex gap-4 flex-wrap justify-center">
-          <Button size="lg" asChild>
-            <Link to="/register">Start for free</Link>
-          </Button>
-          <Button size="lg" variant="outline" asChild>
-            <Link to="/login">Log in</Link>
-          </Button>
-        </div>
+          <div className="space-y-8">
+            <div className="fade-up delay-1">
+              <Badge
+                variant="outline"
+                className="px-3 py-1 text-[10px] font-medium tracking-[0.15em] uppercase text-muted-foreground"
+              >
+                Algorithmic Wealth Management
+              </Badge>
+            </div>
 
-        {/* Feature pills */}
-        <div className="flex flex-wrap justify-center gap-6 text-sm text-muted-foreground mt-4">
-          <div className="flex items-center gap-2">
-            <TrendingUp className="h-4 w-4 text-primary" />
-            HRP portfolio optimization
+            <div className="fade-up delay-2 space-y-4">
+              <h1
+                className="text-5xl md:text-6xl lg:text-7xl leading-[1.05] tracking-tight"
+                style={displayFont}
+              >
+                Intelligent portfolios,{' '}
+                <span className="text-primary italic">
+                  scientifically
+                  <br />
+                  engineered.
+                </span>
+              </h1>
+              <p className="text-base text-muted-foreground max-w-lg leading-relaxed">
+                RoboAdvisor builds and rebalances your ETF portfolio using Hierarchical Risk
+                Parity. Define your risk tolerance once and let the algorithm handle the rest.
+              </p>
+            </div>
+
+            <div className="fade-up delay-3 flex flex-wrap gap-3">
+              <Button size="lg" asChild>
+                <Link to="/register" className="flex items-center gap-2">
+                  Start investing
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+              </Button>
+              <Button size="lg" variant="outline" asChild>
+                <Link to="/login">Log in to your account</Link>
+              </Button>
+            </div>
+
+            <div className="fade-up delay-4 pt-2 max-w-sm">
+              <p className="text-[10px] text-muted-foreground/50 uppercase tracking-[0.12em] mb-3 font-mono">
+                Sample allocation
+              </p>
+              <AllocationBar />
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <BarChart3 className="h-4 w-4 text-primary" />
-            Monte Carlo forecasting
-          </div>
-          <div className="flex items-center gap-2">
-            <ShieldCheck className="h-4 w-4 text-primary" />
-            2FA &amp; bank-grade security
+
+          {/* Decorative ticker */}
+          <div className="hidden md:flex flex-col gap-2.5 opacity-[0.40] select-none w-28">
+            {tickerItems.map((t) => (
+              <div key={t.symbol} className="flex items-center justify-between gap-3 font-mono text-[10px]">
+                <span className="text-foreground font-medium">{t.symbol}</span>
+                <span className={t.positive ? 'text-green-500' : 'text-red-400'}>{t.change}</span>
+              </div>
+            ))}
           </div>
         </div>
-      </main>
+      </section>
+
+      {/* Stats */}
+      <div className="border-b bg-card/50">
+        <div className="max-w-6xl mx-auto grid grid-cols-2 md:grid-cols-4 divide-x divide-y md:divide-y-0 divide-border">
+          {stats.map((s) => (
+            <div key={s.index} className="flex flex-col py-10 px-8 gap-1.5">
+              <span className="text-[10px] text-muted-foreground/40 font-mono tracking-widest">
+                {s.index}
+              </span>
+              <span
+                className="text-3xl md:text-4xl font-bold text-primary leading-none"
+                style={displayFont}
+              >
+                {s.value}
+              </span>
+              <span className="text-xs text-muted-foreground leading-snug max-w-[140px] mt-0.5">
+                {s.label}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Features */}
+      <section className="py-24 px-6 md:px-16">
+        <div className="max-w-6xl mx-auto">
+          <div className="mb-16 space-y-3 max-w-xl">
+            <p className="text-[10px] text-muted-foreground/50 font-mono tracking-[0.15em] uppercase">
+              Platform capabilities
+            </p>
+            <h2
+              className="text-3xl md:text-4xl text-foreground leading-tight"
+              style={displayFont}
+            >
+              Built for serious investors.
+            </h2>
+            <p className="text-muted-foreground text-sm leading-relaxed">
+              Every component is designed around quantitative finance principles, not simplified
+              heuristics.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-px border rounded-xl overflow-hidden bg-border">
+            {features.map((f) => (
+              <div
+                key={f.title}
+                className="feature-card bg-card p-8 space-y-4 hover:bg-card/70 transition-colors group"
+              >
+                <div className="flex items-start justify-between">
+                  <div className="rounded-lg bg-primary/10 p-2.5 group-hover:bg-primary/15 transition-colors">
+                    <f.icon className="h-4 w-4 text-primary" />
+                  </div>
+                  <span className="feature-index text-xs font-mono text-muted-foreground/25 transition-colors">
+                    {f.index}
+                  </span>
+                </div>
+                <div className="space-y-2">
+                  <h3 className="font-semibold text-sm text-foreground tracking-tight">
+                    {f.title}
+                  </h3>
+                  <p className="text-sm text-muted-foreground leading-relaxed">{f.description}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* CTA */}
+      <section className="border-t border-b bg-card">
+        <div className="max-w-6xl mx-auto px-6 md:px-16 py-20 flex flex-col md:flex-row items-center justify-between gap-8">
+          <div className="space-y-2 text-center md:text-left">
+            <h2
+              className="text-2xl md:text-3xl font-semibold leading-tight"
+              style={displayFont}
+            >
+              Ready to put your capital to work?
+            </h2>
+            <p className="text-muted-foreground text-sm">
+              Create an account in under a minute. No minimum deposit in paper trading mode.
+            </p>
+          </div>
+          <Button size="lg" asChild className="flex-shrink-0">
+            <Link to="/register" className="flex items-center gap-2">
+              Open an account
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          </Button>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="py-6 px-6 md:px-16">
+        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-muted-foreground">
+          <div className="flex items-center gap-2">
+            <Landmark className="h-3.5 w-3.5" />
+            <span style={displayFont} className="font-medium">
+              RoboAdvisor
+            </span>
+          </div>
+          <Separator orientation="vertical" className="h-4 hidden sm:block" />
+          <span className="text-muted-foreground/60">
+            Paper trading environment. Not financial advice.
+          </span>
+          <div className="flex items-center gap-4">
+            <Link to="/login" className="hover:text-foreground transition-colors">
+              Log in
+            </Link>
+            <Link to="/register" className="hover:text-foreground transition-colors">
+              Register
+            </Link>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }

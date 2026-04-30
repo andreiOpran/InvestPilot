@@ -14,13 +14,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 
 const riskLabels: Record<number, string> = {
-  1: 'Very Conservative',
-  2: 'Conservative',
-  3: 'Balanced',
-  4: 'Growth',
-  5: 'Aggressive Growth',
+  1: "Very Conservative",
+  2: "Conservative",
+  3: "Balanced",
+  4: "Growth",
+  5: "Aggressive Growth",
 };
 
 export function Forecast() {
@@ -40,92 +41,111 @@ export function Forecast() {
     submitForecast(data.initial_investment, data.monthly_contribution || 0, data.years);
   };
 
+  const isDisabled = status === "submitting" || status === "polling" || status === "complete";
+
   return (
-    <div className="p-8 max-w-5xl mx-auto space-y-6">
-      <div className="flex justify-between items-end">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Forecast Engine</h1>
-          <p className="text-muted-foreground mt-1">Project your portfolio's future value based on Monte Carlo simulations.</p>
+    <div className="p-6 md:p-8 space-y-6 max-w-6xl mx-auto">
+
+      {/* Header */}
+      <div className="flex items-start justify-between">
+        <div className="space-y-0.5">
+          <h1 className="text-xl font-semibold tracking-tight">Forecast Engine</h1>
+          <p className="text-sm text-muted-foreground">
+            Project your portfolio across 10,000 Monte Carlo simulations.
+          </p>
         </div>
         {status === "complete" && (
-          <Button variant="outline" onClick={reset} className="gap-2">
-            <RefreshCw className="h-4 w-4" />
-            New Forecast
+          <Button variant="outline" onClick={reset} className="gap-2 h-8 text-xs shrink-0">
+            <RefreshCw className="h-3.5 w-3.5" />
+            New forecast
           </Button>
         )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column: Form & Context */}
-        <div className="lg:col-span-1 space-y-6">
+
+        {/* Left: inputs */}
+        <div className="space-y-4">
+
+          {/* Profile summary */}
           <Card>
-            <CardHeader>
-              <CardTitle>Your Profile</CardTitle>
-              <CardDescription>Forecasts use your personalized allocation.</CardDescription>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-semibold tracking-tight">Your Profile</CardTitle>
+              <CardDescription className="text-xs">Forecasts use your personalized allocation.</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="rounded-xl border border-border/60 bg-muted/30 p-3 flex items-center justify-between">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <TrendingUp className="h-4 w-4" />
-                  Risk
+            <CardContent className="space-y-2">
+              <div className="flex items-center justify-between rounded-lg border bg-muted/30 px-3 py-2.5">
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <TrendingUp className="h-3.5 w-3.5" />
+                  Risk level
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-semibold">{riskLabels[user?.risk_tolerance || 3]}</span>
-                  <Badge variant="outline" className="text-xs">Lvl {user?.risk_tolerance || 3}</Badge>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs font-semibold">{riskLabels[user?.risk_tolerance || 3]}</span>
+                  <Badge variant="outline" className="text-[10px] h-4 px-1">
+                    {user?.risk_tolerance || 3}/5
+                  </Badge>
                 </div>
               </div>
-              <div className="rounded-xl border border-border/60 bg-muted/30 p-3 flex items-center justify-between">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Clock className="h-4 w-4" />
+              <div className="flex items-center justify-between rounded-lg border bg-muted/30 px-3 py-2.5">
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <Clock className="h-3.5 w-3.5" />
                   Horizon
                 </div>
-                <span className="text-sm font-semibold">{user?.investment_horizon || 10} years</span>
+                <span className="text-xs font-semibold">{user?.investment_horizon || 10} years</span>
               </div>
             </CardContent>
           </Card>
 
+          {/* Parameters */}
           <Card>
-            <CardHeader>
-              <CardTitle>Parameters</CardTitle>
-              <CardDescription>Adjust inputs to see different outcomes.</CardDescription>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-semibold tracking-tight">Parameters</CardTitle>
+              <CardDescription className="text-xs">Adjust inputs to model different scenarios.</CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
-                <div className="space-y-2">
-                  <Label htmlFor="initial_investment">Initial Investment ($)</Label>
-                  <Input 
-                    id="initial_investment" 
-                    type="number" 
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="initial_investment" className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                    Initial investment ($)
+                  </Label>
+                  <Input
+                    id="initial_investment"
+                    type="number"
                     step="1"
-                    disabled={status === "submitting" || status === "polling" || status === "complete"}
-                    {...form.register("initial_investment")} 
+                    disabled={isDisabled}
+                    {...form.register("initial_investment")}
+                    className="h-9 text-sm"
                   />
                   {form.formState.errors.initial_investment && (
-                    <p className="text-sm text-red-500">{form.formState.errors.initial_investment.message}</p>
+                    <p className="text-xs text-destructive">{form.formState.errors.initial_investment.message}</p>
                   )}
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="monthly_contribution">Monthly Contribution ($)</Label>
-                  <Input 
-                    id="monthly_contribution" 
-                    type="number" 
+                <div className="space-y-1.5">
+                  <Label htmlFor="monthly_contribution" className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                    Monthly contribution ($)
+                  </Label>
+                  <Input
+                    id="monthly_contribution"
+                    type="number"
                     step="1"
-                    disabled={status === "submitting" || status === "polling" || status === "complete"}
-                    {...form.register("monthly_contribution")} 
+                    disabled={isDisabled}
+                    {...form.register("monthly_contribution")}
+                    className="h-9 text-sm"
                   />
                   {form.formState.errors.monthly_contribution && (
-                    <p className="text-sm text-red-500">{form.formState.errors.monthly_contribution.message}</p>
+                    <p className="text-xs text-destructive">{form.formState.errors.monthly_contribution.message}</p>
                   )}
                 </div>
 
-                <div className="space-y-4 pt-2">
+                <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <Label>Years to Forecast</Label>
-                    <span className="font-mono text-sm">{form.watch("years")} yrs</span>
+                    <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Years to forecast</Label>
+                    <span className="font-mono text-xs font-semibold">{form.watch("years")} yrs</span>
                   </div>
                   <Slider
-                    disabled={status === "submitting" || status === "polling" || status === "complete"}
+                    disabled={isDisabled}
                     min={1}
                     max={50}
                     step={1}
@@ -134,19 +154,21 @@ export function Forecast() {
                   />
                 </div>
 
+                <Separator />
+
                 {status !== "complete" && (
-                  <Button 
-                    type="submit" 
-                    className="w-full mt-2" 
+                  <Button
+                    type="submit"
+                    className="w-full h-9 font-medium text-sm"
                     disabled={status === "submitting" || status === "polling"}
                   >
                     {status === "submitting" || status === "polling" ? (
                       <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
                         Computing...
                       </>
                     ) : (
-                      "Run Simulation"
+                      "Run simulation"
                     )}
                   </Button>
                 )}
@@ -155,45 +177,65 @@ export function Forecast() {
           </Card>
         </div>
 
-        {/* Right Column: Chart area */}
+        {/* Right: chart */}
         <div className="lg:col-span-2">
-          <Card className="h-full min-h-[500px] flex flex-col">
-            <CardHeader>
-              <CardTitle>Cone of Uncertainty</CardTitle>
-              <CardDescription>
-                Range of potential future values based on 10,000 simulated market scenarios.
-              </CardDescription>
+          <Card className="h-full min-h-[480px] flex flex-col">
+            <CardHeader className="pb-3">
+              <div className="flex items-start justify-between">
+                <div>
+                  <CardTitle className="text-sm font-semibold tracking-tight">Cone of Uncertainty</CardTitle>
+                  <CardDescription className="text-xs mt-0.5">
+                    Range of potential values across 10,000 simulated market scenarios.
+                  </CardDescription>
+                </div>
+                {status === "complete" && forecastData && (
+                  <div className="flex gap-4 text-xs shrink-0">
+                    <div>
+                      <span className="text-muted-foreground">Volatility: </span>
+                      <span className="font-mono font-medium">
+                        {(forecastData.stats.historical_annual_volatility * 100).toFixed(2)}%
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Return: </span>
+                      <span className="font-mono font-medium">
+                        {(forecastData.stats.historical_annual_return * 100).toFixed(2)}%
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
             </CardHeader>
-            <CardContent className="flex-1 flex flex-col items-center justify-center relative">
+            <Separator />
+            <CardContent className="flex-1 flex flex-col items-center justify-center pt-6">
+
               {status === "idle" && (
-                <div className="text-center text-muted-foreground p-8 max-w-sm">
-                  <TrendingUp className="h-12 w-12 mx-auto mb-4 opacity-20" />
-                  <p>Enter your parameters and run the simulation to generate a forecast.</p>
+                <div className="text-center space-y-3 max-w-xs">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted mx-auto">
+                    <TrendingUp className="h-6 w-6 text-muted-foreground/40" />
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium">No simulation yet</p>
+                    <p className="text-xs text-muted-foreground">
+                      Enter your parameters and run the simulation to generate a forecast.
+                    </p>
+                  </div>
                 </div>
               )}
 
               {(status === "submitting" || status === "polling") && (
-                <div className="text-center space-y-4">
+                <div className="text-center space-y-3">
                   <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
-                  <p className="text-muted-foreground animate-pulse">Running Monte Carlo simulation...</p>
+                  <p className="text-sm text-muted-foreground">Running Monte Carlo simulation...</p>
                 </div>
               )}
 
               {status === "complete" && forecastData && (
-                <div className="w-full h-full flex flex-col">
-                  <div className="flex gap-4 mb-2 px-4">
-                    <div className="text-sm">
-                      <span className="text-muted-foreground">Historical Volatility: </span>
-                      <span className="font-mono">{(forecastData.stats.historical_annual_volatility * 100).toFixed(2)}%</span>
-                    </div>
-                    <div className="text-sm">
-                      <span className="text-muted-foreground">Expected Return: </span>
-                      <span className="font-mono">{(forecastData.stats.historical_annual_return * 100).toFixed(2)}%</span>
-                    </div>
-                  </div>
+                <div className="w-full h-full">
                   <ConeOfUncertainty data={forecastData} inputs={inputs!} />
                 </div>
               )}
+
             </CardContent>
           </Card>
         </div>

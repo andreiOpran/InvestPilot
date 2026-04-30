@@ -79,8 +79,8 @@ export function AppShell() {
       <aside className="hidden border-r bg-card md:flex md:w-64 md:flex-col">
         <div className="flex h-16 items-center px-6 border-b">
           <Link to="/dashboard" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-            <Landmark className="h-6 w-6 text-primary" />
-            <span className="text-lg font-bold">RoboAdvisor</span>
+            <Landmark className="h-5 w-5 text-primary" />
+            <span className="text-base font-semibold tracking-tight" style={{ fontFamily: "'DM Serif Display', Georgia, serif" }}>RoboAdvisor</span>
           </Link>
         </div>
         <div className="flex-1 overflow-auto py-6 px-4">
@@ -103,8 +103,8 @@ export function AppShell() {
               </SheetTrigger>
               <SheetContent side="left" className="w-64 p-0">
                 <div className="flex h-16 items-center px-6 border-b">
-                  <Landmark className="h-6 w-6 text-primary mr-2" />
-                  <span className="text-lg font-bold">RoboAdvisor</span>
+                  <Landmark className="h-5 w-5 text-primary mr-2" />
+                  <span className="text-base font-semibold tracking-tight" style={{ fontFamily: "'DM Serif Display', Georgia, serif" }}>RoboAdvisor</span>
                 </div>
                 <div className="py-6 px-4">
                   <NavLinks />

@@ -20,68 +20,86 @@ export function Settings() {
   const { user } = useAuthStore();
 
   return (
-    <div className="max-w-2xl mx-auto py-8 px-4 space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Settings</h1>
-        <p className="text-muted-foreground mt-1">Manage your account security and investment profile.</p>
+    <div className="p-6 md:p-8 space-y-6 max-w-2xl mx-auto">
+
+      {/* Header */}
+      <div className="space-y-0.5">
+        <h1 className="text-xl font-semibold tracking-tight">Settings</h1>
+        <p className="text-sm text-muted-foreground">
+          Manage your account security and investment profile.
+        </p>
       </div>
 
-      {/* Investment Profile Card */}
+      {/* Investment Profile */}
       <Card>
-        <CardHeader>
-          <CardTitle>Investment Profile</CardTitle>
-          <CardDescription>Your personalized risk and horizon settings computed from the onboarding questionnaire.</CardDescription>
+        <CardHeader className="pb-4">
+          <div className="flex items-start justify-between">
+            <div>
+              <CardTitle className="text-sm font-semibold tracking-tight">Investment Profile</CardTitle>
+              <CardDescription className="text-xs mt-0.5">
+                Risk and horizon settings computed from your onboarding questionnaire.
+              </CardDescription>
+            </div>
+            {/* {user && user.risk_tolerance > 0 && (
+              <Button variant="outline" asChild className="gap-1.5 h-8 text-xs shrink-0">
+                <Link to="/onboarding?edit=true">
+                  <ClipboardList className="h-3.5 w-3.5" />
+                  Retake
+                </Link>
+              </Button>
+            )} */}
+          </div>
         </CardHeader>
-        <CardContent className="space-y-5">
+        <CardContent className="space-y-4">
           {user && user.risk_tolerance > 0 ? (
             <>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {/* Risk Tolerance */}
-                <div className="rounded-xl border border-border/60 bg-muted/30 p-4 space-y-1">
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <TrendingUp className="h-4 w-4" />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="rounded-lg border bg-muted/30 p-4 space-y-1.5">
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <TrendingUp className="h-3.5 w-3.5" />
                     Risk Tolerance
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-lg font-bold">{riskLabels[user.risk_tolerance] ?? 'Unknown'}</span>
-                    <Badge variant="outline" className="text-xs">Level {user.risk_tolerance}/5</Badge>
+                    <span className="font-semibold text-sm">{riskLabels[user.risk_tolerance] ?? 'Unknown'}</span>
+                    <Badge variant="outline" className="text-[10px] h-4 px-1.5">
+                      Level {user.risk_tolerance}/5
+                    </Badge>
                   </div>
                 </div>
 
-                {/* Investment Horizon */}
-                <div className="rounded-xl border border-border/60 bg-muted/30 p-4 space-y-1">
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Clock className="h-4 w-4" />
+                <div className="rounded-lg border bg-muted/30 p-4 space-y-1.5">
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <Clock className="h-3.5 w-3.5" />
                     Investment Horizon
                   </div>
-                  <p className="text-lg font-bold">{user.investment_horizon} years</p>
+                  <p className="font-semibold text-sm">{user.investment_horizon} years</p>
                 </div>
               </div>
 
               <Separator />
 
               <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium">Retake Questionnaire</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">Update your profile by re-answering the onboarding questions.</p>
+                <div className="space-y-0.5">
+                  <p className="text-sm font-medium">Retake questionnaire</p>
+                  <p className="text-xs text-muted-foreground">Update your profile by re-answering the onboarding questions.</p>
                 </div>
-                <Button variant="outline" asChild className="gap-2 shrink-0">
+                <Button variant="outline" asChild className="gap-1.5 h-8 text-xs shrink-0">
                   <Link to="/onboarding?edit=true">
-                    <ClipboardList className="h-4 w-4" />
+                    <ClipboardList className="h-3.5 w-3.5" />
                     Retake
                   </Link>
                 </Button>
               </div>
             </>
           ) : (
-            <div className="flex flex-col items-center gap-4 py-4 text-center">
-              <p className="text-muted-foreground text-sm">
+            <div className="flex flex-col items-center gap-3 py-6 text-center">
+              <p className="text-sm text-muted-foreground">
                 You haven&apos;t completed your investment profile yet.
               </p>
-              <Button asChild className="gap-2">
+              <Button asChild className="gap-1.5 h-9 text-sm font-medium">
                 <Link to="/onboarding">
-                  <ClipboardList className="h-4 w-4" />
-                  Start Questionnaire
+                  <ClipboardList className="h-3.5 w-3.5" />
+                  Start questionnaire
                 </Link>
               </Button>
             </div>
@@ -89,8 +107,8 @@ export function Settings() {
         </CardContent>
       </Card>
 
+      {/* Security */}
       <TwoFactorSetup />
     </div>
   );
 }
-

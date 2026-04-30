@@ -114,7 +114,7 @@ export function AllocationPie({ showTitle = true }: AllocationPieProps) {
           <div>
             <h3 className="text-lg font-semibold">Asset Allocation</h3>
             <p className="text-sm text-muted-foreground">
-              Current distribution of your active portfolio
+              Current distribution of your portfolio
             </p>
           </div>
         ) : <div />}

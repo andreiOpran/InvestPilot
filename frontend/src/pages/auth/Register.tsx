@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Turnstile } from '@marsidev/react-turnstile';
 import { toast } from 'sonner';
+import { Landmark } from 'lucide-react';
 
 import { registerSchema, type RegisterFormValues } from '@/lib/schemas';
 import { authApi } from '@/api/auth';
@@ -26,10 +27,7 @@ export function Register() {
   const form = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
     mode: 'onChange',
-    defaultValues: {
-      email: '',
-      password: '',
-    },
+    defaultValues: { email: '', password: '' },
   });
 
   const onSubmit = async (data: RegisterFormValues) => {
@@ -43,14 +41,11 @@ export function Register() {
       navigate('/register-success');
     } catch (error: any) {
       if (error.response?.status === 409) {
-        form.setError('email', {
-          type: 'manual',
-          message: 'An account with this email already exists.',
-        });
+        form.setError('email', { type: 'manual', message: 'An account with this email already exists.' });
       } else if (error.response?.status === 400 && error.response.data?.error) {
         form.setError('password', {
-           type: 'manual',
-           message: error.response.data.error.charAt(0).toUpperCase() + error.response.data.error.slice(1) + '.',
+          type: 'manual',
+          message: error.response.data.error.charAt(0).toUpperCase() + error.response.data.error.slice(1) + '.',
         });
       } else {
         toast.error('Registration failed. Please try again.');
@@ -59,81 +54,86 @@ export function Register() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-muted/30 p-6">
-      <div className="w-full max-w-md space-y-8 rounded-2xl bg-card p-10 shadow-xl border border-border/50">
-        <div className="text-center">
-          <h2 className="text-3xl font-bold tracking-tight text-card-foreground">Create an account</h2>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Enter your details to get started with RoboAdvisor
-          </p>
+    <div className="flex min-h-screen flex-col items-center justify-center bg-muted/30 px-4 py-12">
+      <div className="w-full max-w-sm space-y-6">
+
+        {/* Logo */}
+        <div className="flex flex-col items-center gap-2 text-center">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl border bg-background shadow-sm">
+            <Landmark className="h-5 w-5 text-primary" />
+          </div>
+          <div>
+            <p className="text-sm font-semibold tracking-tight">RoboAdvisor</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Create your account</p>
+          </div>
         </div>
 
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            {(form.formState.errors.email || form.formState.errors.password) && (
-              <Alert variant="destructive">
-                <AlertDescription className="space-y-1">
-                  {form.formState.errors.email?.message && (
-                    <p>{form.formState.errors.email.message}</p>
-                  )}
-                  {form.formState.errors.password?.message && (
-                    <p>{form.formState.errors.password.message}</p>
-                  )}
-                </AlertDescription>
-              </Alert>
-            )}
+        {/* Card */}
+        <div className="rounded-xl border bg-card shadow-sm p-6 space-y-5">
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
 
-            <FormField
-              control={form.control}
-              name="email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Email</FormLabel>
-                  <FormControl>
-                    <Input placeholder="you@example.com" {...field} className="h-11" />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
+              {(form.formState.errors.email || form.formState.errors.password) && (
+                <Alert variant="destructive">
+                  <AlertDescription className="space-y-1">
+                    {form.formState.errors.email?.message && <p>{form.formState.errors.email.message}</p>}
+                    {form.formState.errors.password?.message && <p>{form.formState.errors.password.message}</p>}
+                  </AlertDescription>
+                </Alert>
               )}
-            />
 
-            <FormField
-              control={form.control}
-              name="password"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Password</FormLabel>
-                  <FormControl>
-                    <Input type="password" placeholder="••••••••" {...field} className="h-11" />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <div className="flex justify-center overflow-hidden rounded-md border border-border/50 bg-muted/20">
-              <Turnstile
-                siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY || '1x00000000000000000000AA'}
-                onSuccess={(token) => setTurnstileToken(token)}
-                onError={() => toast.error("Anti-bot check failed. Please try again.")}
-                options={{ theme: 'auto' }}
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Email</FormLabel>
+                    <FormControl>
+                      <Input placeholder="you@example.com" {...field} className="h-10" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
-            </div>
 
-            <Button
-              type="submit"
-              className="w-full h-11 text-base font-semibold"
-              disabled={form.formState.isSubmitting || !turnstileToken}
-            >
-              {form.formState.isSubmitting ? 'Creating account...' : 'Create Account'}
-            </Button>
-          </form>
-        </Form>
+              <FormField
+                control={form.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Password</FormLabel>
+                    <FormControl>
+                      <Input type="password" placeholder="••••••••" {...field} className="h-10" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-        <p className="text-center text-sm text-muted-foreground">
+              <div className="flex justify-center overflow-hidden rounded-lg border border-border/50 bg-muted/20">
+                <Turnstile
+                  siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY || '1x00000000000000000000AA'}
+                  onSuccess={(token) => setTurnstileToken(token)}
+                  onError={() => toast.error('Anti-bot check failed. Please try again.')}
+                  options={{ theme: 'auto' }}
+                />
+              </div>
+
+              <Button
+                type="submit"
+                className="w-full h-10 font-medium"
+                disabled={form.formState.isSubmitting || !turnstileToken}
+              >
+                {form.formState.isSubmitting ? 'Creating account...' : 'Create account'}
+              </Button>
+            </form>
+          </Form>
+        </div>
+
+        <p className="text-center text-xs text-muted-foreground">
           Already have an account?{' '}
-          <Link to="/login" className="font-semibold text-primary hover:text-primary/80 transition-colors">
-            Log in
+          <Link to="/login" className="font-medium text-foreground hover:text-primary transition-colors">
+            Sign in
           </Link>
         </p>
       </div>

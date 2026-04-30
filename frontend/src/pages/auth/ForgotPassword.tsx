@@ -4,19 +4,12 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Turnstile } from '@marsidev/react-turnstile';
 import { toast } from 'sonner';
-import { MailCheck, ArrowLeft } from 'lucide-react';
+import { MailCheck, ArrowLeft, Landmark } from 'lucide-react';
 
 import { forgotPasswordSchema, type ForgotPasswordFormValues } from '@/lib/schemas';
 import { authApi } from '@/api/auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
 import {
   Form,
   FormControl,
@@ -43,92 +36,101 @@ export function ForgotPassword() {
 
     try {
       await authApi.forgotPassword(data.email, turnstileToken);
-      // Always show success regardless of the response, to prevent email enumeration.
       setIsSubmitted(true);
     } catch (error) {
-      // In case of 500 or rate limits, still show generic error,
-      // but otherwise pretend it worked for 4xx (except 429).
       toast.error('An error occurred. Please try again later.');
     }
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-muted/30 p-6">
-      <Card className="w-full max-w-md shadow-xl border-border/50">
-        {!isSubmitted ? (
-          <>
-            <CardHeader className="text-center pb-2">
-              <CardTitle className="text-3xl font-bold tracking-tight">Forgot Password</CardTitle>
-              <CardDescription>
-                Enter your email address and we&apos;ll send you a link to reset your password.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6 pt-4">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-muted/30 px-4 py-12">
+      <div className="w-full max-w-sm space-y-6">
+
+        {/* Logo */}
+        <div className="flex flex-col items-center gap-2 text-center">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl border bg-background shadow-sm">
+            <Landmark className="h-5 w-5 text-primary" />
+          </div>
+          <div>
+            <p className="text-sm font-semibold tracking-tight">RoboAdvisor</p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {isSubmitted ? 'Check your inbox' : 'Reset your password'}
+            </p>
+          </div>
+        </div>
+
+        {/* Card */}
+        <div className="rounded-xl border bg-card shadow-sm p-6 space-y-5">
+
+          {!isSubmitted ? (
+            <>
+              <div className="text-center space-y-1">
+                <p className="text-sm text-muted-foreground">
+                  Enter your email address and we&apos;ll send you a link to reset your password.
+                </p>
+              </div>
+
               <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                   <FormField
                     control={form.control}
                     name="email"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Email</FormLabel>
+                        <FormLabel className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Email</FormLabel>
                         <FormControl>
-                          <Input placeholder="you@example.com" {...field} className="h-11" />
+                          <Input placeholder="you@example.com" {...field} className="h-10" />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
 
-                  <div className="flex justify-center overflow-hidden rounded-md border border-border/50 bg-muted/20">
+                  <div className="flex justify-center overflow-hidden rounded-lg border border-border/50 bg-muted/20">
                     <Turnstile
                       siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY || '1x00000000000000000000AA'}
                       onSuccess={(token) => setTurnstileToken(token)}
-                      onError={() => toast.error("Anti-bot check failed. Please try again.")}
+                      onError={() => toast.error('Anti-bot check failed. Please try again.')}
                       options={{ theme: 'auto' }}
                     />
                   </div>
 
                   <Button
                     type="submit"
-                    className="w-full h-11 text-base font-semibold"
+                    className="w-full h-10 font-medium"
                     disabled={form.formState.isSubmitting || !turnstileToken}
                   >
-                    {form.formState.isSubmitting ? 'Sending Link...' : 'Send Reset Link'}
+                    {form.formState.isSubmitting ? 'Sending...' : 'Send reset link'}
                   </Button>
                 </form>
               </Form>
 
-              <div className="text-center">
-                <Button variant="ghost" asChild className="text-muted-foreground">
-                  <Link to="/login">
-                    <ArrowLeft className="mr-2 h-4 w-4" />
-                    Back to login
-                  </Link>
-                </Button>
-              </div>
-            </CardContent>
-          </>
-        ) : (
-          <>
-            <CardHeader className="text-center pb-2">
-              <div className="flex justify-center mb-4">
-                <MailCheck className="h-20 w-20 text-primary" />
-              </div>
-              <CardTitle className="text-2xl font-bold tracking-tight">Check your inbox</CardTitle>
-            </CardHeader>
-            <CardContent className="flex flex-col items-center space-y-6 pt-4 pb-8">
-              <p className="text-center text-muted-foreground text-sm">
-                If an account with that email exists, a reset link has been sent.
-                Please check your inbox and click the link to reset your password.
-              </p>
-              <Button asChild variant="outline" className="w-full h-11 text-base">
-                <Link to="/login">Return to Login</Link>
+              <Button variant="ghost" asChild className="w-full text-muted-foreground text-sm">
+                <Link to="/login">
+                  <ArrowLeft className="mr-2 h-3.5 w-3.5" />
+                  Back to login
+                </Link>
               </Button>
-            </CardContent>
-          </>
-        )}
-      </Card>
+            </>
+          ) : (
+            <div className="flex flex-col items-center text-center space-y-4 py-4">
+              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary/10">
+                <MailCheck className="h-7 w-7 text-primary" />
+              </div>
+              <div className="space-y-1">
+                <p className="font-semibold text-sm">Email sent</p>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  If an account with that email exists, a reset link has been sent.
+                  Please check your inbox and click the link to reset your password.
+                </p>
+              </div>
+              <Button asChild variant="outline" className="w-full h-10 font-medium">
+                <Link to="/login">Return to login</Link>
+              </Button>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
