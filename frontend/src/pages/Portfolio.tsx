@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { TrendingUp, TrendingDown, DollarSign, BarChart3 } from "lucide-react";
+import { TrendingUp, TrendingDown, DollarSign, BarChart3, LineChart } from "lucide-react";
 
 import { portfolioApi } from "@/api/portfolio";
 import { ValueOverTime } from "@/components/charts/ValueOverTime";
@@ -11,10 +11,8 @@ import { InvestDialog } from "@/components/transactions/InvestDialog";
 import { SellDialog } from "@/components/transactions/SellDialog";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Separator } from "@/components/ui/separator";
 
 function formatUSD(value: number) {
   return new Intl.NumberFormat("en-US", {
@@ -77,6 +75,7 @@ function StatCard({ label, value, sub, subPositive, icon, loading }: StatCardPro
 export function Portfolio() {
   const [investOpen, setInvestOpen] = useState(false);
   const [sellOpen, setSellOpen] = useState(false);
+  const [chartTab, setChartTab] = useState<"value" | "performance">("value");
 
   const { data, isLoading } = useQuery({
     queryKey: ["portfolio-allocation"],
@@ -171,21 +170,48 @@ export function Portfolio() {
 
         {/* Performance charts — wider column */}
         <Card className="xl:col-span-3">
-          <CardContent className="pt-6">
-            <Tabs defaultValue="value">
-              <div className="flex items-center justify-between mb-4">
-                <TabsList>
-                  <TabsTrigger value="value">Value</TabsTrigger>
-                  <TabsTrigger value="performance">Performance</TabsTrigger>
-                </TabsList>
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <div>
+                {chartTab === "value" ? (
+                  <>
+                    <h3 className="text-lg font-semibold">Portfolio Value Over Time</h3>
+                    <p className="text-sm text-muted-foreground">Absolute market value of your active portfolio</p>
+                  </>
+                ) : (
+                  <>
+                    <h3 className="text-lg font-semibold">Performance</h3>
+                    <p className="text-sm text-muted-foreground">Return since the start of the selected range</p>
+                  </>
+                )}
               </div>
-              <TabsContent value="value" className="mt-0">
-                <ValueOverTime onInvestClick={() => setInvestOpen(true)} />
-              </TabsContent>
-              <TabsContent value="performance" className="mt-0">
-                <PerformanceChart onInvestClick={() => setInvestOpen(true)} />
-              </TabsContent>
-            </Tabs>
+              <div className="flex bg-muted/50 p-1 rounded-lg">
+                <Button
+                  variant={chartTab === "value" ? "secondary" : "ghost"}
+                  size="sm"
+                  onClick={() => setChartTab("value")}
+                  className="h-8 px-3"
+                >
+                  <LineChart className="h-4 w-4 mr-2" />
+                  Value
+                </Button>
+                <Button
+                  variant={chartTab === "performance" ? "secondary" : "ghost"}
+                  size="sm"
+                  onClick={() => setChartTab("performance")}
+                  className="h-8 px-3"
+                >
+                  <TrendingUp className="h-4 w-4 mr-2" />
+                  Performance
+                </Button>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="pt-2">
+            {chartTab === "value"
+              ? <ValueOverTime onInvestClick={() => setInvestOpen(true)} />
+              : <PerformanceChart onInvestClick={() => setInvestOpen(true)} />
+            }
           </CardContent>
         </Card>
       </div>

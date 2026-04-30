@@ -119,13 +119,7 @@ export function PerformanceChart({ onInvestClick }: PerformanceChartProps) {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-start justify-between flex-wrap gap-2">
-        <div>
-          <h3 className="text-lg font-semibold">Performance</h3>
-          <p className="text-sm text-muted-foreground">
-            Return since the start of the selected range
-          </p>
-        </div>
+      <div className="flex items-start justify-end flex-wrap gap-2">
         <TimeRangeSelector value={range} onChange={setRange} />
       </div>
 

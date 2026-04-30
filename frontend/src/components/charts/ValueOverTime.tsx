@@ -91,11 +91,7 @@ export function ValueOverTime({ onInvestClick }: ValueOverTimeProps) {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-start justify-between flex-wrap gap-2">
-        <div>
-          <h3 className="text-lg font-semibold">Portfolio Value Over Time</h3>
-          <p className="text-sm text-muted-foreground">Absolute market value of your active portfolio</p>
-        </div>
+      <div className="flex items-start justify-end flex-wrap gap-2">
         <TimeRangeSelector value={range} onChange={setRange} />
       </div>
 
