@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 
 import { registerSchema, type RegisterFormValues } from '@/lib/schemas';
 import { authApi } from '@/api/auth';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -24,6 +25,7 @@ export function Register() {
 
   const form = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
+    mode: 'onChange',
     defaultValues: {
       email: '',
       password: '',
@@ -48,7 +50,7 @@ export function Register() {
       } else if (error.response?.status === 400 && error.response.data?.error) {
         form.setError('password', {
            type: 'manual',
-           message: error.response.data.error,
+           message: error.response.data.error.charAt(0).toUpperCase() + error.response.data.error.slice(1) + '.',
         });
       } else {
         toast.error('Registration failed. Please try again.');
@@ -68,6 +70,19 @@ export function Register() {
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            {(form.formState.errors.email || form.formState.errors.password) && (
+              <Alert variant="destructive">
+                <AlertDescription className="space-y-1">
+                  {form.formState.errors.email?.message && (
+                    <p>{form.formState.errors.email.message}</p>
+                  )}
+                  {form.formState.errors.password?.message && (
+                    <p>{form.formState.errors.password.message}</p>
+                  )}
+                </AlertDescription>
+              </Alert>
+            )}
+
             <FormField
               control={form.control}
               name="email"

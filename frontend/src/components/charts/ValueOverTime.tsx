@@ -29,35 +29,15 @@ function formatUSD(value: number) {
   }).format(value);
 }
 
-function formatXAxis(timestamp: string, range: TimeRange) {
-  const date = parseISO(timestamp);
-  switch (range) {
-    case "1D":
-      return format(date, "HH:mm");
-    case "1W":
-      return format(date, "EEE");
-    case "1M":
-      return format(date, "MMM d");
-    case "6M":
-    case "YTD":
-      return format(date, "MMM");
-    case "1Y":
-      return format(date, "MMM yy");
-    case "5Y":
-      return format(date, "yyyy");
-    default:
-      return format(date, "MMM d");
-  }
-}
-
 interface CustomTooltipProps {
   active?: boolean;
   payload?: any[];
   label?: string;
   showNetContributions: boolean;
+  range: TimeRange;
 }
 
-function CustomTooltip({ active, payload, label, showNetContributions }: CustomTooltipProps) {
+function CustomTooltip({ active, payload, label, showNetContributions, range }: CustomTooltipProps) {
   if (!active || !payload || payload.length === 0) return null;
 
   const portfolioValue = payload.find((p) => p.dataKey === "portfolio_value")?.value ?? 0;
@@ -66,9 +46,13 @@ function CustomTooltip({ active, payload, label, showNetContributions }: CustomT
   const gainLossPct = netContributions > 0 ? (gainLoss / netContributions) * 100 : 0;
   const isGain = gainLoss >= 0;
 
+  const displayDate = label
+    ? format(parseISO(label), range === "1D" ? "HH:mm" : range === "1W" ? "HH:mm EEE" : "PPP")
+    : "";
+
   return (
     <div className="rounded-lg border bg-popover p-3 shadow-lg text-sm space-y-1.5 min-w-[200px]">
-      <p className="font-medium text-foreground">{label ? format(parseISO(label), "PPP") : ""}</p>
+      <p className="font-medium text-foreground">{displayDate}</p>
       <div className="flex justify-between gap-4">
         <span className="text-muted-foreground">Portfolio Value</span>
         <span className="font-mono font-semibold">{formatUSD(portfolioValue)}</span>
@@ -140,8 +124,7 @@ export function ValueOverTime({ onInvestClick }: ValueOverTimeProps) {
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" strokeOpacity={0.5} />
                 <XAxis
                   dataKey="timestamp"
-                  tickFormatter={(v) => formatXAxis(v, range)}
-                  tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
+                  tick={false}
                   axisLine={false}
                   tickLine={false}
                 />
@@ -153,7 +136,7 @@ export function ValueOverTime({ onInvestClick }: ValueOverTimeProps) {
                   width={75}
                 />
                 <Tooltip
-                  content={<CustomTooltip showNetContributions={showNetContributions} />}
+                  content={<CustomTooltip showNetContributions={showNetContributions} range={range} />}
                   cursor={{ stroke: "var(--border)", strokeWidth: 1 }}
                 />
                 <Legend

@@ -178,7 +178,7 @@ export function Dashboard() {
               <Skeleton className="h-9 w-36 mt-1" />
             ) : (
               <CardTitle className="text-3xl font-bold tracking-tight">
-                {hasPortfolio ? formatUSD(liveTotal) : "—"}
+                {hasPortfolio ? formatUSD(liveTotal) : "N/A"}
               </CardTitle>
             )}
           </CardHeader>
@@ -209,11 +209,11 @@ export function Dashboard() {
               </div>
             ) : (
               <p className="text-sm text-muted-foreground">
-                No active investments yet. Deposit funds and click Invest to
+                No active investments yet. Deposit funds and go to Full Portfolio to
                 get started.
               </p>
             )}
-            <Button asChild variant="ghost" size="sm" className="w-full gap-1.5 text-xs mt-auto">
+            <Button asChild size="sm" className="w-full gap-1.5 text-xs mt-auto">
               <Link to="/portfolio">
                 View Full Portfolio
                 <ArrowRight className="h-3.5 w-3.5" />
@@ -237,10 +237,11 @@ export function Dashboard() {
             <CardDescription>
               Project your portfolio's future value across 10,000 market
               scenarios. Personalized to your risk profile
-              {hasProfile ? ` (${riskLabels[user!.risk_tolerance]}, ${user!.investment_horizon}Y horizon)` : ""}.
+              {hasProfile ? ` (${riskLabels[user!.risk_tolerance]})` : ""}.
             </CardDescription>
             <Separator />
-            <Button asChild className="w-full gap-2">
+            {/* <Button asChild variant="ghost" size="sm" className="w-full gap-1.5 text-xs mt-auto"></Button> */}
+            <Button asChild size="sm" className="w-full gap-1.5 text-xs mt-auto">
               <Link to="/forecast">
                 Launch Forecaster
                 <ArrowRight className="h-4 w-4" />

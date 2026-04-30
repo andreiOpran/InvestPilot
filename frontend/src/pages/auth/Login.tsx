@@ -88,17 +88,37 @@ export function Login() {
       navigate('/dashboard');
     } catch (error: any) {
       const status = error.response?.status;
+      const serverMsg: string = error.response?.data?.error || error.response?.data?.message || '';
 
       if (status === 401) {
         form.setError('root', {
           type: 'manual',
           message: 'Invalid email or password.',
         });
+      } else if (status === 403) {
+        form.setError('root', {
+          type: 'manual',
+          message: 'Anti-bot verification failed. Please wait for the challenge to reload.',
+        });
+      } else if (status === 423) {
+        form.setError('root', {
+          type: 'manual',
+          message: serverMsg || 'Your account is temporarily locked. Please try again in 15 minutes.',
+        });
       } else if (status === 429) {
+        form.setError('root', {
+          type: 'manual',
+          message: serverMsg || 'Too many failed attempts. Please wait before trying again.',
+        });
         setRateLimited(true);
         setTimeout(() => setRateLimited(false), 5000);
+      } else if (!error.response) {
+        form.setError('root', {
+          type: 'manual',
+          message: 'Unable to reach the server. Check your connection and try again.',
+        });
       }
-      // other errors (5xx, 423) handled by axios interceptor
+      // 5xx handled by the axios interceptor toast
     }
   };
 
@@ -127,10 +147,15 @@ export function Login() {
 
       navigate('/dashboard');
     } catch (error: any) {
-      if (error.response?.status === 401) {
-        setTotpError('Invalid code. Please try again.');
+      const status = error.response?.status;
+      if (status === 401) {
+        setTotpError('Incorrect code. Please check your authenticator app and try again.');
+      } else if (status === 429 || status === 423) {
+        setTotpError('Too many failed attempts. Your account has been temporarily locked.');
+      } else if (!error.response) {
+        setTotpError('Unable to reach the server. Check your connection and try again.');
       } else {
-        toast.error('Verification failed. Please try again.');
+        setTotpError('Verification failed. Please go back and try again.');
       }
     } finally {
       setTwoFASubmitting(false);
@@ -178,12 +203,23 @@ export function Login() {
               <Form {...form}>
                 <form onSubmit={form.handleSubmit(onCredentialsSubmit)} className="space-y-5">
 
-                  {/* Root-level form error (invalid credentials) */}
-                  {form.formState.errors.root && (
+                  {/* Server errors (root) or client-side field validation errors */}
+                  {form.formState.errors.root ? (
                     <Alert variant="destructive">
                       <AlertDescription>{form.formState.errors.root.message}</AlertDescription>
                     </Alert>
-                  )}
+                  ) : (form.formState.errors.email || form.formState.errors.password) ? (
+                    <Alert variant="destructive">
+                      <AlertDescription className="space-y-1">
+                        {form.formState.errors.email?.message && (
+                          <p>{form.formState.errors.email.message}</p>
+                        )}
+                        {form.formState.errors.password?.message && (
+                          <p>{form.formState.errors.password.message}</p>
+                        )}
+                      </AlertDescription>
+                    </Alert>
+                  ) : null}
 
                   <FormField
                     control={form.control}

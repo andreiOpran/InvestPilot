@@ -10,15 +10,44 @@ const emailValidation = z
   .min(1, "Email is required")
   .regex(/^[^\s@]+@[^\s@]+\.[^\s@]+$/, "Please enter a valid email address");
 
-// match go password complexity requirements
-const passwordComplexity = z
-  .string()
-  .min(10, "Password must be at least 10 characters long")
-  .max(128, "Password must be at most 128 characters long")
-  .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
-  .regex(/[a-z]/, "Password must contain at least one lowercase letter")
-  .regex(/[0-9]/, "Password must contain at least one number")
-  .regex(/[\W_]/, "Password must contain at least one special character");
+// Validates password requirements one at a time (early exit) so only the first
+// unmet requirement is shown. userInputs are fed to zxcvbn for context-aware scoring.
+// Validates password requirements one at a time (early exit) so only the first
+// unmet requirement is shown. userInputs are fed to zxcvbn for context-aware scoring.
+function addPasswordIssues(
+  password: string,
+  userInputs: string[],
+  ctx: z.RefinementCtx,
+  path: string[]
+) {
+  if (password.length < 10) {
+    ctx.addIssue({ code: "custom", message: "Password must be at least 10 characters", path });
+    return;
+  }
+  if (password.length > 128) {
+    ctx.addIssue({ code: "custom", message: "Password must be at most 128 characters", path });
+    return;
+  }
+  if (!/[A-Z]/.test(password)) {
+    ctx.addIssue({ code: "custom", message: "Password must contain at least one uppercase letter", path });
+    return;
+  }
+  if (!/[a-z]/.test(password)) {
+    ctx.addIssue({ code: "custom", message: "Password must contain at least one lowercase letter", path });
+    return;
+  }
+  if (!/[0-9]/.test(password)) {
+    ctx.addIssue({ code: "custom", message: "Password must contain at least one number", path });
+    return;
+  }
+  if (!/[\W_]/.test(password)) {
+    ctx.addIssue({ code: "custom", message: "Must contain at least one special character (e.g. !@#$%)", path });
+    return;
+  }
+  if (zxcvbn(password, userInputs).score < 3) {
+    ctx.addIssue({ code: "custom", message: "Password is too weak or easily guessable — add more variety", path });
+  }
+}
 
 // 6-digit numeric token for 2FA
 const token2FASchema = z
@@ -34,17 +63,15 @@ const amountSchema = z.coerce
 
 // Authentication Schemas
 
-export const registerSchema = z.object({
-  email: emailValidation,
-  password: passwordComplexity,
-}).refine((data) => {
-  if (!data.password || !data.email) return true;
-  const result = zxcvbn(data.password, [data.email]);
-  return result.score >= 3;
-}, {
-  message: "Password is too weak, easily guessable, or commonly used. Please make it stronger.",
-  path: ["password"],
-});
+export const registerSchema = z
+  .object({
+    email: emailValidation,
+    password: z.string().min(1, "Password is required"),
+  })
+  .superRefine(({ email, password }, ctx) => {
+    if (!password) return;
+    addPasswordIssues(password, [email], ctx, ["password"]);
+  });
 
 export const loginSchema = z.object({
   email: emailValidation,
@@ -68,12 +95,16 @@ export const forgotPasswordSchema = z.object({
 export const resetPasswordSchema = z
   .object({
     token: z.string().min(1, "Reset token is required"),
-    newPassword: passwordComplexity,
+    newPassword: z.string().min(1, "Password is required"),
     confirmPassword: z.string().min(1, "Please confirm your password"),
   })
-  .refine((data) => data.newPassword === data.confirmPassword, {
-    message: "Passwords do not match",
-    path: ["confirmPassword"],
+  .superRefine(({ newPassword, confirmPassword }, ctx) => {
+    if (newPassword) {
+      addPasswordIssues(newPassword, [], ctx, ["newPassword"]);
+    }
+    if (newPassword !== confirmPassword) {
+      ctx.addIssue({ code: "custom", message: "Passwords do not match", path: ["confirmPassword"] });
+    }
   });
 
 

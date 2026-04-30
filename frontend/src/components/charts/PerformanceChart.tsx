@@ -17,27 +17,6 @@ import { TimeRangeSelector, type TimeRange } from "./TimeRangeSelector";
 import { ChartErrorBoundary, ChartSkeleton } from "./ChartErrorBoundary";
 import { portfolioApi } from "@/api/portfolio";
 
-function formatXAxis(timestamp: string, range: TimeRange) {
-  const date = parseISO(timestamp);
-  switch (range) {
-    case "1D":
-      return format(date, "HH:mm");
-    case "1W":
-      return format(date, "EEE");
-    case "1M":
-      return format(date, "MMM d");
-    case "6M":
-    case "YTD":
-      return format(date, "MMM");
-    case "1Y":
-      return format(date, "MMM yy");
-    case "5Y":
-      return format(date, "yyyy");
-    default:
-      return format(date, "MMM d");
-  }
-}
-
 function formatPct(value: number) {
   const sign = value >= 0 ? "+" : "";
   return `${sign}${value.toFixed(2)}%`;
@@ -57,6 +36,7 @@ interface CustomTooltipProps {
   payload?: any[];
   label?: string;
   data: PerformancePoint[];
+  range: TimeRange;
 }
 
 interface PerformancePoint {
@@ -67,7 +47,7 @@ interface PerformancePoint {
   absoluteChange: number;
 }
 
-function CustomTooltip({ active, payload, label, data }: CustomTooltipProps) {
+function CustomTooltip({ active, payload, label, data, range }: CustomTooltipProps) {
   if (!active || !payload || payload.length === 0) return null;
 
   const returnPct: number = payload[0]?.value ?? 0;
@@ -77,9 +57,13 @@ function CustomTooltip({ active, payload, label, data }: CustomTooltipProps) {
   const point = data.find((d) => d.timestamp === label);
   const absoluteChange = point?.absoluteChange ?? 0;
 
+  const displayDate = label
+    ? format(parseISO(label), range === "1D" ? "HH:mm" : range === "1W" ? "HH:mm EEE" : "PPP")
+    : "";
+
   return (
     <div className="rounded-lg border bg-popover p-3 shadow-lg text-sm space-y-1.5 min-w-[200px]">
-      <p className="font-medium text-foreground">{label ? format(parseISO(label), "PPP") : ""}</p>
+      <p className="font-medium text-foreground">{displayDate}</p>
       <div className="flex justify-between gap-4">
         <span className="text-muted-foreground">Return (since range start)</span>
         <span
@@ -173,8 +157,7 @@ export function PerformanceChart({ onInvestClick }: PerformanceChartProps) {
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" strokeOpacity={0.5} />
                 <XAxis
                   dataKey="timestamp"
-                  tickFormatter={(v) => formatXAxis(v, range)}
-                  tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
+                  tick={false}
                   axisLine={false}
                   tickLine={false}
                 />
@@ -186,7 +169,7 @@ export function PerformanceChart({ onInvestClick }: PerformanceChartProps) {
                   width={65}
                 />
                 <Tooltip
-                  content={<CustomTooltip data={enriched} />}
+                  content={<CustomTooltip data={enriched} range={range} />}
                   cursor={{ stroke: "var(--border)", strokeWidth: 1 }}
                 />
 
