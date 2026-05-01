@@ -234,10 +234,10 @@ All auth forms use `react-hook-form` + `zod` via `zodResolver`. Error messages r
 - [x] Active route highlighted in sidebar using `NavLink` from `react-router-dom`
 
 ### 6.2 Dashboard Overview Page (`/dashboard`)
-- [ ] Wallet balance card (from `GET /user`)
-- [ ] Quick action buttons: Deposit, Invest, Cashout (open shadcn/ui `<Dialog>` modals)
-- [ ] Portfolio allocation chart preview (teaser `<AllocationPie />` linking to full `/portfolio` page)
-- [ ] Onboarding callout card: if `user.riskTolerance === 0`, show a prominent prompt to complete financial profile
+- [x] Wallet balance card (from `GET /user`)
+- [x] Quick action buttons: Deposit, Invest, Cashout (open shadcn/ui `<Dialog>` modals)
+- [x]  Portfolio allocation chart preview (teaser `<AllocationPie />` linking to full `/portfolio` page)
+- [x] Onboarding callout card: if `user.riskTolerance === 0`, show a prominent prompt to complete financial profile
 
 ---
 
@@ -407,14 +407,14 @@ Displays the complete financial event log for the user, covering all four transa
 ## Section 10 — Polish, Error Handling & Security
 
 ### 10.1 Global Toast Notifications (Sonner)
-- [ ] `<Toaster />` mounted once in `main.tsx` — never instantiated inside components
-- [ ] `toast.error(message)` used in the axios interceptor for all global HTTP errors:
+- [x] `<Toaster />` mounted once in `main.tsx` — never instantiated inside components
+- [x] `toast.error(message)` used in the axios interceptor for all global HTTP errors:
   - `429`: "Too many requests. Please wait before trying again."
   - `423` / account lockout `400`: "Account locked. Please try again in 15 minutes."
   - `5xx`: "A server error occurred. Please try again shortly."
-- [ ] `toast.success(message)` used for key user actions: deposit, invest, cashout, profile update, 2FA enable
-- [ ] `toast.loading(message)` used for async operations: forecast submission
-- [ ] Never show raw API error messages or stack traces in toasts — use pre-written, user-friendly strings
+- [x] `toast.success(message)` used for key user actions: deposit, invest, cashout, profile update, 2FA enable
+- [x] `toast.loading(message)` used for async operations: forecast submission
+- [x] Never show raw API error messages or stack traces in toasts — use pre-written, user-friendly strings
 
 ### 10.2 Loading Skeleton States
 - [ ] Full-page skeleton during silent token restore (`status === "loading"`)

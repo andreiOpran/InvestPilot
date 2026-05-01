@@ -92,9 +92,10 @@ export function Onboarding() {
       const updatedUser = userRes.data;
       setUser(updatedUser);
       setSummaryData({ riskTolerance: updatedUser.risk_tolerance, investmentHorizon: updatedUser.investment_horizon });
+      toast.success(isEditMode ? 'Investment profile updated.' : 'Profile created successfully.');
       setViewState('summary');
     } catch (error: any) {
-      toast.error(error.response?.data?.error ?? 'Something went wrong. Please try again.');
+      toast.error('Something went wrong. Please try again.');
       setViewState('questions');
     }
   };

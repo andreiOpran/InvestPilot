@@ -55,7 +55,7 @@ export function DepositDialog({ open, onOpenChange }: DepositDialogProps) {
       onOpenChange(false);
       form.reset();
     } catch (error: any) {
-      toast.error(error.response?.data?.error || "Failed to process deposit");
+      toast.error("Failed to process deposit. Please try again.");
     } finally {
       setIsSubmitting(false);
     }

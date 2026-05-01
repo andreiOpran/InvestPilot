@@ -65,13 +65,10 @@ export function InvestDialog({ open, onOpenChange, onSuccess }: InvestDialogProp
         onSuccess();
       }
     } catch (error: any) {
-      const msg = error.response?.data?.error || "Failed to process investment";
-      
-      // Handle the 400 insufficient balance specifically if needed
-      if (error.response?.status === 400 && msg.toLowerCase().includes("insufficient")) {
+      if (error.response?.status === 400 && (error.response?.data?.error ?? "").toLowerCase().includes("insufficient")) {
         form.setError("amount", { type: "manual", message: "Insufficient balance in wallet" });
       } else {
-        toast.error(msg);
+        toast.error("Failed to process investment. Please try again.");
       }
     } finally {
       setIsSubmitting(false);

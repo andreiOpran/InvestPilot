@@ -21,6 +21,7 @@ export function useForecast() {
   const [taskId, setTaskId] = useState<string | null>(null);
   const [forecastData, setForecastData] = useState<ForecastData | null>(null);
   const [inputs, setInputs] = useState<{initialInvestment: number, monthlyContribution: number} | null>(null);
+  const [loadingToastId, setLoadingToastId] = useState<string | number | null>(null);
 
   const { data: statusData, error: pollError } = useQuery({
     queryKey: ["forecastStatus", taskId],
@@ -32,15 +33,18 @@ export function useForecast() {
   useEffect(() => {
     if (pollError) {
       setStatus("error");
+      if (loadingToastId !== null) toast.dismiss(loadingToastId);
       toast.error("Forecast computation failed");
     } else if (statusData?.data) {
       const { status: taskStatus, payload } = statusData.data;
 
       if (taskStatus === "complete") {
+        if (loadingToastId !== null) toast.dismiss(loadingToastId);
         setForecastData(payload as ForecastData);
         setStatus("complete");
       } else if (taskStatus === "error" || taskStatus === "failed") {
         setStatus("error");
+        if (loadingToastId !== null) toast.dismiss(loadingToastId);
         toast.error("Forecast computation failed");
       }
     }
@@ -50,14 +54,17 @@ export function useForecast() {
     try {
       setStatus("submitting");
       setInputs({ initialInvestment, monthlyContribution });
+      const id = toast.loading("Running forecast. This may take a few seconds…");
+      setLoadingToastId(id);
       const res = await forecastApi.requestForecast(initialInvestment, monthlyContribution, years);
       setTaskId(res.data.task_id);
       setStatus("polling");
     } catch (err: any) {
       setStatus("error");
-      const status = err.response?.status;
+      if (loadingToastId !== null) toast.dismiss(loadingToastId);
+      const errStatus = err.response?.status;
       const serverMsg: string = err.response?.data?.error ?? "";
-      if (status === 422 || serverMsg.toLowerCase().includes("no active portfolio")) {
+      if (errStatus === 422 || serverMsg.toLowerCase().includes("no active portfolio")) {
         toast.error("You need an active portfolio before running a forecast. Invest first.");
       } else {
         toast.error("Failed to submit forecast request");

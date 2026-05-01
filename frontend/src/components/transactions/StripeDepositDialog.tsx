@@ -120,7 +120,7 @@ function AmountForm({ onIntentCreated }: AmountFormProps) {
         toast.error("Failed to initialize payment.");
       }
     } catch (error: any) {
-      toast.error(error.response?.data?.error || "Error initializing payment.");
+      toast.error("Failed to initialize payment. Please try again.");
     } finally {
       setIsSubmitting(false);
     }

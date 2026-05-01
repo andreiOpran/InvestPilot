@@ -464,6 +464,8 @@ An `EmailSender` interface decouples email logic from business logic.
 
 ### Phase 5: Frontend Dashboard
 
+This is just a quick introduction, the actual frontend plan is written in ./PLAN_FRONTEND.md
+
 - [ ] Serve static HTML/JS from the Go router
 - [ ] Build Login/Register UI (including 2FA QR code display and verification step)
 - [ ] Build Dashboard UI: current balance, Stripe deposit form, portfolio allocation

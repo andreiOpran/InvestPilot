@@ -22,7 +22,7 @@ createRoot(document.getElementById("root")!).render(
     <QueryClientProvider client={queryClient}>
       <ThemeProvider defaultTheme="system" enableSystem={true} attribute="class" storageKey="theme">
         <App />
-        <Toaster richColors position="top-right" />
+        <Toaster richColors position="top-center" />
         <ReactQueryDevtools initialIsOpen={false} />
       </ThemeProvider>
     </QueryClientProvider>

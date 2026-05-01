@@ -24,20 +24,20 @@ apiClient.interceptors.response.use(
     const originalRequest = error.config;
 
     if (error.response && error.response.status >= 500) {
-      toast.error('Server error. Please try again shortly.');
+      toast.error('A server error occurred. Please try again shortly.');
       return Promise.reject(error);
     }
 
     if (error.response?.status === 429) {
-      toast.error('Too many requests. Please slow down.');
+      toast.error('Too many requests. Please wait before trying again.');
       return Promise.reject(error);
     }
 
     if (
       error.response?.status === 423 ||
-      (error.response?.status === 403 && error.response.data?.message?.toLowerCase().includes('lock'))
+      (error.response?.status === 400 && error.response.data?.message?.toLowerCase().includes('lock'))
     ) {
-      toast.error('Account temporarily locked. Try again in 15 minutes.');
+      toast.error('Account locked. Please try again in 15 minutes.');
       return Promise.reject(error);
     }
 
