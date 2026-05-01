@@ -15,6 +15,7 @@
         var theme = stored || (prefersDark ? 'dark' : 'light');
         if (theme === 'dark') {
           document.documentElement.classList.add('dark');
+          document.documentElement.style.background = 'oklch(0.141 0.005 285.823)';
         }
       })();
     </script>
