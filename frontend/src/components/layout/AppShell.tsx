@@ -1,4 +1,5 @@
 import { NavLink, Link, Outlet } from 'react-router-dom';
+import { Suspense } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   LayoutDashboard,
@@ -19,6 +20,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const navItems = [
   { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
@@ -150,7 +152,19 @@ export function AppShell() {
 
         {/* Page Content */}
         <main className="flex-1 overflow-auto bg-muted/20">
-          <Outlet />
+          <Suspense
+            fallback={
+              <div className="p-6 space-y-6">
+                <Skeleton className="h-[120px] w-full max-w-sm rounded-xl" />
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <Skeleton className="h-[300px] rounded-xl" />
+                  <Skeleton className="h-[300px] rounded-xl" />
+                </div>
+              </div>
+            }
+          >
+            <Outlet />
+          </Suspense>
         </main>
       </div>
     </div>
