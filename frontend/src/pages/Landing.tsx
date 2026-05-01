@@ -1,3 +1,4 @@
+import { useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Landmark,
@@ -102,6 +103,18 @@ function AllocationBar() {
 }
 
 export function Landing() {
+  const [cursor, setCursor] = useState<{ x: number; y: number } | null>(null);
+
+  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    setCursor({
+      x: ((e.clientX - rect.left) / rect.width) * 100,
+      y: ((e.clientY - rect.top) / rect.height) * 100,
+    });
+  }, []);
+
+  const handleMouseLeave = useCallback(() => setCursor(null), []);
+
   return (
     <div className="flex min-h-screen flex-col bg-background text-foreground">
       <style>{`
@@ -122,7 +135,7 @@ export function Landing() {
         }
         .feature-card:hover .feature-index { color: hsl(var(--primary)); }
         .glass-nav { background: oklch(1 0 0 / 0.65); }
-        .dark .glass-nav { background: oklch(0.141 0.005 285.823 / 0.70); }
+        .dark .glass-nav { background: oklch(0.141 0.005 285.823 / 0.60); }
       `}</style>
 
       {/* Nav */}
@@ -147,8 +160,27 @@ export function Landing() {
       </header>
 
       {/* Hero */}
-      <section className="relative overflow-hidden border-b">
-        <div className="hero-grid absolute inset-0 opacity-40" />
+      <section
+        className="relative overflow-hidden border-b"
+        onMouseMove={handleMouseMove}
+        onMouseLeave={handleMouseLeave}
+      >
+        {/* Base grid — always visible at low opacity */}
+        <div className="hero-grid absolute inset-0 opacity-[0.28]" />
+        {/* Cursor spotlight — radial mask reveals grid at higher opacity near cursor */}
+        <div
+          className="hero-grid absolute inset-0"
+          style={{
+            opacity: cursor ? 0.78 : 0,
+            transition: 'opacity 0.5s ease',
+            maskImage: cursor
+              ? `radial-gradient(ellipse 480px 380px at ${cursor.x}% ${cursor.y}%, black 0%, transparent 72%)`
+              : 'none',
+            WebkitMaskImage: cursor
+              ? `radial-gradient(ellipse 480px 380px at ${cursor.x}% ${cursor.y}%, black 0%, transparent 72%)`
+              : 'none',
+          }}
+        />
         <div className="relative max-w-6xl mx-auto px-6 md:px-16 py-24 md:py-36 grid md:grid-cols-[1fr_auto] gap-16 items-center">
 
           <div className="space-y-8">
