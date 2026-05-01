@@ -225,7 +225,7 @@ export function Login() {
                   )}
                 />
 
-                <div className="flex justify-center overflow-hidden rounded-lg border border-border/50 bg-muted/20">
+                <div className="flex justify-center">
                   <Turnstile
                     siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY || '1x00000000000000000000AA'}
                     onSuccess={(token) => setTurnstileToken(token)}
