@@ -189,7 +189,7 @@ export function Portfolio() {
         {/* Allocation pie — narrower column */}
         <Card className="xl:col-span-2">
           <CardContent className="pt-6">
-            <AllocationPie />
+            <AllocationPie onInvestClick={() => setInvestOpen(true)} />
           </CardContent>
         </Card>
 

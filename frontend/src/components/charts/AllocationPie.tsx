@@ -70,9 +70,10 @@ function CustomTooltip({ active, payload, totalValue }: CustomTooltipProps) {
 
 interface AllocationPieProps {
   showTitle?: boolean;
+  onInvestClick?: () => void;
 }
 
-export function AllocationPie({ showTitle = true }: AllocationPieProps) {
+export function AllocationPie({ showTitle = true, onInvestClick }: AllocationPieProps) {
   const [chartType, setChartType] = useState<"pie" | "bar">("pie");
 
   const { data, isLoading, isError } = useQuery({
@@ -150,7 +151,7 @@ export function AllocationPie({ showTitle = true }: AllocationPieProps) {
             Failed to load allocation data.
           </div>
         ) : !hasData ? (
-          <EmptyAllocationState />
+          <EmptyAllocationState onInvestClick={onInvestClick} />
         ) : chartType === "pie" ? (
           <ResponsiveContainer width="100%" height={400}>
             <PieChart>
@@ -222,7 +223,7 @@ export function AllocationPie({ showTitle = true }: AllocationPieProps) {
   );
 }
 
-function EmptyAllocationState() {
+function EmptyAllocationState({ onInvestClick }: { onInvestClick?: () => void }) {
   return (
     <div className="flex flex-col items-center justify-center h-[400px] rounded-xl border border-dashed border-border bg-muted/20 p-8 text-center gap-4">
       <div className="rounded-full bg-primary/10 p-4">
@@ -234,6 +235,11 @@ function EmptyAllocationState() {
           Invest funds to see your asset allocation
         </p>
       </div>
+      {onInvestClick && (
+        <Button onClick={onInvestClick} variant="outline" size="sm">
+          Invest Now
+        </Button>
+      )}
     </div>
   );
 }
