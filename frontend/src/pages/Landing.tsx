@@ -103,17 +103,20 @@ function AllocationBar() {
 }
 
 export function Landing() {
-  const [cursor, setCursor] = useState<{ x: number; y: number } | null>(null);
+  const [hovered, setHovered] = useState(false);
+  const [pos, setPos] = useState({ x: 0, y: 0 });
 
   const handleMouseMove = useCallback((e: React.MouseEvent<HTMLElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
-    setCursor({
-      x: ((e.clientX - rect.left) / rect.width) * 100,
-      y: ((e.clientY - rect.top) / rect.height) * 100,
+    const PAD = 60;
+    setPos({
+      x: Math.max(PAD, Math.min(rect.width - PAD, e.clientX - rect.left)),
+      y: Math.max(PAD, Math.min(rect.height - PAD, e.clientY - rect.top)),
     });
+    setHovered(true);
   }, []);
 
-  const handleMouseLeave = useCallback(() => setCursor(null), []);
+  const handleMouseLeave = useCallback(() => setHovered(false), []);
 
   return (
     <div className="flex min-h-screen flex-col bg-background text-foreground">
@@ -171,14 +174,10 @@ export function Landing() {
         <div
           className="hero-grid absolute inset-0"
           style={{
-            opacity: cursor ? 0.78 : 0,
+            opacity: hovered ? 0.78 : 0,
             transition: 'opacity 0.5s ease',
-            maskImage: cursor
-              ? `radial-gradient(ellipse 480px 380px at ${cursor.x}% ${cursor.y}%, black 0%, transparent 72%)`
-              : 'none',
-            WebkitMaskImage: cursor
-              ? `radial-gradient(ellipse 480px 380px at ${cursor.x}% ${cursor.y}%, black 0%, transparent 72%)`
-              : 'none',
+            maskImage: `radial-gradient(ellipse 480px 380px at ${pos.x}px ${pos.y}px, black 0%, transparent 72%)`,
+            WebkitMaskImage: `radial-gradient(ellipse 480px 380px at ${pos.x}px ${pos.y}px, black 0%, transparent 72%)`,
           }}
         />
         <div className="relative max-w-6xl mx-auto px-6 md:px-16 py-24 md:py-36 grid md:grid-cols-[1fr_auto] gap-16 items-center">
