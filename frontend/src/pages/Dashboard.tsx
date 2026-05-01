@@ -25,6 +25,7 @@ import {
   PlusCircle,
   MinusCircle,
   BarChart3,
+  Info,
 } from "lucide-react";
 
 import { useAuthStore } from "@/stores/authStore";
@@ -40,6 +41,12 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import {
+  Tooltip as UITooltip,
+  TooltipContent as UITooltipContent,
+  TooltipProvider as UITooltipProvider,
+  TooltipTrigger as UITooltipTrigger,
+} from "@/components/ui/tooltip";
 
 function formatUSD(value: number) {
   return new Intl.NumberFormat("en-US", {
@@ -248,9 +255,21 @@ export function Dashboard() {
       {/* Page header */}
       <div className="space-y-0.5">
         <h1 className="text-xl font-semibold tracking-tight">Dashboard</h1>
-        <p className="text-sm text-muted-foreground">
-          {user?.email ? `Signed in as ${user.email.split("@")[0]}` : "Overview of your account"}
-        </p>
+        <div className="flex items-center gap-1.5">
+          <p className="text-sm text-muted-foreground">
+            {user?.email ? `Signed in as ${user.email.split("@")[0]}` : "Overview of your account"}
+          </p>
+          <UITooltipProvider delayDuration={200}>
+            <UITooltip>
+              <UITooltipTrigger asChild>
+                <Info className="h-3 w-3 text-muted-foreground/40 cursor-default shrink-0 pointer-events-auto" />
+              </UITooltipTrigger>
+              <UITooltipContent side="right" className="text-xs border border-border/50 bg-popover text-popover-foreground shadow-md">
+                Values reflect latest market data, refreshed every 15 minutes during trading hours.
+              </UITooltipContent>
+            </UITooltip>
+          </UITooltipProvider>
+        </div>
       </div>
 
       {/* Onboarding callout */}

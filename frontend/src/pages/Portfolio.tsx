@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { TrendingUp, TrendingDown, DollarSign, BarChart3, LineChart } from "lucide-react";
+import { TrendingUp, TrendingDown, DollarSign, BarChart3, LineChart, Info } from "lucide-react";
 
 import { portfolioApi } from "@/api/portfolio";
 import { ValueOverTime } from "@/components/charts/ValueOverTime";
@@ -13,6 +13,7 @@ import { SellDialog } from "@/components/transactions/SellDialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 function formatUSD(value: number) {
   return new Intl.NumberFormat("en-US", {
@@ -50,7 +51,19 @@ function StatCard({ label, value, sub, subPositive, icon, loading }: StatCardPro
         ) : (
           <div className="space-y-1">
             <div className="flex items-center justify-between">
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{label}</p>
+              <div className="flex items-center gap-1">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{label}</p>
+                <TooltipProvider delayDuration={300}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="h-3 w-3 text-muted-foreground/40 cursor-default" />
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="text-xs">
+                      Updated every 15 minutes
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
               <span className="text-muted-foreground/40">{icon}</span>
             </div>
             <p className="text-xl font-bold tracking-tight">{value}</p>
@@ -96,7 +109,19 @@ export function Portfolio() {
       {/* Header */}
       <div className="space-y-0.5">
         <h1 className="text-xl font-semibold tracking-tight">Portfolio</h1>
-        <p className="text-sm text-muted-foreground">Live overview of your active investment round</p>
+        <div className="flex items-center gap-1.5">
+          <p className="text-sm text-muted-foreground">Live overview of your active investment round</p>
+          <TooltipProvider delayDuration={200}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Info className="h-3 w-3 text-muted-foreground/40 cursor-default shrink-0 pointer-events-auto" />
+              </TooltipTrigger>
+              <TooltipContent side="right" className="text-xs border border-border/50 bg-popover text-popover-foreground shadow-md">
+                Values reflect latest market data, refreshed every 15 minutes during trading hours.
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
       </div>
 
       {/* Stats + action strip */}
