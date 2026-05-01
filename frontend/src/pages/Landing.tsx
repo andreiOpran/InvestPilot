@@ -52,23 +52,23 @@ const features = [
 ];
 
 const allocationSegments = [
-  { pct: 28, label: 'US Equities', opacity: 1 },
-  { pct: 18, label: 'Intl Equities', opacity: 0.75 },
-  { pct: 22, label: 'Fixed Income', opacity: 0.55 },
-  { pct: 14, label: 'Real Assets', opacity: 0.38 },
-  { pct: 10, label: 'Alternatives', opacity: 0.22 },
-  { pct: 8, label: 'Cash', opacity: 0.12 },
+  { pct: 36, label: 'US Equities', opacity: 1 },         // VTI, VOO, QQQ, IWM, VTV, VUG, Sectors
+  { pct: 22, label: 'Intl Equities', opacity: 0.85 },    // VEA, VWO
+  { pct: 16, label: 'Fixed Income', opacity: 0.70 },     // BND, TLT, BNDX
+  { pct: 12, label: 'Real Assets', opacity: 0.55 },      // VNQ, VNQI, XLE
+  { pct: 10, label: 'Corporate Bonds', opacity: 0.40 },  // LQD, HYG
+  { pct: 4, label: 'Cash', opacity: 0.25 },              // Liquidity/SGOV
 ];
 
 const tickerItems = [
-  { symbol: 'VTI', change: '+0.42%', positive: true },  // Broad market slight gain
-  { symbol: 'VOO', change: '-0.02%', positive: false }, // Flat/Marginal dip (Highly correlated to VTI)
-  { symbol: 'QQQ', change: '+0.15%', positive: true },  // Tech holding steady
-  { symbol: 'VTV', change: '+0.88%', positive: true },  // Value outperforming (Cyclical rotation)
-  { symbol: 'IWM', change: '-0.31%', positive: false }, // Small caps lagging
-  { symbol: 'BNDX', change: '+0.04%', positive: true }, // International bonds (low volatility)
-  { symbol: 'TLT', change: '-0.56%', positive: false }, // Long-term rates rising
-  { symbol: 'LQD', change: '+0.12%', positive: true },  // Credit spreads tightening
+  { symbol: 'VTI', change: '+0.42%', positive: true },  // US Equities
+  { symbol: 'VOO', change: '-0.01%', positive: false }, // US Equities (Correlated dip)
+  { symbol: 'QQQ', change: '+0.18%', positive: true },  // US Equities (Tech lead)
+  { symbol: 'VEA', change: '+0.32%', positive: true },  // Intl Equities
+  { symbol: 'VWO', change: '-0.25%', positive: false }, // Intl Equities (Emerging lag)
+  { symbol: 'VNQ', change: '+0.55%', positive: true },  // Real Assets (REITs)
+  { symbol: 'BND', change: '-0.08%', positive: false }, // Fixed Income (Total Bond)
+  { symbol: 'HYG', change: '+0.24%', positive: true },  // Corporate Bonds (High Yield)
 ];
 
 function AllocationBar() {
@@ -80,7 +80,8 @@ function AllocationBar() {
             key={s.label}
             style={{
               width: `${s.pct}%`,
-              backgroundColor: `hsl(var(--primary) / ${s.opacity})`,
+              backgroundColor: `var(--primary)`,
+              opacity: s.opacity,
             }}
           />
         ))}
@@ -90,7 +91,7 @@ function AllocationBar() {
           <div key={s.label} className="flex items-center gap-1.5">
             <div
               className="h-1.5 w-1.5 rounded-full flex-shrink-0"
-              style={{ backgroundColor: `hsl(var(--primary) / ${s.opacity})` }}
+              style={{ backgroundColor: `var(--primary)`, opacity: s.opacity }}
             />
             <span className="text-[10px] text-muted-foreground/70 tracking-wide">{s.label}</span>
           </div>
@@ -115,8 +116,8 @@ export function Landing() {
         .delay-4 { animation-delay: 0.40s; }
         .hero-grid {
           background-image:
-            linear-gradient(hsl(var(--border) / 0.5) 1px, transparent 1px),
-            linear-gradient(90deg, hsl(var(--border) / 0.5) 1px, transparent 1px);
+            linear-gradient(var(--border) 1px, transparent 1px),
+            linear-gradient(90deg, var(--border) 1px, transparent 1px);
           background-size: 52px 52px;
         }
         .feature-card:hover .feature-index { color: hsl(var(--primary)); }
