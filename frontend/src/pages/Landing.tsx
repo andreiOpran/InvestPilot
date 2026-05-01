@@ -11,6 +11,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { ThemeToggle } from '@/components/ui/ThemeToggle';
 
 const displayFont = { fontFamily: "'DM Serif Display', Georgia, serif" };
 
@@ -150,6 +151,7 @@ export function Landing() {
           </span>
         </div>
         <nav className="flex items-center gap-1">
+          <ThemeToggle />
           <Button variant="ghost" size="sm" asChild className="text-muted-foreground hover:text-foreground">
             <Link to="/login">Log in</Link>
           </Button>
@@ -197,11 +199,10 @@ export function Landing() {
                 className="text-5xl md:text-6xl lg:text-7xl leading-[1.05] tracking-tight"
                 style={displayFont}
               >
-                Intelligent portfolios,{' '}
+                Intelligent portfolios,
+                <br />
                 <span className="text-primary italic">
-                  scientifically
-                  <br />
-                  engineered.
+                  scientifically{' '}engineered.
                 </span>
               </h1>
               <p className="text-base text-muted-foreground max-w-lg leading-relaxed">

@@ -20,7 +20,7 @@ const queryClient = new QueryClient({
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider defaultTheme="dark" enableSystem={false} attribute="class">
+      <ThemeProvider defaultTheme="system" enableSystem={true} attribute="class" storageKey="theme">
         <App />
         <Toaster richColors position="top-right" />
         <ReactQueryDevtools initialIsOpen={false} />

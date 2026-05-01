@@ -18,6 +18,7 @@ import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { ThemeToggle } from '@/components/ui/ThemeToggle';
 
 const navItems = [
   { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
@@ -130,6 +131,7 @@ export function AppShell() {
               </Badge>
             )}
 
+            <ThemeToggle />
             <Separator orientation="vertical" className="h-8 hidden sm:block" />
 
             {/* User Profile / Logout */}

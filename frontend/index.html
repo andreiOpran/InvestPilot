@@ -10,15 +10,16 @@
     <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet" />
     <script>
       (function() {
-        var theme = localStorage.getItem('theme') || 'dark';
+        var stored = localStorage.getItem('theme');
+        var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        var theme = stored || (prefersDark ? 'dark' : 'light');
         if (theme === 'dark') {
           document.documentElement.classList.add('dark');
-          document.documentElement.style.backgroundColor = 'oklch(0.141 0.005 285.823);';
         }
       })();
     </script>
   </head>
-  <body style="background-color: oklch(0.141 0.005 285.823);">
+  <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
