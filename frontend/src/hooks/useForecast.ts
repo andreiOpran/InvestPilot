@@ -21,7 +21,8 @@ export function useForecast() {
   const [taskId, setTaskId] = useState<string | null>(null);
   const [forecastData, setForecastData] = useState<ForecastData | null>(null);
   const [inputs, setInputs] = useState<{initialInvestment: number, monthlyContribution: number} | null>(null);
-  const [loadingToastId, setLoadingToastId] = useState<string | number | null>(null);
+  const [loadingToastId] = useState<string | number | null>(null);
+  // const [loadingToastId, setLoadingToastId] = useState<string | number | null>(null);
 
   const { data: statusData, error: pollError } = useQuery({
     queryKey: ["forecastStatus", taskId],

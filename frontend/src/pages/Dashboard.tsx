@@ -404,7 +404,7 @@ export function Dashboard() {
           <CardContent className="space-y-3">
             <CardDescription className="text-xs leading-relaxed">
               Project your portfolio across 10,000 market scenarios. Personalized to your risk
-              profile{hasProfile ? ` (${riskLabels[user!.risk_tolerance]})` : ""}.
+              profile{hasProfile ? ` (${riskLabels[user!.risk_tolerance]}, ${user!.investment_horizon} ${user!.investment_horizon <= 1 ? 'year' : 'years'} investment horizon)` : ""}.
             </CardDescription>
             <Separator />
             <Button asChild size="sm" className="w-full gap-1.5 text-xs h-8">

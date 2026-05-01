@@ -417,33 +417,33 @@ Displays the complete financial event log for the user, covering all four transa
 - [x] Never show raw API error messages or stack traces in toasts — use pre-written, user-friendly strings
 
 ### 10.2 Loading Skeleton States
-- [ ] Full-page skeleton during silent token restore (`status === "loading"`)
-- [ ] Wallet balance card skeleton (1 line)
-- [ ] `<AllocationPie>` skeleton: circular grey placeholder
-- [ ] `<ValueOverTime>` skeleton: rectangular chart placeholder
-- [ ] `<PerformanceChart>` skeleton: rectangular chart placeholder
-- [ ] `<TransactionTable>` skeleton: 5 placeholder grey rows
-- [ ] `<ConeOfUncertainty>` skeleton: rectangular chart placeholder
-- [ ] All skeletons use shadcn/ui `<Skeleton>` component for visual consistency
+- [x] Full-page skeleton during silent token restore (`status === "loading"`)
+- [x] Wallet balance card skeleton (1 line)
+- [x] `<AllocationPie>` skeleton: circular grey placeholder
+- [x] `<ValueOverTime>` skeleton: rectangular chart placeholder
+- [x] `<PerformanceChart>` skeleton: rectangular chart placeholder
+- [x] `<TransactionTable>` skeleton: 5 placeholder grey rows
+- [x] `<ConeOfUncertainty>` skeleton: rectangular chart placeholder
+- [x] All skeletons use shadcn/ui `<Skeleton>` component for visual consistency
 
 ### 10.3 React Error Boundaries
-- [ ] Create `<ChartErrorBoundary>` wrapping each chart component — catches runtime errors from malformed payload data without crashing the entire page
-- [ ] Fallback UI: a shadcn/ui `<Alert variant="destructive">` with "Chart data could not be displayed"
+- [x] Create `<ChartErrorBoundary>` wrapping each chart component — catches runtime errors from malformed payload data without crashing the entire page
+- [x] Fallback UI: a shadcn/ui `<Alert variant="destructive">` with "Chart data could not be displayed"
 
 ### 10.4 Security Alert UX (Token Reuse Detection)
-- [ ] When the axios interceptor receives `"Security Alert: Token reuse detected"` from `/refresh-token`: set `authStore.securityAlert = true`, clear all auth state, redirect to `/login`
-- [ ] Login page reads `securityAlert` from Zustand on mount; renders a destructive `<Alert>`: "Your account security has been protected. All sessions were signed out due to suspicious activity."
-- [ ] Reset `securityAlert` to `false` after the banner is displayed (one-time display)
-- [ ] This is a **distinct, named UX event** — not a generic "session expired" message
+- [x] When the axios interceptor receives `"Security Alert: Token reuse detected"` from `/refresh-token`: set `authStore.securityAlert = true`, clear all auth state, redirect to `/login`
+- [x] Login page reads `securityAlert` from Zustand on mount; renders a destructive `<Alert>`: "Your account security has been protected. All sessions were signed out due to suspicious activity."
+- [x] Reset `securityAlert` to `false` after the banner is displayed (one-time display)
+- [x] This is a **distinct, named UX event** — not a generic "session expired" message
 
 ### 10.5 XSS Discipline
-- [ ] All dynamic data rendered via JSX interpolation `{variable}` — React escapes by default
-- [ ] Forecast `payload` data: always `JSON.parse()` and access typed fields — never `dangerouslySetInnerHTML`
-- [ ] QR code rendered as `<img src={qr_code_b64} />` — `src` attribute, not injected HTML
-- [ ] No `eval()`, no dynamic `<script>` injection anywhere
+- [x] All dynamic data rendered via JSX interpolation `{variable}` — React escapes by default
+- [x] Forecast `payload` data: always `JSON.parse()` and access typed fields — never `dangerouslySetInnerHTML`
+- [x] QR code rendered as `<img src={qr_code_b64} />` — `src` attribute, not injected HTML
+- [x] No `eval()`, no dynamic `<script>` injection anywhere
 
 ### 10.6 Content Security Policy
-- [ ] Add `<meta http-equiv="Content-Security-Policy">` to `index.html`:
+- [x] Add `<meta http-equiv="Content-Security-Policy">` to `index.html`:
   - `default-src 'self'`
   - `script-src 'self' https://challenges.cloudflare.com` (Turnstile)
   - `frame-src https://challenges.cloudflare.com` (Turnstile iframe)
