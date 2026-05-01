@@ -201,16 +201,16 @@ function EmptyPortfolioState({ onInvestClick }: { onInvestClick?: () => void }) 
         <TrendingUp className="h-8 w-8 text-primary" />
       </div>
       <div>
-        <p className="font-semibold text-foreground">No portfolio data yet</p>
+        <p className="font-semibold text-foreground">No portfolio data</p>
         <p className="text-sm text-muted-foreground mt-1">
-          Invest to start tracking your portfolio performance
+          Invest funds to see your portfolio performance
         </p>
       </div>
-      {onInvestClick && (
+      {/* {onInvestClick && (
         <Button onClick={onInvestClick} variant="outline" size="sm">
           Invest Now
         </Button>
-      )}
+      )} */}
     </div>
   );
 }

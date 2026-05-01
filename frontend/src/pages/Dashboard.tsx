@@ -94,7 +94,7 @@ function MiniPerformanceChart() {
   if (!hasData) {
     return (
       <div className="flex flex-col items-center justify-center h-[260px] rounded-xl border border-dashed border-border bg-muted/10 text-center gap-2">
-        <LineChartIcon className="h-6 w-6 text-muted-foreground/40" />
+        <LineChartIcon2 className="h-6 w-6 text-muted-foreground/40" />
         <p className="text-xs text-muted-foreground">No performance data yet</p>
       </div>
     );
@@ -364,7 +364,7 @@ export function Dashboard() {
                 No active investments yet. Deposit funds and visit Portfolio to get started.
               </p>
             )}
-            <Button asChild size="sm" variant="outline" className="w-full gap-1.5 text-xs h-8">
+            <Button asChild size="sm" variant="outline" className="w-full gap-1.5 text-xs h-8 mt-2">
               <Link to="/portfolio">
                 View portfolio
                 <ArrowRight className="h-3.5 w-3.5" />
