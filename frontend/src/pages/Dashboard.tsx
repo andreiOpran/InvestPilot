@@ -129,8 +129,8 @@ function MiniPerformanceChart() {
             tickLine={false}
             width={48}
           />
-          <Tooltip content={<MiniPerfTooltip />} cursor={{ stroke: "var(--muted-foreground)", strokeWidth: 1, strokeOpacity: 0.4 }} />
-          <ReferenceLine y={0} stroke="var(--muted-foreground)" strokeWidth={1} strokeDasharray="3 3" strokeOpacity={0.5} />
+          <Tooltip content={<MiniPerfTooltip />} cursor={{ stroke: "var(--chart-grid)", strokeWidth: 1 }} />
+          <ReferenceLine y={0} stroke="var(--chart-grid)" strokeWidth={1} strokeDasharray="3 3" />
           <Line
             type="monotone"
             dataKey="return_percentage"
@@ -202,7 +202,7 @@ function MiniAllocationBar() {
   return (
     <ResponsiveContainer width="100%" height={220}>
       <BarChart data={barData} margin={{ top: 4, right: 4, left: 4, bottom: 0 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="var(--muted-foreground)" strokeOpacity={0.2} vertical={false} />
+        <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" vertical={false} />
         <XAxis
           dataKey="name"
           tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
@@ -341,7 +341,7 @@ export function Dashboard() {
                         : "border-red-500/30 text-red-600 dark:text-red-400"
                     }`}
                   >
-                    {netContributions > 0 ? formatPct(allTimePct) : "—"}
+                    {netContributions > 0 ? formatPct(allTimePct) : "N/A"}
                   </Badge>
                 )}
                 {isGain

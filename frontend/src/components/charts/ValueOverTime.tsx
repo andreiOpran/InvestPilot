@@ -118,7 +118,7 @@ export function ValueOverTime({ onInvestClick }: ValueOverTimeProps) {
                     <stop offset="95%" stopColor="var(--color-primary, #10b981)" stopOpacity={0.02} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--muted-foreground)" strokeOpacity={0.2} />
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
                 <XAxis
                   dataKey="timestamp"
                   tick={false}
@@ -134,7 +134,7 @@ export function ValueOverTime({ onInvestClick }: ValueOverTimeProps) {
                 />
                 <Tooltip
                   content={<CustomTooltip showNetContributions={showNetContributions} range={range} />}
-                  cursor={{ stroke: "var(--border)", strokeWidth: 1 }}
+                  cursor={{ stroke: "var(--chart-grid)", strokeWidth: 1 }}
                 />
                 <Legend
                   formatter={(value) =>

@@ -151,7 +151,7 @@ export function Portfolio() {
         />
         <StatCard
           label="All-Time Return"
-          value={netContributions > 0 ? formatPct(allTimePct) : "—"}
+          value={netContributions > 0 ? formatPct(allTimePct) : "N/A"}
           sub={netContributions > 0 ? `on ${formatUSD(netContributions)} invested` : "No investments yet"}
           subPositive={netContributions > 0 ? isGain : undefined}
           icon={isGain
