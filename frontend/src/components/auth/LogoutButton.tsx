@@ -14,6 +14,7 @@ import {
 import { useAuthStore } from '@/stores/authStore';
 import { authApi } from '@/api/auth';
 import { useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface LogoutButtonProps {
   variant?: "default" | "destructive" | "outline" | "secondary" | "ghost" | "link";
@@ -25,10 +26,12 @@ interface LogoutButtonProps {
 export function LogoutButton({ variant = "ghost", className, showIcon = true, showText = true }: LogoutButtonProps) {
   const { clearAuth } = useAuthStore();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   const handleLogout = async () => {
     authApi.logout().catch(() => {});
     clearAuth();
+    queryClient.clear();
     navigate('/', { replace: true });
   };
 
