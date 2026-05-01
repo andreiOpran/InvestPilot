@@ -1,12 +1,13 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Loader2, TrendingUp, Clock, RefreshCw } from "lucide-react";
+import { Loader2, TrendingUp, Clock } from "lucide-react";
 
 import { useAuthStore } from "@/stores/authStore";
 import { useForecast } from "@/hooks/useForecast";
 import { forecastSchema } from "@/lib/schemas";
 import type { ForecastFormValues } from "@/lib/schemas";
 import { ConeOfUncertainty } from "@/components/charts/ConeOfUncertainty";
+// import { ChartSkeleton } from "@/components/charts/ChartErrorBoundary";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -26,7 +27,7 @@ const riskLabels: Record<number, string> = {
 
 export function Forecast() {
   const { user } = useAuthStore();
-  const { status, forecastData, inputs, submitForecast, reset } = useForecast();
+  const { status, forecastData, inputs, submitForecast } = useForecast();
 
   const form = useForm<ForecastFormValues>({
     resolver: zodResolver(forecastSchema) as any,
@@ -41,7 +42,7 @@ export function Forecast() {
     submitForecast(data.initial_investment, data.monthly_contribution || 0, data.years);
   };
 
-  const isDisabled = status === "submitting" || status === "polling" || status === "complete";
+  const isDisabled = status === "submitting" || status === "polling";
 
   return (
     <div className="p-6 md:p-8 space-y-6 max-w-7xl mx-auto">
@@ -54,12 +55,6 @@ export function Forecast() {
             Project your portfolio across 10,000 Monte Carlo simulations.
           </p>
         </div>
-        {status === "complete" && (
-          <Button variant="outline" onClick={reset} className="gap-2 h-8 text-xs shrink-0">
-            <RefreshCw className="h-3.5 w-3.5" />
-            New forecast
-          </Button>
-        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -156,22 +151,20 @@ export function Forecast() {
 
                 <Separator />
 
-                {status !== "complete" && (
-                  <Button
-                    type="submit"
-                    className="w-full h-9 font-medium text-sm"
-                    disabled={status === "submitting" || status === "polling"}
-                  >
-                    {status === "submitting" || status === "polling" ? (
-                      <>
-                        <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
-                        Computing...
-                      </>
-                    ) : (
-                      "Run simulation"
-                    )}
-                  </Button>
-                )}
+                <Button
+                  type="submit"
+                  className="w-full h-9 font-medium text-sm"
+                  disabled={status === "submitting" || status === "polling"}
+                >
+                  {status === "submitting" || status === "polling" ? (
+                    <>
+                      <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
+                      Computing...
+                    </>
+                  ) : (
+                    "Run simulation"
+                  )}
+                </Button>
               </form>
             </CardContent>
           </Card>
@@ -188,18 +181,34 @@ export function Forecast() {
                     Range of potential values across 10,000 simulated market scenarios.
                   </CardDescription>
                 </div>
-                {status === "complete" && forecastData && (
-                  <div className="flex gap-4 text-xs shrink-0">
-                    <div>
-                      <span className="text-muted-foreground">Volatility: </span>
-                      <span className="font-mono font-medium">
-                        {(forecastData.stats.historical_annual_volatility * 100).toFixed(2)}%
-                      </span>
+                {status === "complete" && forecastData && inputs && (
+                  <div className="flex flex-col items-end gap-2 shrink-0">
+                    <div className="flex gap-4 text-xs">
+                      <div>
+                        <span className="text-muted-foreground">Volatility: </span>
+                        <span className="font-mono font-medium">
+                          {(forecastData.stats.historical_annual_volatility * 100).toFixed(2)}%
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Return: </span>
+                        <span className="font-mono font-medium">
+                          {(forecastData.stats.historical_annual_return * 100).toFixed(2)}%
+                        </span>
+                      </div>
                     </div>
-                    <div>
-                      <span className="text-muted-foreground">Return: </span>
-                      <span className="font-mono font-medium">
-                        {(forecastData.stats.historical_annual_return * 100).toFixed(2)}%
+                    <div className="flex items-center gap-0 text-[11px] rounded-md border bg-muted/40 overflow-hidden">
+                      <span className="px-2.5 py-1 text-muted-foreground border-r">
+                        <span className="text-foreground font-mono font-medium">${inputs.initialInvestment.toLocaleString()}</span>
+                        {" "}initial
+                      </span>
+                      <span className="px-2.5 py-1 text-muted-foreground border-r">
+                        <span className="text-foreground font-mono font-medium">${inputs.monthlyContribution.toLocaleString()}</span>
+                        {" "}/mo
+                      </span>
+                      <span className="px-2.5 py-1 text-muted-foreground">
+                        <span className="text-foreground font-mono font-medium">{forecastData.years[forecastData.years.length - 1]}</span>
+                        {" "}yrs
                       </span>
                     </div>
                   </div>
