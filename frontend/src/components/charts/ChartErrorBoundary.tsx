@@ -1,5 +1,7 @@
 import React from "react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
 
 interface ChartErrorBoundaryProps {
   children: React.ReactNode;
@@ -26,11 +28,14 @@ export class ChartErrorBoundary extends React.Component<
   render() {
     if (this.state.hasError) {
       return (
-        <div className="flex flex-col items-center justify-center h-[400px] rounded-xl border border-destructive/30 bg-destructive/5 p-8 text-center gap-3">
-          <p className="text-destructive font-medium">Failed to render chart</p>
-          <p className="text-muted-foreground text-sm">
-            {this.state.error?.message || "An unexpected error occurred."}
-          </p>
+        <div className="flex items-center justify-center h-[400px] p-8">
+          <Alert variant="destructive" className="max-w-md">
+            <AlertCircle />
+            <AlertTitle>Chart data could not be displayed</AlertTitle>
+            <AlertDescription>
+              {this.state.error?.message || "An unexpected error occurred."}
+            </AlertDescription>
+          </Alert>
         </div>
       );
     }

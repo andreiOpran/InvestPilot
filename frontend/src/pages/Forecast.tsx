@@ -7,7 +7,7 @@ import { useForecast } from "@/hooks/useForecast";
 import { forecastSchema } from "@/lib/schemas";
 import type { ForecastFormValues } from "@/lib/schemas";
 import { ConeOfUncertainty } from "@/components/charts/ConeOfUncertainty";
-// import { ChartSkeleton } from "@/components/charts/ChartErrorBoundary";
+import { ChartErrorBoundary } from "@/components/charts/ChartErrorBoundary";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -241,7 +241,7 @@ export function Forecast() {
 
               {status === "complete" && forecastData && (
                 <div className="w-full h-full">
-                  <ConeOfUncertainty data={forecastData} inputs={inputs!} />
+                  <ChartErrorBoundary><ConeOfUncertainty data={forecastData} inputs={inputs!} /></ChartErrorBoundary>
                 </div>
               )}
 

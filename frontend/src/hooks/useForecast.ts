@@ -54,8 +54,8 @@ export function useForecast() {
     try {
       setStatus("submitting");
       setInputs({ initialInvestment, monthlyContribution });
-      const id = toast.loading("Running forecast. This may take a few seconds…");
-      setLoadingToastId(id);
+      // const id = toast.loading("Running forecast. This may take a few seconds…");
+      // setLoadingToastId(id);
       const res = await forecastApi.requestForecast(initialInvestment, monthlyContribution, years);
       setTaskId(res.data.task_id);
       setStatus("polling");

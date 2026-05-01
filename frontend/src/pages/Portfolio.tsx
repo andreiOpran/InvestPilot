@@ -5,6 +5,7 @@ import { TrendingUp, TrendingDown, DollarSign, BarChart3, LineChart, Info } from
 import { portfolioApi } from "@/api/portfolio";
 import { ValueOverTime } from "@/components/charts/ValueOverTime";
 import { PerformanceChart } from "@/components/charts/PerformanceChart";
+import { ChartErrorBoundary } from "@/components/charts/ChartErrorBoundary";
 import { AllocationPie } from "@/components/charts/AllocationPie";
 import { TransactionTable } from "@/components/portfolio/TransactionTable";
 import { InvestDialog } from "@/components/transactions/InvestDialog";
@@ -235,7 +236,7 @@ export function Portfolio() {
           <CardContent className="pt-2">
             {chartTab === "value"
               ? <ValueOverTime onInvestClick={() => setInvestOpen(true)} />
-              : <PerformanceChart onInvestClick={() => setInvestOpen(true)} />
+              : <ChartErrorBoundary><PerformanceChart onInvestClick={() => setInvestOpen(true)} /></ChartErrorBoundary>
             }
           </CardContent>
         </Card>
