@@ -9,6 +9,10 @@ import {
   ReferenceLine,
   ResponsiveContainer,
   Tooltip,
+  BarChart,
+  Bar,
+  Cell,
+  CartesianGrid,
 } from "recharts";
 import { format, parseISO } from "date-fns";
 import {
@@ -20,12 +24,12 @@ import {
   ClipboardList,
   PlusCircle,
   MinusCircle,
+  BarChart3,
 } from "lucide-react";
 
 import { useAuthStore } from "@/stores/authStore";
 import { portfolioApi } from "@/api/portfolio";
 
-import { AllocationPie } from "@/components/charts/AllocationPie";
 import { DepositDialog } from "@/components/transactions/DepositDialog";
 import { StripeDepositDialog } from "@/components/transactions/StripeDepositDialog";
 import { CashoutDialog } from "@/components/transactions/CashoutDialog";
@@ -131,6 +135,89 @@ function MiniPerformanceChart() {
         </LineChartIcon>
       </ResponsiveContainer>
     </div>
+  );
+}
+
+const ALLOC_COLORS = [
+  "var(--chart-1)",
+  "var(--chart-2)",
+  "var(--chart-3)",
+  "var(--chart-4)",
+  "var(--chart-5)",
+];
+
+function MiniAllocTooltip({ active, payload, totalValue }: any) {
+  if (!active || !payload?.length) return null;
+  const d = payload[0]?.payload;
+  const pct = totalValue > 0 ? (d.value / totalValue) * 100 : 0;
+  return (
+    <div className="rounded-md border bg-popover px-2.5 py-1.5 shadow-md text-xs space-y-0.5 min-w-[120px]">
+      <p className="font-semibold">{d.name}</p>
+      <p className="text-muted-foreground font-mono">{pct.toFixed(1)}%</p>
+    </div>
+  );
+}
+
+function MiniAllocationBar() {
+  const { data, isLoading } = useQuery({
+    queryKey: ["portfolio-allocation"],
+    queryFn: () => portfolioApi.getPortfolio().then((res) => res.data),
+    staleTime: 60_000,
+  });
+
+  const holdings = data?.holdings ?? [];
+  const totalValue = data?.live_total_value ?? 0;
+
+  const grouped = holdings.reduce((acc: any, h: any) => {
+    if (!acc[h.ticker]) acc[h.ticker] = { name: h.ticker, value: 0 };
+    acc[h.ticker].value += h.current_value;
+    return acc;
+  }, {});
+
+  const barData: any[] = Object.values(grouped);
+  barData.sort((a: any, b: any) => {
+    if (a.name === "USD") return 1;
+    if (b.name === "USD") return -1;
+    return b.value - a.value;
+  });
+
+  if (isLoading) return <div className="h-[220px] animate-pulse rounded-lg bg-muted/30" />;
+
+  if (barData.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[220px] rounded-xl border border-dashed border-border bg-muted/10 text-center gap-2">
+        <BarChart3 className="h-6 w-6 text-muted-foreground/40" />
+        <p className="text-xs text-muted-foreground">No allocation data yet</p>
+      </div>
+    );
+  }
+
+  return (
+    <ResponsiveContainer width="100%" height={220}>
+      <BarChart data={barData} margin={{ top: 4, right: 4, left: 4, bottom: 0 }}>
+        <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+        <XAxis
+          dataKey="name"
+          tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
+          tickLine={false}
+          axisLine={false}
+          dy={6}
+        />
+        <YAxis
+          tickFormatter={(v) => `$${v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v}`}
+          tick={{ fontSize: 10, fill: "var(--muted-foreground)" }}
+          tickLine={false}
+          axisLine={false}
+          width={44}
+        />
+        <Tooltip content={<MiniAllocTooltip totalValue={totalValue} />} cursor={{ fill: "var(--muted)", opacity: 0.3 }} />
+        <Bar dataKey="value" radius={[3, 3, 0, 0]} maxBarSize={48}>
+          {barData.map((entry: any, index: number) =>
+            <Cell key={`cell-${index}`} fill={entry.name === "USD" ? "var(--muted)" : ALLOC_COLORS[index % ALLOC_COLORS.length]} />
+          )}
+        </Bar>
+      </BarChart>
+    </ResponsiveContainer>
   );
 }
 
@@ -327,7 +414,7 @@ export function Dashboard() {
             </Button>
           </CardHeader>
           <CardContent>
-            <AllocationPie showTitle={false} />
+            <MiniAllocationBar />
           </CardContent>
         </Card>
 
