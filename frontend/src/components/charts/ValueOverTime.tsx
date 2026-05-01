@@ -47,7 +47,7 @@ function CustomTooltip({ active, payload, label, showNetContributions, range }: 
   const isGain = gainLoss >= 0;
 
   const displayDate = label
-    ? format(parseISO(label), range === "1D" ? "HH:mm, d MMM" : range === "1W" ? "HH:mm, d MMM" : "PPP")
+    ? format(parseISO(label), range === "1D" ? "HH:mm, dd.MM" : range === "1W" ? "HH:mm, dd.MM" : "dd.MM.yyyy")
     : "";
 
   return (

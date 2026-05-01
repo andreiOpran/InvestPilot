@@ -293,7 +293,7 @@ export function TransactionTable() {
                 return (
                   <TableRow key={`${tx.source}-${tx.id}`}>
                     <TableCell className="text-left text-muted-foreground">
-                      {format(parseISO(tx.timestamp), "MMM dd, yyyy 'at' HH:mm")}
+                      {format(parseISO(tx.timestamp), "HH:mm, dd.MM.yyyy")}
                     </TableCell>
                     <TableCell className="text-center">
                       <Badge

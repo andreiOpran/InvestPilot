@@ -58,7 +58,7 @@ function StatCard({ label, value, sub, subPositive, icon, loading }: StatCardPro
                     <TooltipTrigger asChild>
                       <Info className="h-3 w-3 text-muted-foreground/40 cursor-default" />
                     </TooltipTrigger>
-                    <TooltipContent side="top" className="text-xs">
+                    <TooltipContent side="top" className="text-xs border border-border/50 bg-popover text-popover-foreground shadow-md">
                       Updated every 15 minutes
                     </TooltipContent>
                   </Tooltip>

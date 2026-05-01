@@ -73,7 +73,7 @@ function MiniPerfTooltip({ active, payload, label }: any) {
   if (!active || !payload?.length) return null;
   const val: number = payload[0]?.value ?? 0;
   const isGain = val >= 0;
-  const date = label ? format(parseISO(label), "PPP") : "";
+  const date = label ? format(parseISO(label), "dd.MM.yyyy") : "";
   return (
     <div className="rounded-md border bg-popover px-2.5 py-1.5 shadow-md text-xs space-y-0.5 min-w-[140px]">
       <p className="text-muted-foreground">{date}</p>
