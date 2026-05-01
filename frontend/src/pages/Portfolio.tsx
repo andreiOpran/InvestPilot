@@ -58,7 +58,7 @@ function StatCard({ label, value, sub, subPositive, icon, loading }: StatCardPro
                     <TooltipTrigger asChild>
                       <Info className="h-3 w-3 text-muted-foreground/40 cursor-default" />
                     </TooltipTrigger>
-                    <TooltipContent side="top" className="text-xs border border-border/50 bg-popover text-popover-foreground shadow-md">
+                    <TooltipContent side="top">
                       Updated every 15 minutes
                     </TooltipContent>
                   </Tooltip>
@@ -116,7 +116,7 @@ export function Portfolio() {
               <TooltipTrigger asChild>
                 <Info className="h-3 w-3 text-muted-foreground/40 cursor-default shrink-0 pointer-events-auto" />
               </TooltipTrigger>
-              <TooltipContent side="right" className="text-xs border border-border/50 bg-popover text-popover-foreground shadow-md">
+              <TooltipContent side="right">
                 Values reflect latest market data, refreshed every 15 minutes during trading hours.
               </TooltipContent>
             </Tooltip>

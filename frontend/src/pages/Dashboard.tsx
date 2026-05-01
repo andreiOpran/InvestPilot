@@ -264,7 +264,7 @@ export function Dashboard() {
               <UITooltipTrigger asChild>
                 <Info className="h-3 w-3 text-muted-foreground/40 cursor-default shrink-0 pointer-events-auto" />
               </UITooltipTrigger>
-              <UITooltipContent side="right" className="text-xs border border-border/50 bg-popover text-popover-foreground shadow-md">
+              <UITooltipContent side="right">
                 Values reflect latest market data, refreshed every 15 minutes during trading hours.
               </UITooltipContent>
             </UITooltip>
