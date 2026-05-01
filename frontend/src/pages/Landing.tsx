@@ -121,10 +121,12 @@ export function Landing() {
           background-size: 52px 52px;
         }
         .feature-card:hover .feature-index { color: hsl(var(--primary)); }
+        .glass-nav { background: oklch(1 0 0 / 0.65); }
+        .dark .glass-nav { background: oklch(0.141 0.005 285.823 / 0.70); }
       `}</style>
 
       {/* Nav */}
-      <header className="sticky top-0 z-50 flex h-16 items-center justify-between border-b bg-background/90 backdrop-blur-md px-6 md:px-16">
+      <header className="glass-nav sticky top-0 z-50 flex h-16 items-center justify-between border-b px-6 md:px-16" style={{ backdropFilter: 'blur(16px) saturate(180%)' }}>
         <div className="flex items-center gap-2.5">
           <Landmark className="h-4 w-4 text-primary" />
           <span className="text-sm font-semibold tracking-tight" style={displayFont}>
