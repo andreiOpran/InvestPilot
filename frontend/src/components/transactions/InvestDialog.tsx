@@ -3,6 +3,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 
 import { investSchema, type InvestFormValues } from "@/lib/schemas";
 import { portfolioApi } from "@/api/portfolio";
@@ -35,6 +36,7 @@ interface InvestDialogProps {
 
 export function InvestDialog({ open, onOpenChange, onSuccess }: InvestDialogProps) {
   const { user, setUser } = useAuthStore();
+  const queryClient = useQueryClient();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<InvestFormValues>({
@@ -56,8 +58,9 @@ export function InvestDialog({ open, onOpenChange, onSuccess }: InvestDialogProp
       toast.success("Investment added to portfolio");
       onOpenChange(false);
       form.reset();
-      
-      // Call optional onSuccess to let parent components refresh charts
+      queryClient.invalidateQueries({ queryKey: ["portfolio-allocation"] });
+      queryClient.invalidateQueries({ queryKey: ["portfolio-history"] });
+      queryClient.invalidateQueries({ queryKey: ["transactions"] });
       if (onSuccess) {
         onSuccess();
       }

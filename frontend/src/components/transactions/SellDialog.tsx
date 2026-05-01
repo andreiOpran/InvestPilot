@@ -53,6 +53,8 @@ export function SellDialog({ open, onOpenChange, portfolioValue }: SellDialogPro
       const userRes = await userApi.getUser();
       setUser(userRes.data);
       queryClient.invalidateQueries({ queryKey: ["portfolio-allocation"] });
+      queryClient.invalidateQueries({ queryKey: ["portfolio-history"] });
+      queryClient.invalidateQueries({ queryKey: ["transactions"] });
 
       toast.success("Funds returned to wallet");
       onOpenChange(false);
