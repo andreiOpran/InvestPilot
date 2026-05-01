@@ -50,7 +50,7 @@ export function ConeOfUncertainty({ data, inputs }: ConeOfUncertaintyProps) {
           data={chartData}
           margin={{ top: 20, right: 20, bottom: 20, left: 20 }}
         >
-          <CartesianGrid strokeDasharray="3 3" opacity={0.2} vertical={false} />
+          <CartesianGrid strokeDasharray="3 3" stroke="var(--muted-foreground)" strokeOpacity={0.25} vertical={false} />
 
           <XAxis
             dataKey="year"

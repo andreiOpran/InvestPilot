@@ -133,8 +133,8 @@ export function Landing() {
         .delay-4 { animation-delay: 0.40s; }
         .hero-grid {
           background-image:
-            linear-gradient(var(--border) 1px, transparent 1px),
-            linear-gradient(90deg, var(--border) 1px, transparent 1px);
+            linear-gradient(var(--muted-foreground) 1px, transparent 1px),
+            linear-gradient(90deg, var(--muted-foreground) 1px, transparent 1px);
           background-size: 52px 52px;
         }
         .feature-card:hover .feature-index { color: hsl(var(--primary)); }

@@ -149,7 +149,7 @@ export function PerformanceChart({ onInvestClick }: PerformanceChartProps) {
                   </linearGradient>
                 </defs>
 
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" strokeOpacity={0.5} />
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--muted-foreground)" strokeOpacity={0.2} />
                 <XAxis
                   dataKey="timestamp"
                   tick={false}
@@ -165,7 +165,7 @@ export function PerformanceChart({ onInvestClick }: PerformanceChartProps) {
                 />
                 <Tooltip
                   content={<CustomTooltip data={enriched} range={range} />}
-                  cursor={{ stroke: "var(--border)", strokeWidth: 1 }}
+                  cursor={{ stroke: "var(--muted-foreground)", strokeWidth: 1, strokeOpacity: 0.4 }}
                 />
 
                 {/* Zero baseline */}
