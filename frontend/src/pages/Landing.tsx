@@ -147,7 +147,7 @@ export function Landing() {
         <div className="flex items-center gap-2.5">
           <Landmark className="h-4 w-4 text-primary" />
           <span className="text-sm font-semibold tracking-tight" style={displayFont}>
-            RoboAdvisor
+            Steward
           </span>
         </div>
         <nav className="flex items-center gap-1">
@@ -206,7 +206,7 @@ export function Landing() {
                 </span>
               </h1>
               <p className="text-base text-muted-foreground max-w-lg leading-relaxed">
-                RoboAdvisor builds and rebalances your ETF portfolio using Hierarchical Risk
+                Steward builds and rebalances your ETF portfolio using Hierarchical Risk
                 Parity. Define your risk tolerance once and let the algorithm handle the rest.
               </p>
             </div>
@@ -339,7 +339,7 @@ export function Landing() {
           <div className="flex items-center gap-2">
             <Landmark className="h-3.5 w-3.5" />
             <span style={displayFont} className="font-medium">
-              RoboAdvisor
+              Steward
             </span>
           </div>
           <Separator orientation="vertical" className="h-4 hidden sm:block" />

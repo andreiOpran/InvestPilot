@@ -74,7 +74,7 @@ export function ResetPassword() {
             <div className="flex h-10 w-10 items-center justify-center rounded-xl border bg-background shadow-sm">
               <Landmark className="h-5 w-5 text-primary" />
             </div>
-            <p className="text-sm font-semibold tracking-tight">RoboAdvisor</p>
+            <p className="text-sm font-semibold tracking-tight">InvestPilot</p>
           </div>
           <StatusCard
             icon={<XCircle className="h-7 w-7 text-destructive" />}
@@ -102,7 +102,7 @@ export function ResetPassword() {
             <Landmark className="h-5 w-5 text-primary" />
           </div>
           <div>
-            <p className="text-sm font-semibold tracking-tight">RoboAdvisor</p>
+            <p className="text-sm font-semibold tracking-tight">InvestPilot</p>
             <p className="text-xs text-muted-foreground mt-0.5">Set new password</p>
           </div>
         </div>

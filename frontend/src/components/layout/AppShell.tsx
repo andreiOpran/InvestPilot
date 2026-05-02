@@ -83,7 +83,7 @@ export function AppShell() {
         <div className="flex h-16 items-center px-6 border-b">
           <Link to="/dashboard" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
             <Landmark className="h-5 w-5 text-primary" />
-            <span className="text-base font-semibold tracking-tight" style={{ fontFamily: "'DM Serif Display', Georgia, serif" }}>RoboAdvisor</span>
+            <span className="text-base font-semibold tracking-tight" style={{ fontFamily: "'DM Serif Display', Georgia, serif" }}>InvestPilot</span>
           </Link>
         </div>
         <div className="flex-1 overflow-auto py-6 px-4">
@@ -107,7 +107,7 @@ export function AppShell() {
               <SheetContent side="left" className="w-64 p-0">
                 <div className="flex h-16 items-center px-6 border-b">
                   <Landmark className="h-5 w-5 text-primary mr-2" />
-                  <span className="text-base font-semibold tracking-tight" style={{ fontFamily: "'DM Serif Display', Georgia, serif" }}>RoboAdvisor</span>
+                  <span className="text-base font-semibold tracking-tight" style={{ fontFamily: "'DM Serif Display', Georgia, serif" }}>InvestPilot</span>
                 </div>
                 <div className="py-6 px-4">
                   <NavLinks />

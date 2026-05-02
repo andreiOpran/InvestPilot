@@ -1,6 +1,6 @@
-Subject: Verify Your Robo-Advisory Account
+Subject: Verify Your InvestPilot Account
 
-Welcome to Robo-Advisory application.
+Welcome to InvestPilot application.
 
 Please verify your email by clicking the link below:
 {{ .VerificationURL }}

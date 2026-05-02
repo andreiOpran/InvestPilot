@@ -39,7 +39,7 @@ func (s *securityService) Setup2FA(userID uint) (string, string, string, error) 
 
 	// generate OTP key
 	key, err := totp.Generate(totp.GenerateOpts{
-		Issuer:      "Robo-Advisory",
+		Issuer:      "InvestPilot",
 		AccountName: user.Email,
 	})
 	if err != nil {

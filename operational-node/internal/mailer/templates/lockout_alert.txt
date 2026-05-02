@@ -1,4 +1,4 @@
-Subject: Robo-Advisory Security Alert: Account Temporarily Locked
+Subject: InvestPilot Security Alert: Account Temporarily Locked
 
 Hello,
 

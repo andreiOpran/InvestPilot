@@ -81,7 +81,7 @@ export function InvestDialog({ open, onOpenChange, onSuccess }: InvestDialogProp
         <DialogHeader>
           <DialogTitle>Invest Funds</DialogTitle>
           <DialogDescription>
-            Move funds from your wallet into the robo-advisor portfolio.
+            Move funds from your wallet into the InvestPilot portfolio.
           </DialogDescription>
         </DialogHeader>
 

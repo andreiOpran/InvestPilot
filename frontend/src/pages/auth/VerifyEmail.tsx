@@ -42,7 +42,7 @@ export function VerifyEmail() {
           <div className="flex h-10 w-10 items-center justify-center rounded-xl border bg-background shadow-sm">
             <Landmark className="h-5 w-5 text-primary" />
           </div>
-          <p className="text-sm font-semibold tracking-tight">RoboAdvisor</p>
+          <p className="text-sm font-semibold tracking-tight">InvestPilot</p>
         </div>
 
         {/* Card */}

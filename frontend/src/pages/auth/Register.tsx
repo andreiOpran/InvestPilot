@@ -63,7 +63,7 @@ export function Register() {
             <Landmark className="h-5 w-5 text-primary" />
           </div>
           <div>
-            <p className="text-sm font-semibold tracking-tight">RoboAdvisor</p>
+            <p className="text-sm font-semibold tracking-tight">InvestPilot</p>
             <p className="text-xs text-muted-foreground mt-0.5">Create your account</p>
           </div>
         </div>
