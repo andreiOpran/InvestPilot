@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
-import { Loader2, ChevronRight, ChevronLeft, TrendingUp, Clock, CheckCircle2, Landmark } from 'lucide-react';
+import { Loader2, ChevronRight, ChevronLeft, TrendingUp, Clock, CheckCircle2, Navigation } from 'lucide-react';
 
 import { onboardingApi, userApi } from '@/api/user';
 import { useAuthStore } from '@/stores/authStore';
@@ -107,7 +107,7 @@ export function Onboarding() {
         <div className="w-full max-w-lg space-y-6">
           <div className="flex flex-col items-center gap-2">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl border bg-background shadow-sm">
-              <Landmark className="h-5 w-5 text-primary" />
+              <Navigation className="h-5 w-5 text-primary" />
             </div>
           </div>
           <div className="rounded-xl border bg-card shadow-sm p-6 space-y-4">
@@ -128,7 +128,7 @@ export function Onboarding() {
         <div className="w-full max-w-sm space-y-6">
           <div className="flex flex-col items-center gap-2 text-center">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl border bg-background shadow-sm">
-              <Landmark className="h-5 w-5 text-primary" />
+              <Navigation className="h-5 w-5 text-primary" />
             </div>
           </div>
           <div className="rounded-xl border bg-card shadow-sm p-8 text-center space-y-4">
@@ -150,7 +150,7 @@ export function Onboarding() {
         <div className="w-full max-w-sm space-y-6">
           <div className="flex flex-col items-center gap-2 text-center">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl border bg-background shadow-sm">
-              <Landmark className="h-5 w-5 text-primary" />
+              <Navigation className="h-5 w-5 text-primary" />
             </div>
             <div>
               <p className="text-sm font-semibold tracking-tight">Profile ready</p>
@@ -214,7 +214,7 @@ export function Onboarding() {
         {/* Logo + progress */}
         <div className="flex flex-col items-center gap-4">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl border bg-background shadow-sm">
-            <Landmark className="h-5 w-5 text-primary" />
+            <Navigation className="h-5 w-5 text-primary" />
           </div>
           <div className="w-full space-y-1.5">
             <div className="flex items-center justify-between text-xs text-muted-foreground">

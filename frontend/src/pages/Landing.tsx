@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  Landmark,
+  Navigation,
   TrendingUp,
   BarChart3,
   ShieldCheck,
@@ -145,7 +145,7 @@ export function Landing() {
       {/* Nav */}
       <header className="glass-nav sticky top-0 z-50 flex h-16 items-center justify-between border-b px-6 md:px-16" style={{ backdropFilter: 'blur(16px) saturate(180%)' }}>
         <div className="flex items-center gap-2.5">
-          <Landmark className="h-4 w-4 text-primary" />
+          <Navigation className="h-4 w-4 text-primary" />
           <span className="text-sm font-semibold tracking-tight" style={displayFont}>
             InvestPilot
           </span>
@@ -337,7 +337,7 @@ export function Landing() {
       <footer className="py-6 px-6 md:px-16">
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-muted-foreground">
           <div className="flex items-center gap-2">
-            <Landmark className="h-3.5 w-3.5" />
+            <Navigation className="h-3.5 w-3.5" />
             <span style={displayFont} className="font-medium">
               InvestPilot
             </span>

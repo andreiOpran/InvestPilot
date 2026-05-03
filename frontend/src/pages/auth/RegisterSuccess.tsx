@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { MailCheck, Landmark } from 'lucide-react';
+import { MailCheck, Navigation } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 
@@ -11,7 +11,7 @@ export function RegisterSuccess() {
         {/* Logo */}
         <div className="flex flex-col items-center gap-2 text-center">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl border bg-background shadow-sm">
-            <Landmark className="h-5 w-5 text-primary" />
+            <Navigation className="h-5 w-5 text-primary" />
           </div>
           <p className="text-sm font-semibold tracking-tight">InvestPilot</p>
         </div>

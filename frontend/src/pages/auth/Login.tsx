@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Turnstile } from '@marsidev/react-turnstile';
 import { toast } from 'sonner';
-import { ShieldAlert, ArrowLeft, Landmark } from 'lucide-react';
+import { ShieldAlert, ArrowLeft, Navigation } from 'lucide-react';
 
 import { loginSchema, type LoginFormValues } from '@/lib/schemas';
 import { authApi } from '@/api/auth';
@@ -147,7 +147,7 @@ export function Login() {
         {/* Logo */}
         <div className="flex flex-col items-center gap-2 text-center">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl border bg-background shadow-sm">
-            <Landmark className="h-5 w-5 text-primary" />
+            <Navigation className="h-5 w-5 text-primary" />
           </div>
           <div>
             <p className="text-sm font-semibold tracking-tight">InvestPilot</p>

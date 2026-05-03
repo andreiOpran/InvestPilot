@@ -8,7 +8,7 @@ import {
   Settings,
   Menu,
   Wallet,
-  Landmark,
+  Navigation,
   TrendingUp,
 } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
@@ -82,7 +82,7 @@ export function AppShell() {
       <aside className="hidden border-r bg-card md:flex md:w-64 md:flex-col">
         <div className="flex h-16 items-center px-6 border-b">
           <Link to="/dashboard" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-            <Landmark className="h-5 w-5 text-primary" />
+            <Navigation className="h-5 w-5 text-primary" />
             <span className="text-base font-semibold tracking-tight" style={{ fontFamily: "'DM Serif Display', Georgia, serif" }}>InvestPilot</span>
           </Link>
         </div>
@@ -106,7 +106,7 @@ export function AppShell() {
               </SheetTrigger>
               <SheetContent side="left" className="w-64 p-0">
                 <div className="flex h-16 items-center px-6 border-b">
-                  <Landmark className="h-5 w-5 text-primary mr-2" />
+                  <Navigation className="h-5 w-5 text-primary mr-2" />
                   <span className="text-base font-semibold tracking-tight" style={{ fontFamily: "'DM Serif Display', Georgia, serif" }}>InvestPilot</span>
                 </div>
                 <div className="py-6 px-4">

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
-import { CheckCircle2, XCircle, Loader2, Landmark } from 'lucide-react';
+import { CheckCircle2, XCircle, Loader2, Navigation } from 'lucide-react';
 
 import { authApi } from '@/api/auth';
 import { Button } from '@/components/ui/button';
@@ -40,7 +40,7 @@ export function VerifyEmail() {
         {/* Logo */}
         <div className="flex flex-col items-center gap-2 text-center">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl border bg-background shadow-sm">
-            <Landmark className="h-5 w-5 text-primary" />
+            <Navigation className="h-5 w-5 text-primary" />
           </div>
           <p className="text-sm font-semibold tracking-tight">InvestPilot</p>
         </div>
