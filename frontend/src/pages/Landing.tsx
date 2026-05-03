@@ -103,6 +103,31 @@ function AllocationBar() {
   );
 }
 
+function HeroGrid({
+  id,
+  opacity,
+  maskStyle,
+}: {
+  id: string;
+  opacity: number | string;
+  maskStyle?: React.CSSProperties;
+}) {
+  return (
+    <svg
+      aria-hidden="true"
+      className="absolute inset-0 pointer-events-none"
+      style={{ width: '100%', height: '100%', color: 'var(--foreground)', opacity: opacity as number, ...maskStyle }}
+    >
+      <defs>
+        <pattern id={id} width="52" height="52" patternUnits="userSpaceOnUse">
+          <path d="M 52 0 L 0 0 0 52" fill="none" stroke="currentColor" strokeWidth="1" />
+        </pattern>
+      </defs>
+      <rect width="100%" height="100%" fill={`url(#${id})`} />
+    </svg>
+  );
+}
+
 export function Landing() {
   const [hovered, setHovered] = useState(false);
   const [pos, setPos] = useState({ x: 0, y: 0 });
@@ -122,6 +147,8 @@ export function Landing() {
   return (
     <div className="flex min-h-screen flex-col bg-background text-foreground">
       <style>{`
+        :root { --hg-base: 0.20; --hg-spot: 0.45; }
+        .dark  { --hg-base: 0.10; --hg-spot: 0.25; }
         @keyframes fadeUp {
           from { opacity: 0; transform: translateY(14px); }
           to   { opacity: 1; transform: translateY(0); }
@@ -131,13 +158,7 @@ export function Landing() {
         .delay-2 { animation-delay: 0.15s; }
         .delay-3 { animation-delay: 0.27s; }
         .delay-4 { animation-delay: 0.40s; }
-        .hero-grid {
-          background-image:
-            linear-gradient(var(--chart-grid) 1px, transparent 1px),
-            linear-gradient(90deg, var(--chart-grid) 1px, transparent 1px);
-          background-size: 52px 52px;
-        }
-        .feature-card:hover .feature-index { color: hsl(var(--primary)); }
+.feature-card:hover .feature-index { color: hsl(var(--primary)); }
         .glass-nav { background: oklch(1 0 0 / 0.65); }
         .dark .glass-nav { background: oklch(0.141 0.005 285.823 / 0.60); }
       `}</style>
@@ -171,12 +192,12 @@ export function Landing() {
         onMouseLeave={handleMouseLeave}
       >
         {/* Base grid — always visible at low opacity */}
-        <div className="hero-grid absolute inset-0 opacity-[0.28]" />
+        <HeroGrid id="hero-grid-base" opacity="var(--hg-base)" />
         {/* Cursor spotlight — radial mask reveals grid at higher opacity near cursor */}
-        <div
-          className="hero-grid absolute inset-0"
-          style={{
-            opacity: hovered ? 0.78 : 0,
+        <HeroGrid
+          id="hero-grid-spotlight"
+          opacity={hovered ? 'var(--hg-spot)' : 0}
+          maskStyle={{
             transition: 'opacity 0.5s ease',
             maskImage: `radial-gradient(ellipse 480px 380px at ${pos.x}px ${pos.y}px, black 0%, transparent 72%)`,
             WebkitMaskImage: `radial-gradient(ellipse 480px 380px at ${pos.x}px ${pos.y}px, black 0%, transparent 72%)`,
@@ -232,7 +253,7 @@ export function Landing() {
           </div>
 
           {/* Decorative ticker */}
-          <div className="hidden md:flex flex-col gap-2.5 opacity-[0.40] select-none w-28">
+          <div className="hidden md:flex flex-col gap-2.5 opacity-[0.50] select-none w-28">
             {tickerItems.map((t) => (
               <div key={t.symbol} className="flex items-center justify-between gap-3 font-mono text-[10px]">
                 <span className="text-foreground font-medium">{t.symbol}</span>
