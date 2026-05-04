@@ -368,7 +368,7 @@ helm install traefik traefik/traefik \
 - `ports.web.redirectTo.port=websecure` — HTTP → HTTPS redirect at the Traefik level
 - `ports.websecure.tls.enabled=false` — TLS termination is handled per-Ingress via the origin cert secret (section 4.2), not at the Traefik daemon level
 
-- [ ] Install Helm
+- [x] Install Helm
 - [ ] Add Traefik Helm repo and install
 - [ ] Wait for Traefik pod to be ready:
   ```bash
