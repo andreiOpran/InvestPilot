@@ -5,7 +5,7 @@
 **Traffic flow:**
 ```
 Browser → Cloudflare (TLS termination + CDN) → VPS-1 :443
-  → nginx-ingress controller
+  → Traefik ingress controller
     → /api/*  → Go Service (ClusterIP :8081)
     → /*      → Nginx Service (ClusterIP :80) → React SPA static files
 ```
@@ -16,7 +16,7 @@ Browser → Cloudflare (TLS termination + CDN) → VPS-1 :443
 | Operational node | K8s cluster (vps-1/vps-2) | 2 replicas for rolling deploys |
 | Decisional node | K8s cluster (vps-3) | RabbitMQ consumer, no HTTP |
 | Nginx frontend | K8s cluster | Serves React `/dist`, pure static |
-| nginx-ingress | K8s cluster (vps-1) | Routes traffic, holds TLS cert |
+| Traefik | K8s cluster (vps-1) | Routes traffic, holds TLS cert |
 | PostgreSQL | Supabase (external, free) | Session mode pooler, sslmode=require |
 | RabbitMQ | CloudAMQP (external, free) | Go publishes, Python consumes |
 
@@ -80,7 +80,7 @@ The CI/CD pipeline builds Docker images and pushes them to ghcr.io. K8s nodes pu
 
 | Node | Hostname | Role | Recommended DO Size |
 |------|----------|------|---------------------|
-| vps-1 | `k3s-master` | K3s control-plane + runs nginx-ingress | s-2vcpu-4gb ($24/mo) |
+| vps-1 | `k3s-master` | K3s control-plane + runs Traefik | s-2vcpu-4gb ($24/mo) |
 | vps-2 | `k3s-worker-1` | K3s worker — runs Go + Nginx pods | s-2vcpu-4gb ($24/mo) |
 | vps-3 | `k3s-worker-2` | K3s worker — runs Python consumer pods | s-2vcpu-2gb ($18/mo) |
 
@@ -231,8 +231,8 @@ SSH is no longer in the public firewall — it's only reachable via Tailscale (w
 | 6443 | TCP | 0.0.0.0/0 | K8s API server (GitHub Actions runners have dynamic IPs) |
 | 8472 | UDP | other 2 nodes (private IPs) | Flannel VXLAN overlay network |
 | 10250 | TCP | other 2 nodes (private IPs) | kubelet API (health checks between nodes) |
-| 80 | TCP | Cloudflare IPs only | HTTP (nginx-ingress, vps-1 only) |
-| 443 | TCP | Cloudflare IPs only | HTTPS (nginx-ingress, vps-1 only) |
+| 80 | TCP | Cloudflare IPs only | HTTP (Traefik, vps-1 only) |
+| 443 | TCP | Cloudflare IPs only | HTTPS (Traefik, vps-1 only) |
 
 ```bash
 # Run on all 3 nodes after Tailscale is up (section 2.2.5)
@@ -263,7 +263,7 @@ ufw --force enable
 ufw status verbose
 ```
 
-**Cloudflare IP ranges for ports 80/443** — restricting to these means bots hitting your VPS IP directly are blocked at the firewall level, bypassing Cloudflare's DDoS protection. Run this script on **vps-1 only** (the ingress node):
+**Cloudflare IP ranges for ports 80/443** — restricting to these means bots hitting your VPS IP directly are blocked at the firewall level, bypassing Cloudflare's DDoS protection. Run this script on **vps-1 only** (the Traefik node):
 
 ```bash
 # Add ufw rules for all Cloudflare IPv4 ranges (ports 80 + 443)
@@ -286,7 +286,7 @@ done
 
 ## Stage 3 — K3s Cluster Bootstrap
 
-K3s is a lightweight Kubernetes distribution — single binary, production-grade, much easier to set up than kubeadm. K3s ships with Traefik as a default ingress controller, but we're using nginx-ingress instead, so Traefik must be disabled at install time to avoid port 80/443 conflicts.
+K3s is a lightweight Kubernetes distribution — single binary, production-grade, much easier to set up than kubeadm. K3s ships with Traefik as a default ingress controller. The master was installed with `--disable traefik` to prevent the bundled version from running; Traefik is instead installed via Helm (section 3.4) so we have full control over the version and configuration.
 
 ### 3.1 Install K3s on master
 
@@ -296,17 +296,17 @@ curl -sfL https://get.k3s.io | sh -s - server \
   --cluster-init \
   --disable traefik \
   --node-ip <vps-1-private-ip> \
-  --advertise-address <vps-1-public-ip>
+  --advertise-address <vps-1-public-ip> \
   --tls-san <vps-1-public-ip>
 ```
 
 - `--cluster-init` initializes embedded etcd (makes the node a control-plane)
-- `--disable traefik` prevents Traefik from starting and claiming ports 80/443
+- `--disable traefik` prevents K3s's bundled Traefik from claiming ports 80/443 — we install Traefik via Helm in section 3.4 instead
 - `--node-ip` tells K3s to use the private IP for inter-node communication
 
-- [ ] Run the install command on vps-1
-- [ ] Verify K3s is running: `systemctl status k3s`
-- [ ] Copy the node join token:
+- [x] Run the install command on vps-1
+- [x] Verify K3s is running: `systemctl status k3s`
+- [x] Copy the node join token:
   ```bash
   cat /var/lib/rancher/k3s/server/node-token
   ```
@@ -321,8 +321,8 @@ curl -sfL https://get.k3s.io | K3S_URL=https://<vps-1-public-ip>:6443 \
   sh -s - agent --node-ip <this-node-private-ip>
 ```
 
-- [ ] Join vps-2 (`k3s-worker-1`)
-- [ ] Join vps-3 (`k3s-worker-2`)
+- [x] Join vps-2 (`k3s-worker-1`)
+- [x] Join vps-3 (`k3s-worker-2`)
 
 ### 3.3 Configure local kubectl access
 
@@ -334,8 +334,8 @@ cat /etc/rancher/k3s/k3s.yaml
 # Save as ~/.kube/config
 ```
 
-- [ ] Copy kubeconfig to local machine and update server IP
-- [ ] Verify cluster: `kubectl get nodes` — should show 3 nodes all `Ready`
+- [x] Copy kubeconfig to local machine and update server IP
+- [x] Verify cluster: `kubectl get nodes` — should show 3 nodes all `Ready`
 
 ```
 NAME            STATUS   ROLES                  AGE
@@ -344,20 +344,37 @@ k3s-worker-1    Ready    <none>                 1m
 k3s-worker-2    Ready    <none>                 1m
 ```
 
-### 3.4 Install nginx-ingress controller
+### 3.4 Install Traefik ingress controller (via Helm)
 
-nginx-ingress is a Kubernetes-native reverse proxy. It watches `Ingress` objects and routes traffic accordingly. It runs as a pod on the cluster and binds to ports 80/443 on the node it schedules on (vps-1, since it has those ports open).
+Traefik is a Kubernetes-native reverse proxy. It watches `Ingress` objects and routes traffic accordingly. It runs as a pod on the cluster and binds to ports 80/443 on vps-1. K3s's built-in ServiceLB (klipper-lb) handles the `LoadBalancer` service type on bare metal by binding the host ports directly — no cloud load balancer needed.
 
+**Install Helm first (on your local machine or on vps-1):**
 ```bash
-kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.10.0/deploy/static/provider/cloud/deploy.yaml
+curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
 ```
 
-- [ ] Apply the manifest
-- [ ] Wait for controller pod to be ready:
+**Install Traefik:**
+```bash
+helm repo add traefik https://helm.traefik.io/traefik
+helm repo update
+
+helm install traefik traefik/traefik \
+  --namespace traefik \
+  --create-namespace \
+  --set "ports.web.redirectTo.port=websecure" \
+  --set "ports.websecure.tls.enabled=false"
+```
+
+- `ports.web.redirectTo.port=websecure` — HTTP → HTTPS redirect at the Traefik level
+- `ports.websecure.tls.enabled=false` — TLS termination is handled per-Ingress via the origin cert secret (section 4.2), not at the Traefik daemon level
+
+- [ ] Install Helm
+- [ ] Add Traefik Helm repo and install
+- [ ] Wait for Traefik pod to be ready:
   ```bash
-  kubectl wait --namespace ingress-nginx \
+  kubectl wait --namespace traefik \
     --for=condition=ready pod \
-    --selector=app.kubernetes.io/component=controller \
+    --selector=app.kubernetes.io/name=traefik \
     --timeout=120s
   ```
 - [ ] Verify ports 80/443 are bound on vps-1: `ss -tlnp | grep -E '80|443'`
@@ -682,7 +699,7 @@ spec:
 
 ### 6.4 `k8s/ingress.yaml`
 
-The Ingress object tells nginx-ingress how to route traffic. `/api/` is listed first because nginx-ingress matches more specific paths first — this ensures API calls go to Go, everything else goes to Nginx.
+The Ingress object tells Traefik how to route traffic. `/api` is listed first — Traefik matches more specific paths first, so API calls go to Go and everything else goes to the Nginx frontend.
 
 ```yaml
 apiVersion: networking.k8s.io/v1
@@ -691,10 +708,9 @@ metadata:
   name: investpilot-ingress
   namespace: investpilot
   annotations:
-    kubernetes.io/ingress.class: nginx
-    nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
-    nginx.ingress.kubernetes.io/proxy-send-timeout: "60"
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
 spec:
+  ingressClassName: traefik
   tls:
     - hosts:
         - yourdomain.com
@@ -718,6 +734,9 @@ spec:
                 port:
                   number: 80
 ```
+
+- `ingressClassName: traefik` — explicitly binds this Ingress to the Traefik controller
+- `router.entrypoints: websecure` — Traefik only serves this route on the HTTPS (443) entrypoint
 
 - [ ] Create `k8s/ingress.yaml` (replace `yourdomain.com`)
 
