@@ -346,7 +346,9 @@ k3s-worker-2    Ready    <none>                 1m
 
 ### 3.4 Install Traefik ingress controller (via Helm)
 
-Traefik is a Kubernetes-native reverse proxy. It watches `Ingress` objects and routes traffic accordingly. It runs as a pod on the cluster and binds to ports 80/443 on vps-1. K3s's built-in ServiceLB (klipper-lb) handles the `LoadBalancer` service type on bare metal by binding the host ports directly — no cloud load balancer needed.
+Traefik is a Kubernetes-native reverse proxy. It watches `Ingress` objects and routes traffic accordingly. It runs as a pod on the cluster and binds to ports 80/443 on vps-1.
+
+K3s's built-in ServiceLB (klipper-lb) handles the `LoadBalancer` service type on bare metal — but because K3s was installed with `--node-ip <private-ip>`, ServiceLB binds only to the **private** IP by default. Cloudflare traffic hits the **public** IP, so we must explicitly add the public IP via `service.externalIPs` when installing Traefik.
 
 **Install Helm first (on your local machine or on vps-1):**
 ```bash
@@ -361,23 +363,35 @@ helm repo update
 helm install traefik traefik/traefik \
   --namespace traefik \
   --create-namespace \
-  --set "ports.web.redirectTo.port=websecure" \
-  --set "ports.websecure.tls.enabled=false"
+  --set "ports.web.http.redirections.entryPoint.to=websecure" \
+  --set "ports.web.http.redirections.entryPoint.scheme=https" \
+  --set "service.externalIPs[0]=<vps-1-public-ip>"
 ```
 
-- `ports.web.redirectTo.port=websecure` — HTTP → HTTPS redirect at the Traefik level
-- `ports.websecure.tls.enabled=false` — TLS termination is handled per-Ingress via the origin cert secret (section 4.2), not at the Traefik daemon level
+- `ports.web.http.redirections.entryPoint.to=websecure` — HTTP → HTTPS redirect at Traefik level (belt-and-suspenders alongside Cloudflare's edge redirect)
+- `service.externalIPs[0]` — forces Traefik's LoadBalancer service to accept traffic on the public IP; without this, ServiceLB only binds to the private `10.x.x.x` IP and Cloudflare traffic never reaches Traefik
+- `externalIPs` is handled by kube-proxy via iptables DNAT — `ss -tlnp` will **not** show ports 80/443 as listening sockets; this is expected and correct
+- TLS termination is handled per-Ingress via the origin cert secret (section 4.2)
 
 - [x] Install Helm
-- [ ] Add Traefik Helm repo and install
-- [ ] Wait for Traefik pod to be ready:
+- [x] Add Traefik Helm repo and install
+- [x] Wait for Traefik pod to be ready:
   ```bash
   kubectl wait --namespace traefik \
     --for=condition=ready pod \
     --selector=app.kubernetes.io/name=traefik \
     --timeout=120s
   ```
-- [ ] Verify ports 80/443 are bound on vps-1: `ss -tlnp | grep -E '80|443'`
+- [x] Verify the service shows the public IP under EXTERNAL-IP:
+  ```bash
+  kubectl get svc -n traefik
+  # EXTERNAL-IP column should include 165.245.210.201 alongside the private IPs
+  ```
+- [x] Verify svclb pods are running:
+  ```bash
+  kubectl get pods -n kube-system | grep svclb
+  ```
+  Note: `ss -tlnp | grep ':80\|:443'` will show no output — this is expected. kube-proxy handles `externalIPs` via iptables DNAT, not a real socket.
 
 ---
 
