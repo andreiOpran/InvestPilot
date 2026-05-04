@@ -416,7 +416,7 @@ kubectl create secret tls cloudflare-origin-tls \
   -n investpilot
 ```
 
-- [ ] Create TLS secret
+- [x] Create TLS secret
 
 ### 4.3 Go operational node secrets
 
@@ -431,7 +431,7 @@ kubectl create secret generic go-secrets \
 
 These map to the env vars your Operational node already reads from `.env-operational-node`. The secret keys must match exactly what `os.Getenv()` expects in your code.
 
-- [ ] Create go-secrets
+- [x] Create go-secrets
 
 ### 4.4 Python decisional node secrets
 
@@ -442,7 +442,7 @@ kubectl create secret generic python-secrets \
   -n investpilot
 ```
 
-- [ ] Create python-secrets
+- [x] Create python-secrets
 
 ### 4.5 Verify secrets exist
 
@@ -451,7 +451,7 @@ kubectl get secrets -n investpilot
 # Should list: cloudflare-origin-tls, go-secrets, python-secrets
 ```
 
-- [ ] Verify all 3 secrets present
+- [x] Verify all 3 secrets present
 
 ---
 
@@ -467,7 +467,7 @@ WORKDIR /app
 COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
-RUN CGO_ENABLED=0 GOOS=linux go build -o server ./cmd/server
+RUN CGO_ENABLED=0 GOOS=linux go build -o server ./cmd/api
 
 FROM alpine:3.19
 RUN apk --no-cache add ca-certificates tzdata
@@ -477,8 +477,8 @@ EXPOSE 8081
 CMD ["./server"]
 ```
 
-- [ ] Create `operational-node/Dockerfile`
-- [ ] Test build locally: `docker build -t operational-node ./operational-node`
+- [x] Create `operational-node/Dockerfile`
+- [x] Test build locally: `docker build -t operational-node ./operational-node`
 
 ### 5.2 Decisional node — `decisional-node/Dockerfile`
 
@@ -491,8 +491,8 @@ COPY . .
 CMD ["python", "main.py"]
 ```
 
-- [ ] Create `decisional-node/Dockerfile`
-- [ ] Test build locally: `docker build -t decisional-node ./decisional-node`
+- [x] Create `decisional-node/Dockerfile`
+- [x] Test build locally: `docker build -t decisional-node ./decisional-node`
 
 ### 5.3 Nginx frontend — `frontend/Dockerfile`
 
@@ -512,8 +512,8 @@ COPY nginx.conf /etc/nginx/conf.d/default.conf
 EXPOSE 80
 ```
 
-- [ ] Create `frontend/Dockerfile`
-- [ ] Test build locally: `docker build -t nginx-frontend ./frontend`
+- [x] Create `frontend/Dockerfile`
+- [x] Test build locally: `docker build -t nginx-frontend ./frontend`
 
 ### 5.4 Nginx config — `frontend/nginx.conf`
 
@@ -539,7 +539,7 @@ server {
 }
 ```
 
-- [ ] Create `frontend/nginx.conf`
+- [x] Create `frontend/nginx.conf`
 - [ ] Test build locally: `docker build -t nginx-frontend ./frontend`
 
 ### 5.5 Push images to ghcr.io
@@ -558,8 +558,8 @@ docker push ghcr.io/<github-username>/investpilot-decisional-node:latest
 docker push ghcr.io/<github-username>/investpilot-nginx-frontend:latest
 ```
 
-- [ ] Push all 3 images to ghcr.io
-- [ ] Make packages public in GitHub (repo → Packages → each image → visibility: public) OR configure imagePullSecrets in K8s
+- [x] Push all 3 images to ghcr.io
+- [x] Make packages public in GitHub (repo → Packages → each image → visibility: public) OR configure imagePullSecrets in K8s
 
 ---
 

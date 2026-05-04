@@ -16,8 +16,6 @@ services:
   # Compute node
   python-engine:
     build: ./decisional-node
-    ports:
-      - "5000:5000"
     env_file:
       - .env-decisional-node
     volumes:
@@ -26,6 +24,7 @@ services:
       - vpc-network
     depends_on:
       - db
+      - rabbitmq
 
   # Operational node
   go-backend:
@@ -36,7 +35,7 @@ services:
       - .env-operational-node
     depends_on:
       - db
-      - python-engine
+      - rabbitmq
     networks:
       - vpc-network
 
