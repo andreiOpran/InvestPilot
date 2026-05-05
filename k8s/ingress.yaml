@@ -1,0 +1,34 @@
+apiVersion: networking.k8s.io/v1
+# ingress object tells Traefik how to route traffic
+kind: Ingress
+metadata:
+  name: investpilot-ingress
+  namespace: investpilot
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts:
+        - investpilot.live
+      secretName: cloudflare-origin-tls
+  rules:
+    - host: investpilot.live
+      http:
+        paths:
+          #  /api is listed first, so Traefik matches more specific paths first to route API calls to Go node
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: operational-service
+                port:
+                  number: 8081
+          #  everything else goes to the Nginx frontend
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: nginx-service
+                port:
+                  number: 80

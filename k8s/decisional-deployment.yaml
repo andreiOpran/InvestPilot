@@ -1,0 +1,23 @@
+# no Service needed, Decisional node only makes outbound connections (to RabbitMQ and Supabase)
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: decisional-node
+  namespace: investpilot
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: decisional-node
+  template:
+    metadata:
+      labels:
+        app: decisional-node
+    spec:
+      containers:
+        - name: decisional-node
+          image: ghcr.io/andreiopran/investpilot-decisional-node:latest
+          envFrom:
+            - secretRef:
+                name: python-secrets
