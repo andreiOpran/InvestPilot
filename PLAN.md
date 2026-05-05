@@ -480,6 +480,8 @@ This is just a quick introduction, the actual frontend plan is written in ./PLAN
 
 ### Phase 6: Cloud Deployment (Digital Ocean)
 
+This is just a quick introduction, the actual deployment plan is written in ./PLAN_DEPLOYMENT.md
+
 - [ ] Provision 2 Ubuntu Droplets (Droplet 1: PostgreSQL + Go; Droplet 2: Python)
 - [ ] Configure internal VPC networking (Python node is never exposed to the public internet)
 - [ ] Configure UFW firewall: block all except SSH and Go's web port

@@ -540,7 +540,7 @@ server {
 ```
 
 - [x] Create `frontend/nginx.conf`
-- [ ] Test build locally: `docker build -t nginx-frontend ./frontend`
+- [x] Test build locally: `docker build -t nginx-frontend ./frontend`
 
 ### 5.5 Push images to ghcr.io
 
@@ -609,7 +609,7 @@ spec:
       targetPort: 8081
 ```
 
-- [ ] Create `k8s/operational-deployment.yaml`
+- [x] Create `k8s/operational-deployment.yaml`
 
 ### 6.2 `k8s/decisional-deployment.yaml`
 
@@ -639,7 +639,7 @@ spec:
                 name: python-secrets
 ```
 
-- [ ] Create `k8s/decisional-deployment.yaml`
+- [x] Create `k8s/decisional-deployment.yaml`
 
 ### 6.3 `k8s/nginx-deployment.yaml`
 
@@ -709,7 +709,7 @@ spec:
       targetPort: 80
 ```
 
-- [ ] Create `k8s/nginx-deployment.yaml`
+- [x] Create `k8s/nginx-deployment.yaml`
 
 ### 6.4 `k8s/ingress.yaml`
 
@@ -752,7 +752,7 @@ spec:
 - `ingressClassName: traefik` — explicitly binds this Ingress to the Traefik controller
 - `router.entrypoints: websecure` — Traefik only serves this route on the HTTPS (443) entrypoint
 
-- [ ] Create `k8s/ingress.yaml` (replace `yourdomain.com`)
+- [x] Create `k8s/ingress.yaml` (replace `yourdomain.com`)
 
 ### 6.5 Apply everything
 
@@ -760,8 +760,8 @@ spec:
 kubectl apply -f k8s/ -n investpilot
 ```
 
-- [ ] Apply all manifests
-- [ ] Check all pods running (may take ~1 min for image pulls):
+- [x] Apply all manifests
+- [x] Check all pods running (may take ~1 min for image pulls):
   ```bash
   kubectl get pods -n investpilot
   # Expected:
