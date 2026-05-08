@@ -14,6 +14,16 @@ spec:
       labels:
         app: operational-node
     spec:
+      # should not run on k3s-master
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: kubernetes.io/hostname
+                    operator: NotIn
+                    values:
+                      - k3s-master
       containers:
         - name: operational-node
           image: ghcr.io/andreiopran/investpilot-operational-node:latest

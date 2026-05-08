@@ -17,6 +17,7 @@ type AppSettings struct {
 	StripeWebhookKey                 string           `env:"STRIPE_WEBHOOK_KEY,required"`
 	TurnstileSecretKey               string           `env:"TURNSTILE_SECRET_KEY" envDefault:"1x0000000000000000000000000000000AA"`
 	JWTSecret                        string           `env:"JWT_SECRET" envDefault:"secret-key"`
+	InternalEndpointsSecret          string           `env:"INTERNAL_ENDPOINT_SECRET,required"`
 	SMTPHost                         string           `env:"SMTP_HOST"`
 	SMTPPort                         string           `env:"SMTP_PORT"`
 	SMTPUser                         string           `env:"SMTP_USER,required"`
@@ -49,12 +50,13 @@ type AppSettings struct {
 	TransactionCountDefault          int              `env:"TRANSACTION_COUNT_DEFAULT" envDefault:"10"`
 	CleanupCronSchedule              string           `env:"CLEANUP_CRON" envDefault:"0 3 * * *"`
 	CleanupBatchSize                 int              `env:"CLEANUP_BATCH_SIZE" envDefault:"1000"`
-	ServerPort                       string           `env:"PORT" envDefault:"8080"`
+	ServerPort                       string           `env:"PORT" envDefault:"8081"`
 	BcryptCost                       int              `env:"BCRYPT_COST" envDefault:"14"`
 	SecureTokenBytes                 int              `env:"SECURE_TOKEN_BYTES" envDefault:"32"`
 	FamilyIDBytes                    int              `env:"FAMILY_ID_BYTES" envDefault:"16"`
 	TimingAttackTarget               time.Duration    `env:"TIMING_ATTACK_TARGET" envDefault:"100ms"`
 	TimingAttackNoise                int              `env:"TIMING_ATTACK_NOISE" envDefault:"20"`
+	EnableCron                       bool             `env:"ENABLE_CRON" envDefault:"true"`
 	CronBatchSleep                   time.Duration    `env:"CRON_BATCH_SLEEP" envDefault:"100ms"`
 	DailyDataPipelineCronSchedule    string           `env:"DAILY_DATA_PIPELINE_CRON" envDefault:"0 22 * * *"`
 	IntradayDataPipelineCronSchedule string           `env:"INTRADAY_DATA_PIPELINE_CRON" envDefault:"*/15 * * * *"`

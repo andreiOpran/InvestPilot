@@ -1,0 +1,139 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: cron-pipeline-daily
+  namespace: investpilot
+spec:
+  schedule: "0 22 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: trigger
+              image: curlimages/curl:latest
+              command:
+                - curl
+                - --fail
+                - --silent
+                - --show-error
+                - -X
+                - POST
+                - http://operational-service.investpilot.svc.cluster.local:8081/api/v1/internal/pipeline/daily
+                - -H
+                - "X-Internal-Secret: $(INTERNAL_ENDPOINT_SECRET)"
+              env:
+                - name: INTERNAL_ENDPOINT_SECRET
+                  valueFrom:
+                    secretKeyRef:
+                      name: go-secrets
+                      key: INTERNAL_ENDPOINT_SECRET
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: cron-pipeline-intraday
+  namespace: investpilot
+spec:
+  schedule: "*/15 * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: trigger
+              image: curlimages/curl:latest
+              command:
+                - curl
+                - --fail
+                - --silent
+                - --show-error
+                - -X
+                - POST
+                - http://operational-service.investpilot.svc.cluster.local:8081/api/v1/internal/pipeline/intraday
+                - -H
+                - "X-Internal-Secret: $(INTERNAL_ENDPOINT_SECRET)"
+              env:
+                - name: INTERNAL_ENDPOINT_SECRET
+                  valueFrom:
+                    secretKeyRef:
+                      name: go-secrets
+                      key: INTERNAL_ENDPOINT_SECRET
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: cron-rebalance
+  namespace: investpilot
+spec:
+  schedule: "0 2 1 * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: trigger
+              image: curlimages/curl:latest
+              command:
+                - curl
+                - --fail
+                - --silent
+                - --show-error
+                - -X
+                - POST
+                - http://operational-service.investpilot.svc.cluster.local:8081/api/v1/internal/rebalance
+                - -H
+                - "X-Internal-Secret: $(INTERNAL_ENDPOINT_SECRET)"
+              env:
+                - name: INTERNAL_ENDPOINT_SECRET
+                  valueFrom:
+                    secretKeyRef:
+                      name: go-secrets
+                      key: INTERNAL_ENDPOINT_SECRET
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: cron-cleanup
+  namespace: investpilot
+spec:
+  schedule: "0 3 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: trigger
+              image: curlimages/curl:latest
+              command:
+                - curl
+                - --fail
+                - --silent
+                - --show-error
+                - -X
+                - POST
+                - http://operational-service.investpilot.svc.cluster.local:8081/api/v1/internal/cleanup
+                - -H
+                - "X-Internal-Secret: $(INTERNAL_ENDPOINT_SECRET)"
+              env:
+                - name: INTERNAL_ENDPOINT_SECRET
+                  valueFrom:
+                    secretKeyRef:
+                      name: go-secrets
+                      key: INTERNAL_ENDPOINT_SECRET

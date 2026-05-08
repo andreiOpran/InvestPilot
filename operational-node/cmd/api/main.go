@@ -33,9 +33,17 @@ func main() {
 	database.InitDB()
 	mailer.InitEmailer()
 	clients.InitRabbitMQ()
-	jobs.StartTokenCleanupJob()
-	jobs.StartDataPipelineJob(dataPipelineService)
-	jobs.StartRebalanceJob(rebalanceService)
+
+	// the cron jobs are handled by local operational node cron job,
+	// or by K8s CronJobs in deployment
+	if config.Env.EnableCron {
+		jobs.StartDataPipelineJob(dataPipelineService)
+		jobs.StartRebalanceJob(rebalanceService)
+		jobs.StartTokenCleanupJob()
+		log.Println("[SYSTEM] Embedded cron jobs started (ENABLE_CRON=true)")
+	} else {
+		log.Println("[SYSTEM] Cron jobs disabled — scheduling handled by Kubernetes CronJobs")
+	}
 
 	r := gin.Default()
 	router.SetupRoutes(r)

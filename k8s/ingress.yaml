@@ -5,8 +5,10 @@ metadata:
   name: investpilot-ingress
   namespace: investpilot
   annotations:
+    # Traefik only serves this route on the HTTPS (443) entrypoint
     traefik.ingress.kubernetes.io/router.entrypoints: websecure
 spec:
+  # explicitly bind this Ingress to the Traefik controller
   ingressClassName: traefik
   tls:
     - hosts:

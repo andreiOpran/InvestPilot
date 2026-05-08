@@ -298,11 +298,13 @@ curl -sfL https://get.k3s.io | sh -s - server \
   --node-ip <vps-1-private-ip> \
   --advertise-address <vps-1-public-ip> \
   --tls-san <vps-1-public-ip>
+  --flannel-iface=eth1
 ```
 
 - `--cluster-init` initializes embedded etcd (makes the node a control-plane)
 - `--disable traefik` prevents K3s's bundled Traefik from claiming ports 80/443 — we install Traefik via Helm in section 3.4 instead
 - `--node-ip` tells K3s to use the private IP for inter-node communication
+- `--flannel-iface=eth1` tells Flannel (the pod networking layer) to use the eth1 network interface (the VPC private network) for VXLAN tunnel traffic between nodes.
 
 - [x] Run the install command on vps-1
 - [x] Verify K3s is running: `systemctl status k3s`
@@ -319,6 +321,7 @@ Run on **vps-2** and **vps-3** (replace placeholders):
 curl -sfL https://get.k3s.io | K3S_URL=https://<vps-1-public-ip>:6443 \
   K3S_TOKEN=<token-from-master> \
   sh -s - agent --node-ip <this-node-private-ip>
+  --flannel-iface eth1
 ```
 
 - [x] Join vps-2 (`k3s-worker-1`)
@@ -770,8 +773,8 @@ kubectl apply -f k8s/ -n investpilot
   # decisional-node-xxx        Running
   # nginx-frontend-xx          Running
   ```
-- [ ] Check services: `kubectl get svc -n investpilot`
-- [ ] Check ingress: `kubectl get ingress -n investpilot`
+- [x] Check services: `kubectl get svc -n investpilot`
+- [x] Check ingress: `kubectl get ingress -n investpilot`
 - [ ] If a pod fails: `kubectl logs <pod-name> -n investpilot` and `kubectl describe pod <pod-name> -n investpilot`
 
 ---
@@ -780,20 +783,20 @@ kubectl apply -f k8s/ -n investpilot
 
 ### 7.1 Point DNS to your cluster
 
-- [ ] In Cloudflare DNS → Add record:
+- [x] In Cloudflare DNS → Add record:
   - Type: `A`
   - Name: `@` (root domain) or `yourdomain.com`
   - IPv4: vps-1 public IP (nginx-ingress listens here on 80/443)
   - Proxy: **Enabled** (orange cloud) — traffic goes through Cloudflare
-- [ ] Optionally add `www` CNAME → `yourdomain.com` (also proxied)
+- [x] Optionally add `www` CNAME → `yourdomain.com` (also proxied)
 
 ### 7.2 Verify
 
-- [ ] Wait ~2 min for DNS to propagate
-- [ ] `curl -I https://yourdomain.com` — expect `200 OK` and valid TLS (Cloudflare cert in browser)
-- [ ] `curl https://yourdomain.com/api/v1/health` — expect Operational node health response (your health endpoint)
-- [ ] Open browser → `https://yourdomain.com` → React app loads
-- [ ] Open browser DevTools → Network tab → confirm `/api/*` requests return data from Operational node
+- [x] Wait ~2 min for DNS to propagate
+- [x] `curl -I https://yourdomain.com` — expect `200 OK` and valid TLS (Cloudflare cert in browser)
+- [x] `curl https://yourdomain.com/api/v1/health` — expect Operational node health response (your health endpoint)
+- [x] Open browser → `https://yourdomain.com` → React app loads
+- [x] Open browser DevTools → Network tab → confirm `/api/*` requests return data from Operational node
 
 ---
 
@@ -803,7 +806,7 @@ kubectl apply -f k8s/ -n investpilot
 
 GitHub Actions hosted runners have dynamic IPs. Port 6443 must be open to all so runners can reach the K3s API server.
 
-- [ ] Confirm port `6443` is open to `0.0.0.0/0` on vps-1 (set in Stage 2)
+- [x] Confirm port `6443` is open to `0.0.0.0/0` on vps-1 (set in Stage 2)
 
 ### 8.2 Prepare kubeconfig secret
 
@@ -872,10 +875,10 @@ jobs:
 
 Note: uses commit SHA as image tag (not `latest`) — each deploy is traceable and rollback is possible with `kubectl rollout undo`.
 
-- [ ] Create `.github/workflows/deploy.yml`
-- [ ] Push to `main` → verify Actions tab shows green pipeline
-- [ ] Verify new pods running with correct image SHA: `kubectl describe pod <operational-node-xxx> -n investpilot | grep Image`
-- [ ] Verify zero-downtime: Operational node has 2 replicas → K8s rolls one at a time → no downtime window
+- [x] Create `.github/workflows/deploy.yml`
+- [x] Push to `main` → verify Actions tab shows green pipeline
+- [x] Verify new pods running with correct image SHA: `kubectl describe pod <operational-node-xxx> -n investpilot | grep Image`
+- [x] Verify zero-downtime: Operational node has 2 replicas → K8s rolls one at a time → no downtime window
 
 ---
 

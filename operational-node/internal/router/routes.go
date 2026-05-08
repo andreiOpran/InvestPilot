@@ -23,7 +23,7 @@ func SetupRoutes(r *gin.Engine) {
 	portfolioRepo := repositories.NewPortfolioRepository(database.DB)
 	transactionRepo := repositories.NewTransactionRepository(database.DB)
 	forecastRepo := repositories.NewForecastRepository(database.DB)
-	rebalanceRepo := repositories.NewRebalanceRepository(database.DB) // for debug endpoint
+	rebalanceRepo := repositories.NewRebalanceRepository(database.DB)
 
 	// init services with repository deps
 	authService := services.NewAuthService(authRepo)
@@ -34,8 +34,8 @@ func SetupRoutes(r *gin.Engine) {
 	onboardingService := services.NewOnboardingService(userRepo)
 	forecastService := services.NewForecastService(forecastRepo, portfolioRepo)
 	stripeService := services.NewStripeService()
-	rebalanceService := services.NewRebalanceService(rebalanceRepo, userRepo) // for debug endpoint
-	dataPipelineService := services.NewDataPipelineService()                  // for debug endpoint
+	dataPipelineService := services.NewDataPipelineService()
+	rebalanceService := services.NewRebalanceService(rebalanceRepo, userRepo)
 
 	// init handlers with service deps
 	authHandler := handlers.NewAuthHandler(authService)
@@ -46,18 +46,22 @@ func SetupRoutes(r *gin.Engine) {
 	onboardingHandler := handlers.NewOnboardingHandler(onboardingService)
 	forecastHandler := handlers.NewForecastHandler(forecastService)
 	stripeHandler := handlers.NewStripeHandler(stripeService, userService)
-	rebalanceHandler := handlers.NewRebalanceHandler(rebalanceService)          // for debug endpoint
-	dataPipelineHandler := handlers.NewDataPipelineHandler(dataPipelineService) // for debug endpoint
+	dataPipelineHandler := handlers.NewDataPipelineHandler(dataPipelineService)
+	cronTriggerHandler := handlers.NewCronTriggerHandler(rebalanceService)
 
 	// standalone routes (no db required)
 	r.GET("/ping", handlers.PingHandler)
 	r.GET("/status", handlers.StatusHandler)
 	r.GET("/test-email", handlers.TestEmailHandler)
 
-	debug := r.Group("/debug")
+	// Internal endpoints triggered by Kubernetes CronJobs or ENABLE_CRON=false local dev curl
+	internal := r.Group("/api/v1/internal")
+	internal.Use(middleware.InternalAuth())
 	{
-		debug.POST("/data-pipeline", dataPipelineHandler.RunDataPipeline)
-		debug.POST("/rebalance", rebalanceHandler.Rebalance)
+		internal.POST("/pipeline/daily", dataPipelineHandler.RunDataPipeline)
+		internal.POST("/pipeline/intraday", dataPipelineHandler.RunIntradayPipeline)
+		internal.POST("/rebalance", cronTriggerHandler.RunRebalance)
+		internal.POST("/cleanup", cronTriggerHandler.RunCleanup)
 	}
 
 	v1 := r.Group("/api/v1")
