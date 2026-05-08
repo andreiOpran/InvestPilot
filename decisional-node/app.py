@@ -24,6 +24,7 @@ def main():
     max_retries = 10
     connection = None
     params = pika.URLParameters(settings.RABBITMQ_URL)
+    params.heartbeat = 0
     
     # wait for rabbitmq to start with backoff
     for i in range(1, max_retries + 1):
