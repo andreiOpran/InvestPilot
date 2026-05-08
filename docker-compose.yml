@@ -13,9 +13,10 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
 
-  # Compute node
-  python-engine:
-    build: ./decisional-node
+  decisional-node:
+    build:
+      context: ./decisional-node
+      dockerfile: Dockerfile
     env_file:
       - .env-decisional-node
     volumes:
@@ -26,11 +27,12 @@ services:
       - db
       - rabbitmq
 
-  # Operational node
-  go-backend:
-    build: ./operational-node
+  operational-node:
+    build:
+      context: ./operational-node
+      dockerfile: Dockerfile.dev 
     ports:
-      - "8081:8080" # where the app will run
+      - "8081:8081"
     env_file:
       - .env-operational-node
     depends_on:
@@ -43,13 +45,13 @@ services:
   # frontend:
   #   build:
   #     context: .
-  #     dockerfile: ./frontend/Dockerfile
+  #     dockerfile: ./frontend/Dockerfile.dev
   #   ports:
   #     - "3000:80"
   #   networks:
   #     - vpc-network
   #   depends_on:
-  #     - go-backend
+  #     - operational-node
 
   adminer:
     image: adminer
