@@ -9,7 +9,9 @@ class DataRepository:
         self.engine = create_engine(db_url)
 
     def save_daily_market_data(self, rows_to_insert: list, data_lifetime: str):
+        # open transaction with auto-commit/rollback
         with self.engine.begin() as conn:
+            # execute_values batches rows into chunks of page_size to minimize round trips
             cursor = conn.connection.cursor()
             execute_values(
                 cursor,
@@ -17,6 +19,7 @@ class DataRepository:
                     INSERT INTO daily_market_data (ticker, date, close_price, created_at)
                     VALUES %s
                     ON CONFLICT (ticker, date)
+                    -- if a row for this (ticker, date) already exists, update its price
                     DO UPDATE SET close_price = EXCLUDED.close_price
                 """,
                 [(r['ticker'], r['date'], r['close_price']) for r in rows_to_insert],
@@ -30,7 +33,9 @@ class DataRepository:
             """))
             
     def save_intraday_market_data(self, rows_to_insert: list, data_lifetime: str):
+        # open transaction with auto-commit/rollback
         with self.engine.begin() as conn:
+            # execute_values batches rows into chunks of page_size to minimize round trips
             cursor = conn.connection.cursor()
             execute_values(
                 cursor,
@@ -38,6 +43,7 @@ class DataRepository:
                     INSERT INTO intraday_market_data (ticker, timestamp, price, created_at)
                     VALUES %s
                     ON CONFLICT (ticker, timestamp)
+                    -- if a row for this (ticker, timestamp) already exists, update its price
                     DO UPDATE SET price = EXCLUDED.price
                 """,
                 [(r['ticker'], r['timestamp'], r['price']) for r in rows_to_insert],
@@ -45,6 +51,7 @@ class DataRepository:
                 page_size=1000
             )
             cursor.close()
+            # delete rows older than data_lifetime
             conn.execute(text(f"""
                 DELETE FROM intraday_market_data
                 WHERE timestamp < NOW() - INTERVAL '{data_lifetime}'
