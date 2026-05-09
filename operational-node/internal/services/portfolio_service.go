@@ -435,24 +435,6 @@ func (s *portfolioService) GetPortfolioHistory(userID uint, timeRange string) (m
 		return allTimestamps[i].Before(allTimestamps[j])
 	})
 
-	// extend values to now by generating synthetic datastamps
-	// for the case when the portfolio is USD only,
-	// or intraday market data is stale (after market close and before market open)
-	if len(allTimestamps) == 0 {
-		// if no ETF price data exists (USD-only portfolio), generate synthetic timestamps
-		// so the loop still runs and USD holdings are reflected in the chart
-		for t := since; !t.After(now); t = t.Add(interval) {
-			allTimestamps = append(allTimestamps, t)
-		}
-	} else if interval > 0 {
-		// ETF portfolio with stale prices (e.g. market closed): extend to now
-		// so the chart doesn't abruptly cut off at market close
-		last := allTimestamps[len(allTimestamps)-1]
-		for t := last.Add(interval); !t.After(now); t = t.Add(interval) {
-			allTimestamps = append(allTimestamps, t)
-		}
-	}
-
 	// build time series
 	var dataPoints []models.PortfolioHistoryPoint
 
