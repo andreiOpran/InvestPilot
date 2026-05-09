@@ -62,9 +62,14 @@ func (r *portfolioRepository) GetHistoricalRounds(userID uint, since time.Time) 
 		Or("created_at >= ?", since).
 		Or("id = (?)", r.db.Model(&models.InvestmentRound{}). // seed round: most recent round before window
 									Select("id").
-									Where("user_id = ? AND created_at < ?", userID, since).
-									Order("created_at DESC").
-									Limit(1),
+									Where(
+				// only pull the seed round if the user still has an active portfolio,
+				// otherwise a fully liquidated user would show phantom values
+				"user_id = ? AND created_at < ? AND EXISTS (SELECT 1 FROM investment_rounds WHERE user_id = ? AND is_active = true)",
+				userID, since, userID,
+			).
+			Order("created_at DESC").
+			Limit(1),
 		)
 
 	err := r.db.Preload("Holdings").
