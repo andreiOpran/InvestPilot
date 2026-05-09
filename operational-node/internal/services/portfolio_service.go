@@ -355,6 +355,7 @@ func (s *portfolioService) GetPortfolioHistory(userID uint, timeRange string) (m
 		interval = 1 * time.Hour
 	case "1M":
 		since = now.AddDate(0, -1, 0)
+		interval = 24 * time.Hour
 	case "6M":
 		since = now.AddDate(0, -6, 0)
 		interval = 24 * time.Hour
@@ -370,6 +371,7 @@ func (s *portfolioService) GetPortfolioHistory(userID uint, timeRange string) (m
 	default:
 		// default to 1M
 		since = now.AddDate(0, -1, 0)
+		interval = 24 * time.Hour
 	}
 
 	// fetch rounds and extract unique tickers
@@ -433,14 +435,20 @@ func (s *portfolioService) GetPortfolioHistory(userID uint, timeRange string) (m
 		return allTimestamps[i].Before(allTimestamps[j])
 	})
 
-	// if no ETF price data exists (USD-only portfolio), generate synthetic timestamps
-	// so the loop still runs and USD holdings are reflected in the chart
+	// extend values to now by generating synthetic datastamps
+	// for the case when the portfolio is USD only,
+	// or intraday market data is stale (after market close and before market open)
 	if len(allTimestamps) == 0 {
-		step := 24 * time.Hour
-		if isIntraday && interval > 0 {
-			step = interval
+		// if no ETF price data exists (USD-only portfolio), generate synthetic timestamps
+		// so the loop still runs and USD holdings are reflected in the chart
+		for t := since; !t.After(now); t = t.Add(interval) {
+			allTimestamps = append(allTimestamps, t)
 		}
-		for t := since; !t.After(now); t = t.Add(step) {
+	} else if interval > 0 {
+		// ETF portfolio with stale prices (e.g. market closed): extend to now
+		// so the chart doesn't abruptly cut off at market close
+		last := allTimestamps[len(allTimestamps)-1]
+		for t := last.Add(interval); !t.After(now); t = t.Add(interval) {
 			allTimestamps = append(allTimestamps, t)
 		}
 	}
