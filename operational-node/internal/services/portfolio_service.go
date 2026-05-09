@@ -435,9 +435,14 @@ func (s *portfolioService) GetPortfolioHistory(userID uint, timeRange string) (m
 
 	// build time series
 	var dataPoints []models.PortfolioHistoryPoint
+
 	// state trackers for algorithmic traversal
-	lastKnownPrices := make(map[string]float64)
 	priceIndices := make(map[string]int)
+	// pre-seed with pre-window prices so seed round holdings are valued from timestamp zero
+	lastKnownPrices, err := s.portfolioRepo.GetPricesBeforeWindow(tickers, since, isIntraday)
+	if err != nil {
+		return models.PortfolioHistoryResponse{}, err
+	}
 
 	// store values from the first day of the interval
 	// to have as a comparison for return percentages

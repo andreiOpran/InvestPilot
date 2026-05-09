@@ -15,6 +15,7 @@ type PortfolioRepository interface {
 	GetInvestTransactions(userID uint) ([]models.Transaction, error)
 	GetLatestPrices(tickers []string) (map[string]float64, error)
 	GetPricingData(tickers []string, since time.Time, isIntraday bool) (map[string][]models.AssetPricePoint, error)
+	GetPricesBeforeWindow(tickers []string, since time.Time, isIntraday bool) (map[string]float64, error)
 	ExecuteInvestTransaction(
 		wallet *models.Wallet,
 		txRecord *models.Transaction,
@@ -50,13 +51,21 @@ func (r *portfolioRepository) GetRoundWithHoldingsByStatus(userID uint, isActive
 	return &round, nil
 }
 
+// GetHistoricalRounds() fetches all investment rounds relevant to the given time window
 func (r *portfolioRepository) GetHistoricalRounds(userID uint, since time.Time) ([]models.InvestmentRound, error) {
 	var rounds []models.InvestmentRound
 
-	// time condition (get the active one, or the non-active that were created after `since`)
+	// time condition (get the active one, or the non-active that were created after `since`,
+	// together with the most recent round before window)
 	timeCondition := r.db.
 		Where("is_active = ?", true).
-		Or("id IN (SELECT id FROM investment_rounds WHERE user_id = ? AND created_at >= ?)", userID, since)
+		Or("created_at >= ?", since).
+		Or("id = (?)", r.db.Model(&models.InvestmentRound{}). // seed round: most recent round before window
+									Select("id").
+									Where("user_id = ? AND created_at < ?", userID, since).
+									Order("created_at DESC").
+									Limit(1),
+		)
 
 	err := r.db.Preload("Holdings").
 		Where("user_id = ?", userID).
@@ -142,6 +151,44 @@ func (r *portfolioRepository) GetPricingData(
 		grouped[p.Ticker] = append(grouped[p.Ticker], p)
 	}
 	return grouped, err
+}
+
+// GetPricesBeforeWindow() returns the latest price per ticker recorded before the window starts
+func (r *portfolioRepository) GetPricesBeforeWindow(tickers []string, since time.Time, isIntraday bool) (map[string]float64, error) {
+	prices := make(map[string]float64)
+	if len(tickers) == 0 {
+		return prices, nil
+	}
+
+	var results []struct {
+		Ticker string
+		Price  float64
+	}
+
+	if isIntraday {
+		err := r.db.Table("intraday_market_data").
+			Select("DISTINCT ON (ticker) ticker, price").
+			Where("ticker IN ? AND timestamp < ?", tickers, since). // strictly before window
+			Order("ticker, timestamp DESC").
+			Scan(&results).Error
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		err := r.db.Table("daily_market_data").
+			Select("DISTINCT ON (ticker) ticker, close_price AS price").
+			Where("ticker IN ? AND date < ?", tickers, since). // strictly before window
+			Order("ticker, date DESC").
+			Scan(&results).Error
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	for _, res := range results {
+		prices[res.Ticker] = res.Price
+	}
+	return prices, nil
 }
 
 func (r *portfolioRepository) ExecuteInvestTransaction(
