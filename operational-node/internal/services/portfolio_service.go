@@ -428,6 +428,39 @@ func (s *portfolioService) GetPortfolioHistory(userID uint, timeRange string) (m
 		}
 	}
 
+	// for intraday ranges on weekends/holidays, the 24h window may fall entirely
+	// outside market hours; fall back to the last available trading session
+	if isIntraday && len(timestampSet) == 0 && len(tickers) > 0 {
+		fallbackSince := since.AddDate(0, 0, -4)
+		pricing, err = s.portfolioRepo.GetPricingData(tickers, fallbackSince, isIntraday)
+		if err != nil {
+			return models.PortfolioHistoryResponse{}, err
+		}
+		var latestDay time.Time
+		for _, prices := range pricing {
+			for _, p := range prices {
+				if day := p.Timestamp.Truncate(24 * time.Hour); day.After(latestDay) {
+					latestDay = day
+				}
+			}
+		}
+		if !latestDay.IsZero() {
+			for _, prices := range pricing {
+				for _, p := range prices {
+					if p.Timestamp.Truncate(24 * time.Hour).Equal(latestDay) {
+						ts := p.Timestamp
+						if ts.Truncate(interval) != ts {
+							ts = ts.Add(interval).Truncate(interval)
+						}
+						if !ts.After(now) {
+							timestampSet[ts] = struct{}{}
+						}
+					}
+				}
+			}
+		}
+	}
+
 	// if USD-only portfolio, generate anchored timestamps to real market data
 	// so the chart aligns with actual trading hours instead of synthetic intervals
 	if len(tickers) == 0 {
@@ -435,6 +468,28 @@ func (s *portfolioService) GetPortfolioHistory(userID uint, timeRange string) (m
 		if err != nil {
 			return models.PortfolioHistoryResponse{}, err
 		}
+
+		// if intraday window is empty (weekend/holiday), fall back to last trading session
+		if isIntraday && len(marketTimestamps) == 0 {
+			marketTimestamps, err = s.portfolioRepo.GetMarketTimestamps(since.AddDate(0, 0, -4), isIntraday)
+			if err != nil {
+				return models.PortfolioHistoryResponse{}, err
+			}
+			var latestDay time.Time
+			for _, ts := range marketTimestamps {
+				if day := ts.Truncate(24 * time.Hour); day.After(latestDay) {
+					latestDay = day
+				}
+			}
+			filtered := marketTimestamps[:0]
+			for _, ts := range marketTimestamps {
+				if ts.Truncate(24 * time.Hour).Equal(latestDay) {
+					filtered = append(filtered, ts)
+				}
+			}
+			marketTimestamps = filtered
+		}
+
 		for _, ts := range marketTimestamps {
 			if interval > 0 {
 				if ts.Truncate(interval) != ts {
