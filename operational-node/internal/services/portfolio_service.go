@@ -427,13 +427,6 @@ func (s *portfolioService) GetPortfolioHistory(userID uint, timeRange string) (m
 			timestampSet[ts] = struct{}{}
 		}
 	}
-	var allTimestamps []time.Time
-	for t := range timestampSet {
-		allTimestamps = append(allTimestamps, t)
-	}
-	sort.Slice(allTimestamps, func(i, j int) bool {
-		return allTimestamps[i].Before(allTimestamps[j])
-	})
 
 	// if USD-only portfolio, generate anchored timestamps to real market data
 	// so the chart aligns with actual trading hours instead of synthetic intervals
@@ -453,10 +446,25 @@ func (s *portfolioService) GetPortfolioHistory(userID uint, timeRange string) (m
 			}
 			timestampSet[ts] = struct{}{}
 		}
+
+		// if no market data exists yet (weekend/holiday), show at least
+		// the invest moment and now so the user sees their cash balance
+		if len(timestampSet) == 0 {
+			timestampSet[since] = struct{}{}
+			timestampSet[now] = struct{}{}
+		}
 	}
 
+	var allTimestamps []time.Time
+	for t := range timestampSet {
+		allTimestamps = append(allTimestamps, t)
+	}
+	sort.Slice(allTimestamps, func(i, j int) bool {
+		return allTimestamps[i].Before(allTimestamps[j])
+	})
+
 	// build time series
-	var dataPoints []models.PortfolioHistoryPoint
+	dataPoints := []models.PortfolioHistoryPoint{}
 
 	// state trackers for algorithmic traversal
 	priceIndices := make(map[string]int)
