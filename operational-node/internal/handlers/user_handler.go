@@ -6,7 +6,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/andreiOpran/licenta/operational-node/internal/clients"
 	"github.com/andreiOpran/licenta/operational-node/internal/config"
 	"github.com/andreiOpran/licenta/operational-node/internal/mailer"
 	"github.com/andreiOpran/licenta/operational-node/internal/models"
@@ -45,26 +44,6 @@ func TestEmailHandler(c *gin.Context) {
 		return
 	}
 	c.JSON(200, gin.H{"message": "Test email sent successfully"})
-}
-
-// SimulateInvestmentHandler triggered via command queue
-func SimulateInvestmentHandler(c *gin.Context) {
-	// Task: Trigger a sync as a test
-	payload := map[string]interface{}{
-		"equity_tickers": config.Env.Investment.EquityTickers,
-		"bond_tickers":   config.Env.Investment.BondTickers,
-	}
-
-	err := clients.Publisher.PublishCommand("CMD_SYNC_DAILY", payload)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to queue sync command"})
-		return
-	}
-
-	c.JSON(http.StatusAccepted, gin.H{
-		"message": "Sync command has been queued to RabbitMQ",
-		"status":  "Check Python logs for progress",
-	})
 }
 
 // GetUserHandler returns basic profile and wallet balance

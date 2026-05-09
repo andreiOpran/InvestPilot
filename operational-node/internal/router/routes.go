@@ -66,8 +66,6 @@ func SetupRoutes(r *gin.Engine) {
 
 	v1 := r.Group("/api/v1")
 	{
-		v1.POST("/simulate-investment", handlers.SimulateInvestmentHandler)
-
 		v1.POST("/register", authHandler.RegisterHandler)
 		v1.GET("/verify-email", authHandler.VerifyEmailHandler)
 		v1.POST("/login", authHandler.LoginHandler)
