@@ -1,5 +1,5 @@
 import { NavLink, Link, Outlet } from 'react-router-dom';
-import { Suspense } from 'react';
+import { Suspense, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   LayoutDashboard,
@@ -31,6 +31,7 @@ const navItems = [
 
 export function AppShell() {
   const { user, setUser } = useAuthStore();
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   // Live wallet query
   useQuery({
@@ -55,12 +56,13 @@ export function AppShell() {
   const formatUSD = (v: number) =>
     new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(v);
 
-  const NavLinks = () => (
+  const NavLinks = ({ onNavigate }: { onNavigate?: () => void }) => (
     <nav className="flex flex-col gap-2">
       {navItems.map((item) => (
         <NavLink
           key={item.path}
           to={item.path}
+          onClick={onNavigate}
           className={({ isActive }) =>
             `flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
               isActive
@@ -91,13 +93,14 @@ export function AppShell() {
         </div>
       </aside>
 
+
       {/* Main Content Area */}
       <div className="flex flex-1 flex-col overflow-hidden">
         {/* Header */}
         <header className="flex h-16 items-center justify-between border-b bg-card px-4 md:px-6">
           <div className="flex items-center gap-4">
             {/* Mobile Sidebar Trigger */}
-            <Sheet>
+            <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
               <SheetTrigger asChild>
                 <Button variant="ghost" size="icon" className="md:hidden">
                   <Menu className="h-5 w-5" />
@@ -110,7 +113,7 @@ export function AppShell() {
                   <span className="text-base font-semibold tracking-tight" style={{ fontFamily: "'DM Serif Display', Georgia, serif" }}>InvestPilot</span>
                 </div>
                 <div className="py-6 px-4">
-                  <NavLinks />
+                  <NavLinks onNavigate={() => setMobileOpen(false)} />
                 </div>
               </SheetContent>
             </Sheet>
