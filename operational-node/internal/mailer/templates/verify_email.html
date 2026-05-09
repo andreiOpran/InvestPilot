@@ -1,0 +1,176 @@
+{{define "subject"}}Verify your InvestPilot account{{end}}
+
+{{define "body"}}<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="x-apple-disable-message-reformatting" />
+  <title>Verify your InvestPilot account</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;600;700&display=swap');
+  </style>
+</head>
+<body style="margin:0;padding:0;background-color:#f1f5f9;font-family:'Noto Sans',Arial,Helvetica,sans-serif;-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;">
+
+  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color:#f1f5f9;">
+    <tr>
+      <td align="center" style="padding:48px 16px;">
+
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600" style="max-width:600px;width:100%;">
+
+          <!-- ── HEADER ── -->
+          <tr>
+            <td style="background-color:#016630;border-radius:14px 14px 0 0;padding:0;">
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+                <tr>
+                  <td align="center" style="padding:28px 48px 24px 48px;">
+                    <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                      <tr>
+                        <td valign="middle" style="padding-right:10px;">
+                          <!-- Lucide "navigation" icon, white stroke on transparent bg -->
+                          <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block;">
+                            <polygon points="3 11 22 2 13 21 11 13 3 11"/>
+                          </svg>
+                        </td>
+                        <td valign="middle">
+                          <span style="font-family:'Noto Sans',Arial,Helvetica,sans-serif;font-size:20px;font-weight:700;color:#f0fdf4;letter-spacing:-0.2px;">InvestPilot</span>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- ── CARD BODY ── -->
+          <tr>
+            <td style="background-color:#ffffff;border-left:1px solid #e2e8f0;border-right:1px solid #e2e8f0;padding:0;">
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+
+                <!-- Icon badge: Lucide "mail" — table-based centering -->
+                <tr>
+                  <td align="center" style="padding:48px 48px 0 48px;">
+                    <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                      <tr>
+                        <td width="76" height="76" style="width:76px;height:76px;background-color:#f0fdf4;border-radius:38px;text-align:center;vertical-align:middle;">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#016630" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block;margin:0 auto;">
+                            <rect width="20" height="16" x="2" y="4" rx="2"/>
+                            <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+                          </svg>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+
+                <!-- Headline -->
+                <tr>
+                  <td align="center" style="padding:26px 48px 0 48px;">
+                    <h1 style="margin:0;font-family:'Noto Sans',Arial,Helvetica,sans-serif;font-size:26px;font-weight:700;color:#0f172a;line-height:1.25;letter-spacing:-0.4px;">Confirm your email address</h1>
+                  </td>
+                </tr>
+
+                <!-- Body text -->
+                <tr>
+                  <td align="center" style="padding:14px 56px 0 56px;">
+                    <p style="margin:0;font-family:'Noto Sans',Arial,Helvetica,sans-serif;font-size:15px;color:#475569;line-height:1.75;text-align:center;">
+                      Welcome to InvestPilot. To activate your account and start building your investment portfolio, please verify your email address.
+                    </p>
+                  </td>
+                </tr>
+
+                <!-- CTA button -->
+                <tr>
+                  <td align="center" style="padding:32px 48px 0 48px;">
+                    <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                      <tr>
+                        <td style="border-radius:10px;background-color:#016630;">
+                          <a href="{{ .VerificationURL }}" target="_blank" style="display:inline-block;padding:15px 44px;font-family:'Noto Sans',Arial,Helvetica,sans-serif;font-size:15px;font-weight:700;color:#ffffff;text-decoration:none;border-radius:10px;letter-spacing:0.2px;white-space:nowrap;">
+                            Verify Email Address
+                          </a>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+
+                <!-- Amber expiry banner -->
+                <tr>
+                  <td style="padding:28px 48px 0 48px;">
+                    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color:#fffbeb;border:1px solid #fcd34d;border-radius:10px;">
+                      <tr>
+                        <td style="padding:13px 16px;">
+                          <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+                            <tr>
+                              <td valign="top" width="24" style="padding-right:10px;padding-top:1px;">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block;">
+                                  <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/>
+                                  <line x1="12" y1="9" x2="12" y2="13"/>
+                                  <line x1="12" y1="17" x2="12.01" y2="17"/>
+                                </svg>
+                              </td>
+                              <td>
+                                <p style="margin:0;font-family:'Noto Sans',Arial,Helvetica,sans-serif;font-size:13px;color:#92400e;line-height:1.6;">
+                                  <strong>This link expires in 24 hours.</strong> After that you will need to request a new verification email from the sign-in page.
+                                </p>
+                              </td>
+                            </tr>
+                          </table>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+
+                <!-- Divider -->
+                <tr>
+                  <td style="padding:28px 48px 0 48px;">
+                    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+                      <tr>
+                        <td style="height:1px;background-color:#e2e8f0;font-size:0;line-height:0;">&nbsp;</td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+
+                <!-- Fallback URL -->
+                <tr>
+                  <td style="padding:18px 48px 40px 48px;">
+                    <p style="margin:0 0 6px 0;font-family:'Noto Sans',Arial,Helvetica,sans-serif;font-size:12px;color:#94a3b8;line-height:1.5;">
+                      Button not working? Copy and paste this link into your browser:
+                    </p>
+                    <p style="margin:0;font-family:'Courier New',Courier,monospace;font-size:11px;color:#016630;word-break:break-all;line-height:1.7;">
+                      {{ .VerificationURL }}
+                    </p>
+                  </td>
+                </tr>
+
+              </table>
+            </td>
+          </tr>
+
+          <!-- ── FOOTER ── -->
+          <tr>
+            <td style="background-color:#f8fafc;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 14px 14px;padding:24px 48px;">
+              <p style="margin:0;font-family:'Noto Sans',Arial,Helvetica,sans-serif;font-size:12px;color:#94a3b8;text-align:center;line-height:1.8;">
+                You received this email because an account was created with this address.<br/>
+                If you did not sign up, you can safely ignore this email.
+              </p>
+              <p style="margin:10px 0 0 0;font-family:'Noto Sans',Arial,Helvetica,sans-serif;font-size:11px;color:#cbd5e1;text-align:center;">
+                &copy; {{currentYear}} InvestPilot. All rights reserved.
+              </p>
+            </td>
+          </tr>
+
+        </table>
+
+      </td>
+    </tr>
+  </table>
+
+</body>
+</html>
+{{end}}

@@ -6,3 +6,4 @@ build/
 private/
 __pycache__/
 decisional-node/debug_output*/
+*-secrets.yaml

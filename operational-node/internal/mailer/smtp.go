@@ -23,9 +23,8 @@ type SMTPEmailer struct {
 }
 
 func (s *SMTPEmailer) SendEmail(to string, subject string, body string) error {
-	// build message mased on SMTP protocol format
 	msg := []byte(fmt.Sprintf(
-		"To: %s\r\n"+"Subject: %s\r\n"+"\r\n"+"%s\r\n",
+		"To: %s\r\nSubject: %s\r\nMIME-Version: 1.0\r\nContent-Type: text/html; charset=UTF-8\r\n\r\n%s\r\n",
 		to, subject, body,
 	))
 
