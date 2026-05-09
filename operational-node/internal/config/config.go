@@ -26,7 +26,7 @@ type AppSettings struct {
 	SMTPTestDestination              string           `env:"SMTP_TEST_DESTINATION"`
 	EmailProvider                    string           `env:"EMAIL_PROVIDER" envDefault:"smtp"`
 	ResendAPIKey                     string           `env:"RESEND_API_KEY"`
-	ResendFrom                       string           `env:"RESEND_FROM" envDefault:"InvestPilot <noreply@investpilot.live>"`
+	ResendFrom                       string           `env:"RESEND_FROM" envDefault:"InvestPilot <support@investpilot.live>"`
 	PasswordMinLength                int              `env:"PASSWORD_MIN_LENGTH" envDefault:"10"`
 	PasswordMaxLength                int              `env:"PASSWORD_MAX_LENGTH" envDefault:"128"`
 	PasswordMinZxcvbnStrength        int              `env:"PASSWORD_MIN_ZXCVBN_STRENGTH" envDefault:"3"`
