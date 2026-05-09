@@ -430,6 +430,7 @@ func (s *portfolioService) GetPortfolioHistory(userID uint, timeRange string) (m
 
 	// for intraday ranges on weekends/holidays, the 24h window may fall entirely
 	// outside market hours; fall back to the last available trading session
+	effectiveSince := since // updated if intraday fallback fires
 	if isIntraday && len(timestampSet) == 0 && len(tickers) > 0 {
 		fallbackSince := since.AddDate(0, 0, -4)
 		pricing, err = s.portfolioRepo.GetPricingData(tickers, fallbackSince, isIntraday)
@@ -457,6 +458,13 @@ func (s *portfolioService) GetPortfolioHistory(userID uint, timeRange string) (m
 						}
 					}
 				}
+			}
+			// update effective window to the start of the last trading session
+			effectiveSince = latestDay
+			// re-fetch rounds so earlier rounds active during this session are included
+			rounds, err = s.portfolioRepo.GetHistoricalRounds(userID, effectiveSince)
+			if err != nil {
+				return models.PortfolioHistoryResponse{}, err
 			}
 		}
 	}
@@ -520,7 +528,7 @@ func (s *portfolioService) GetPortfolioHistory(userID uint, timeRange string) (m
 	// state trackers for algorithmic traversal
 	priceIndices := make(map[string]int)
 	// pre-seed with pre-window prices so seed round holdings are valued from timestamp zero
-	lastKnownPrices, err := s.portfolioRepo.GetPricesBeforeWindow(tickers, since, isIntraday)
+	lastKnownPrices, err := s.portfolioRepo.GetPricesBeforeWindow(tickers, effectiveSince, isIntraday)
 	if err != nil {
 		return models.PortfolioHistoryResponse{}, err
 	}
