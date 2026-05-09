@@ -7,12 +7,6 @@ import (
 	"github.com/andreiOpran/licenta/operational-node/internal/config"
 )
 
-// EmailSender interface for sending emails, allowing dependency injection
-// we use SMTP in dev, and SendGrid in prod
-type EmailSender interface {
-	SendEmail(to string, subject string, body string) error
-}
-
 // SMTPEmailer implements EmailSender interface using GO's net/stmp package
 type SMTPEmailer struct {
 	Host     string
@@ -34,7 +28,7 @@ func (s *SMTPEmailer) SendEmail(to string, subject string, body string) error {
 
 	err := smtp.SendMail(address, auth, s.From, []string{to}, msg)
 	if err != nil {
-		return fmt.Errorf("Failed to send email: %w", err)
+		return fmt.Errorf("failed to send email: %w", err)
 	}
 
 	return nil
@@ -49,10 +43,4 @@ func NewSMTPConfig() *SMTPEmailer {
 		Password: config.Env.SMTPPass,
 		From:     config.Env.SMTPFrom,
 	}
-}
-
-var Client EmailSender
-
-func InitEmailer() {
-	Client = NewSMTPConfig()
 }

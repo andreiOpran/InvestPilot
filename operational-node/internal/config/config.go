@@ -20,10 +20,13 @@ type AppSettings struct {
 	InternalEndpointsSecret          string           `env:"INTERNAL_ENDPOINT_SECRET,required"`
 	SMTPHost                         string           `env:"SMTP_HOST"`
 	SMTPPort                         string           `env:"SMTP_PORT"`
-	SMTPUser                         string           `env:"SMTP_USER,required"`
-	SMTPPass                         string           `env:"SMTP_PASS,required"`
+	SMTPUser                         string           `env:"SMTP_USER"`
+	SMTPPass                         string           `env:"SMTP_PASS"`
 	SMTPFrom                         string           `env:"SMTP_FROM"`
 	SMTPTestDestination              string           `env:"SMTP_TEST_DESTINATION"`
+	EmailProvider                    string           `env:"EMAIL_PROVIDER" envDefault:"smtp"`
+	ResendAPIKey                     string           `env:"RESEND_API_KEY"`
+	ResendFrom                       string           `env:"RESEND_FROM" envDefault:"InvestPilot <noreply@investpilot.live>"`
 	PasswordMinLength                int              `env:"PASSWORD_MIN_LENGTH" envDefault:"10"`
 	PasswordMaxLength                int              `env:"PASSWORD_MAX_LENGTH" envDefault:"128"`
 	PasswordMinZxcvbnStrength        int              `env:"PASSWORD_MIN_ZXCVBN_STRENGTH" envDefault:"3"`
@@ -62,7 +65,6 @@ type AppSettings struct {
 	IntradayDataPipelineCronSchedule string           `env:"INTRADAY_DATA_PIPELINE_CRON" envDefault:"*/15 * * * *"`
 	RebalanceSchedule                string           `env:"REBALANCE_CRON" envDefault:"0 2 1 * *"`
 	RebalanceBatchSize               int              `env:"REBALANCE_BATCH_SIZE" envDefault:"500"`
-	APIBaseURL                       string           `env:"API_BASE_URL" envDefault:"http://localhost:8081/api/v1"`
 	FrontendBaseURL                  string           `env:"FRONTEND_BASE_URL" envDefault:"http://localhost:3000"`
 	RabbitMQURL                      string           `env:"RABBITMQ_URL,required"`
 	Investment                       InvestmentConfig `envPrefix:""`

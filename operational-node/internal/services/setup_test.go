@@ -19,7 +19,6 @@ func init() {
 		RefreshTokenLifetimeHours: 24 * time.Hour,
 		AESMasterKey:              "0123456789abcdef0123456789abcdef",
 		JWTSecret:                 "mock-secret-key",
-		APIBaseURL:                "http://localhost",
 		FrontendBaseURL:           "http://localhost",
 		TimingAttackTarget:        1 * time.Millisecond,
 		TimingAttackNoise:         1,

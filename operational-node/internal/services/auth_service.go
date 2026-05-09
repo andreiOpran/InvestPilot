@@ -106,7 +106,7 @@ func (s *authService) RegisterUser(req models.RegisterRequest) error {
 	}
 
 	// send email using embedded templates
-	verificationURL := fmt.Sprintf("%s/verify-email?token=%s", config.Env.APIBaseURL, verificationToken)
+	verificationURL := fmt.Sprintf("%s/verify-email?token=%s", config.Env.FrontendBaseURL, verificationToken)
 	data := struct{ VerificationURL string }{VerificationURL: verificationURL}
 
 	subject, body, tmplErr := mailer.BuildEmailContent("verify_email", data)
