@@ -55,7 +55,7 @@ func SetupRoutes(r *gin.Engine) {
 	r.GET("/test-email", handlers.TestEmailHandler)
 
 	// Internal endpoints triggered by Kubernetes CronJobs or ENABLE_CRON=false local dev curl
-	internal := r.Group("/api/v1/internal")
+	internal := r.Group("/internal")
 	internal.Use(middleware.InternalAuth())
 	{
 		internal.POST("/pipeline/daily", dataPipelineHandler.RunDataPipeline)
