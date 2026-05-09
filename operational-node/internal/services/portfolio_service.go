@@ -447,12 +447,8 @@ func (s *portfolioService) GetPortfolioHistory(userID uint, timeRange string) (m
 			timestampSet[ts] = struct{}{}
 		}
 
-		// if no market data exists yet (weekend/holiday), show at least
-		// the invest moment and now so the user sees their cash balance
-		if len(timestampSet) == 0 {
-			timestampSet[since] = struct{}{}
-			timestampSet[now] = struct{}{}
-		}
+		// always pin now for USD-only so the current cash balance is always visible
+		timestampSet[now] = struct{}{}
 	}
 
 	var allTimestamps []time.Time
