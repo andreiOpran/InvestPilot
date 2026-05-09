@@ -11,5 +11,6 @@ FROM alpine:3.22.4
 RUN apk --no-cache add ca-certificates tzdata
 WORKDIR /app
 COPY --from=builder /app/server .
+COPY --from=builder /app/internal/mailer/assets ./internal/mailer/assets
 EXPOSE 8081
 CMD ["./server"]

@@ -19,6 +19,13 @@ spec:
       http:
         paths:
           #  /api is listed first, so Traefik matches more specific paths first to route API calls to Go node
+          - path: /email-assets
+            pathType: Prefix
+            backend:
+              service:
+                name: operational-service
+                port:
+                  number: 8081
           - path: /api
             pathType: Prefix
             backend:
