@@ -3,7 +3,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Loader2, TrendingDown } from "lucide-react";
+import { TrendingDown } from "lucide-react";
 
 import { sellSchema, type SellFormValues } from "@/lib/schemas";
 import { portfolioApi } from "@/api/portfolio";
@@ -26,7 +26,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+import { SwipeToConfirmButton } from "@/components/ui/SwipeToConfirmButton";
 
 interface SellDialogProps {
   open: boolean;
@@ -77,6 +77,7 @@ export function SellDialog({ open, onOpenChange, portfolioValue }: SellDialogPro
       } else {
         toast.error(msg);
       }
+      throw error;
     } finally {
       setIsSubmitting(false);
     }
@@ -109,7 +110,7 @@ export function SellDialog({ open, onOpenChange, portfolioValue }: SellDialogPro
         )}
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <form className="space-y-4">
             <FormField
               control={form.control}
               name="amount"
@@ -131,20 +132,13 @@ export function SellDialog({ open, onOpenChange, portfolioValue }: SellDialogPro
             />
 
             <div className="flex justify-end pt-2">
-              <Button
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full bg-red-600 hover:bg-red-700 text-white"
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Selling...
-                  </>
-                ) : (
-                  "Confirm Sell"
-                )}
-              </Button>
+              <SwipeToConfirmButton
+                label="Confirm Sell"
+                onConfirm={form.handleSubmit(onSubmit)}
+                isLoading={isSubmitting}
+                open={open}
+                variant="destructive"
+              />
             </div>
           </form>
         </Form>

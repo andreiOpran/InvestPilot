@@ -2,7 +2,6 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
 
 import { cashoutSchema, type CashoutFormValues } from "@/lib/schemas";
 import { userApi } from "@/api/user";
@@ -24,7 +23,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+import { SwipeToConfirmButton } from "@/components/ui/SwipeToConfirmButton";
 
 interface CashoutDialogProps {
   open: boolean;
@@ -56,13 +55,12 @@ export function CashoutDialog({ open, onOpenChange }: CashoutDialogProps) {
       form.reset();
     } catch (error: any) {
       const msg = error.response?.data?.error || "Failed to process withdrawal";
-      
-      // Handle the 400 insufficient balance specifically if needed
       if (error.response?.status === 400 && msg.toLowerCase().includes("insufficient")) {
         form.setError("amount", { type: "manual", message: "Insufficient balance" });
       } else {
         toast.error(msg);
       }
+      throw error;
     } finally {
       setIsSubmitting(false);
     }
@@ -86,7 +84,7 @@ export function CashoutDialog({ open, onOpenChange }: CashoutDialogProps) {
         </div>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <form className="space-y-4">
             <FormField
               control={form.control}
               name="amount"
@@ -108,16 +106,12 @@ export function CashoutDialog({ open, onOpenChange }: CashoutDialogProps) {
             />
 
             <div className="flex justify-end pt-4">
-              <Button type="submit" disabled={isSubmitting} className="w-full">
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Processing...
-                  </>
-                ) : (
-                  "Confirm Withdrawal"
-                )}
-              </Button>
+              <SwipeToConfirmButton
+                label="Confirm Withdrawal"
+                onConfirm={form.handleSubmit(onSubmit)}
+                isLoading={isSubmitting}
+                open={open}
+              />
             </div>
           </form>
         </Form>

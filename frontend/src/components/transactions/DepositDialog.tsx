@@ -2,7 +2,6 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
 
 import { depositSchema, type DepositFormValues } from "@/lib/schemas";
 import { userApi } from "@/api/user";
@@ -24,7 +23,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+import { SwipeToConfirmButton } from "@/components/ui/SwipeToConfirmButton";
 
 interface DepositDialogProps {
   open: boolean;
@@ -56,6 +55,7 @@ export function DepositDialog({ open, onOpenChange }: DepositDialogProps) {
       form.reset();
     } catch (error: any) {
       toast.error("Failed to process deposit. Please try again.");
+      throw error;
     } finally {
       setIsSubmitting(false);
     }
@@ -94,16 +94,12 @@ export function DepositDialog({ open, onOpenChange }: DepositDialogProps) {
             />
 
             <div className="flex justify-end pt-4">
-              <Button type="submit" disabled={isSubmitting} className="w-full">
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Processing...
-                  </>
-                ) : (
-                  "Deposit Funds"
-                )}
-              </Button>
+              <SwipeToConfirmButton
+                label="Deposit Funds"
+                onConfirm={form.handleSubmit(onSubmit)}
+                isLoading={isSubmitting}
+                open={open}
+              />
             </div>
           </form>
         </Form>

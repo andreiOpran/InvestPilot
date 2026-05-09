@@ -2,7 +2,6 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 
 import { investSchema, type InvestFormValues } from "@/lib/schemas";
@@ -26,7 +25,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+import { SwipeToConfirmButton } from "@/components/ui/SwipeToConfirmButton";
 
 interface InvestDialogProps {
   open: boolean;
@@ -70,6 +69,7 @@ export function InvestDialog({ open, onOpenChange, onSuccess }: InvestDialogProp
       } else {
         toast.error("Failed to process investment. Please try again.");
       }
+      throw error;
     } finally {
       setIsSubmitting(false);
     }
@@ -93,7 +93,7 @@ export function InvestDialog({ open, onOpenChange, onSuccess }: InvestDialogProp
         </div>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <form className="space-y-4">
             <FormField
               control={form.control}
               name="amount"
@@ -115,16 +115,12 @@ export function InvestDialog({ open, onOpenChange, onSuccess }: InvestDialogProp
             />
 
             <div className="flex justify-end pt-4">
-              <Button type="submit" disabled={isSubmitting} className="w-full">
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Investing...
-                  </>
-                ) : (
-                  "Confirm Investment"
-                )}
-              </Button>
+              <SwipeToConfirmButton
+                label="Confirm Investment"
+                onConfirm={form.handleSubmit(onSubmit)}
+                isLoading={isSubmitting}
+                open={open}
+              />
             </div>
           </form>
         </Form>
