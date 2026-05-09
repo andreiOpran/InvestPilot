@@ -99,6 +99,9 @@ func SetupRoutes(r *gin.Engine) {
 	r.Static("/assets", "../frontend/dist/assets")
 	r.StaticFile("/vite.svg", "../frontend/dist/vite.svg")
 
+	// serve static files for mailer
+	r.Static("/email-assets", "./internal/mailer/assets")
+
 	// catch-all for client-side routing
 	r.NoRoute(handlers.SPAFallbackHandler("../frontend/dist/index.html"))
 }

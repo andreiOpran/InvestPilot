@@ -107,7 +107,10 @@ func (s *authService) RegisterUser(req models.RegisterRequest) error {
 
 	// send email using embedded templates
 	verificationURL := fmt.Sprintf("%s/verify-email?token=%s", config.Env.FrontendBaseURL, verificationToken)
-	data := struct{ VerificationURL string }{VerificationURL: verificationURL}
+	data := struct {
+		VerificationURL string
+		BaseURL         string
+	}{VerificationURL: verificationURL, BaseURL: config.Env.FrontendBaseURL}
 
 	subject, body, tmplErr := mailer.BuildEmailContent("verify_email", data)
 	if tmplErr == nil {
@@ -196,7 +199,8 @@ func (s *authService) AuthenticateUser(email, password, clientIP, userAgent stri
 
 			// send warning email on exactly the first threshold breach
 			if newFails == config.Env.LockoutThreshold1 {
-				subject, body, tmplErr := mailer.BuildEmailContent("lockout_alert", nil)
+				lockoutData := struct{ BaseURL string }{BaseURL: config.Env.FrontendBaseURL}
+				subject, body, tmplErr := mailer.BuildEmailContent("lockout_alert", lockoutData)
 				if tmplErr == nil {
 					// send email in goroutine so smtp server network latency does not affect api response time
 					go func() {
@@ -402,7 +406,10 @@ func (s *authService) ForgotPassword(email string) error {
 		if err := s.authRepo.CreateActionToken(&actionToken); err == nil {
 			// send recovery email using embedded templates
 			recoveryURL := fmt.Sprintf("%s/reset-password?token=%s", config.Env.FrontendBaseURL, recoveryToken)
-			data := struct{ RecoveryURL string }{RecoveryURL: recoveryURL}
+			data := struct {
+				RecoveryURL string
+				BaseURL     string
+			}{RecoveryURL: recoveryURL, BaseURL: config.Env.FrontendBaseURL}
 
 			subject, body, tmplErr := mailer.BuildEmailContent("reset_password", data)
 			if tmplErr == nil {
