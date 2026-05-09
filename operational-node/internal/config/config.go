@@ -64,7 +64,6 @@ type AppSettings struct {
 	RebalanceBatchSize               int              `env:"REBALANCE_BATCH_SIZE" envDefault:"500"`
 	APIBaseURL                       string           `env:"API_BASE_URL" envDefault:"http://localhost:8081/api/v1"`
 	FrontendBaseURL                  string           `env:"FRONTEND_BASE_URL" envDefault:"http://localhost:3000"`
-	PythonNodeURL                    string           `env:"PYTHON_NODE_URL" envDefault:"http://python-engine:5000"`
 	PythonClientTimeout              time.Duration    `env:"PYTHON_CLIENT_TIMEOUT" envDefault:"5s"`
 	RabbitMQURL                      string           `env:"RABBITMQ_URL,required"`
 	Investment                       InvestmentConfig `envPrefix:""`
