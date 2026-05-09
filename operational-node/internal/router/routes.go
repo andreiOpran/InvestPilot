@@ -62,7 +62,7 @@ func SetupRoutes(r *gin.Engine) {
 	v1 := r.Group("/api/v1")
 	{
 		// debug route
-		r.GET("/test-email", handlers.TestEmailHandler)
+		v1.GET("/test-email", handlers.TestEmailHandler)
 
 		v1.POST("/register", authHandler.RegisterHandler)
 		v1.GET("/verify-email", authHandler.VerifyEmailHandler)
