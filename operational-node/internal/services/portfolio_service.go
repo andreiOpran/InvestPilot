@@ -435,6 +435,26 @@ func (s *portfolioService) GetPortfolioHistory(userID uint, timeRange string) (m
 		return allTimestamps[i].Before(allTimestamps[j])
 	})
 
+	// if USD-only portfolio, generate anchored timestamps to real market data
+	// so the chart aligns with actual trading hours instead of synthetic intervals
+	if len(tickers) == 0 {
+		marketTimestamps, err := s.portfolioRepo.GetMarketTimestamps(since, isIntraday)
+		if err != nil {
+			return models.PortfolioHistoryResponse{}, err
+		}
+		for _, ts := range marketTimestamps {
+			if interval > 0 {
+				if ts.Truncate(interval) != ts {
+					ts = ts.Add(interval).Truncate(interval)
+				}
+				if ts.After(now) {
+					continue
+				}
+			}
+			timestampSet[ts] = struct{}{}
+		}
+	}
+
 	// build time series
 	var dataPoints []models.PortfolioHistoryPoint
 

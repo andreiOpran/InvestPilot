@@ -16,6 +16,7 @@ type PortfolioRepository interface {
 	GetLatestPrices(tickers []string) (map[string]float64, error)
 	GetPricingData(tickers []string, since time.Time, isIntraday bool) (map[string][]models.AssetPricePoint, error)
 	GetPricesBeforeWindow(tickers []string, since time.Time, isIntraday bool) (map[string]float64, error)
+	GetMarketTimestamps(since time.Time, isIntraday bool) ([]time.Time, error)
 	ExecuteInvestTransaction(
 		wallet *models.Wallet,
 		txRecord *models.Transaction,
@@ -194,6 +195,33 @@ func (r *portfolioRepository) GetPricesBeforeWindow(tickers []string, since time
 		prices[res.Ticker] = res.Price
 	}
 	return prices, nil
+}
+
+// GetMarketTimestamps() returns distinct price timestamps from the market data tables
+func (r *portfolioRepository) GetMarketTimestamps(since time.Time, isIntraday bool) ([]time.Time, error) {
+	var results []time.Time
+
+	if isIntraday {
+		err := r.db.Table("intraday_market_data").
+			Select("DISTINCT timestamp").
+			Where("timestamp >= ?", since).
+			Order("timestamp asc").
+			Pluck("timestamp", &results).Error
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		err := r.db.Table("daily_market_data").
+			Select("DISTINCT date").
+			Where("date >= ?", since).
+			Order("date asc").
+			Pluck("date", &results).Error
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return results, nil
 }
 
 func (r *portfolioRepository) ExecuteInvestTransaction(
