@@ -39,6 +39,10 @@ func (h *ForecastHandler) RequestForecastHandler(c *gin.Context) {
 			c.JSON(http.StatusUnprocessableEntity, gin.H{"error": err.Error()})
 			return
 		}
+		if errors.Is(err, services.ErrForecastNoAssetsOnlyCash) {
+			c.JSON(http.StatusUnprocessableEntity, gin.H{"error": err.Error()})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}

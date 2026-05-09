@@ -218,7 +218,7 @@ export function Forecast() {
             <Separator />
             <CardContent className="flex-1 flex flex-col items-center justify-center pt-6">
 
-              {status === "idle" && (
+              {(status === "idle" || status === "error") && (
                 <div className="text-center space-y-3 max-w-xs">
                   <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted mx-auto">
                     <TrendingUp className="h-6 w-6 text-muted-foreground/40" />

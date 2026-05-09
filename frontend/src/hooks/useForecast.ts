@@ -65,8 +65,19 @@ export function useForecast() {
       if (loadingToastId !== null) toast.dismiss(loadingToastId);
       const errStatus = err.response?.status;
       const serverMsg: string = err.response?.data?.error ?? "";
-      if (errStatus === 422 || serverMsg.toLowerCase().includes("no active portfolio")) {
-        toast.error("You need an active portfolio before running a forecast. Invest first.");
+      const msg = serverMsg.toLowerCase();
+      if (errStatus === 422) {
+        if (msg.includes("uninvested cash") || msg.includes("cannot forecast")) {
+          toast.error("No holdings to forecast", {
+            description: "Your cash will be invested automatically at the next monthly rebalancing.",
+          });
+        } else if (msg.includes("no active portfolio")) {
+          toast.error("You need an active portfolio before running a forecast. Invest first.");
+        } else {
+          toast.error("Failed to submit forecast request");
+        }
+      } else if (serverMsg) {
+        toast.error(serverMsg);
       } else {
         toast.error("Failed to submit forecast request");
       }
