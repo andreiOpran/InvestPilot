@@ -49,11 +49,6 @@ func SetupRoutes(r *gin.Engine) {
 	dataPipelineHandler := handlers.NewDataPipelineHandler(dataPipelineService)
 	cronTriggerHandler := handlers.NewCronTriggerHandler(rebalanceService)
 
-	// standalone routes (no db required)
-	r.GET("/ping", handlers.PingHandler)
-	r.GET("/status", handlers.StatusHandler)
-	r.GET("/test-email", handlers.TestEmailHandler)
-
 	// Internal endpoints triggered by Kubernetes CronJobs or ENABLE_CRON=false local dev curl
 	internal := r.Group("/internal")
 	internal.Use(middleware.InternalAuth())
@@ -66,6 +61,9 @@ func SetupRoutes(r *gin.Engine) {
 
 	v1 := r.Group("/api/v1")
 	{
+		// debug route
+		r.GET("/test-email", handlers.TestEmailHandler)
+
 		v1.POST("/register", authHandler.RegisterHandler)
 		v1.GET("/verify-email", authHandler.VerifyEmailHandler)
 		v1.POST("/login", authHandler.LoginHandler)

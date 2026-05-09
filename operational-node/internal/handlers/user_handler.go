@@ -22,19 +22,6 @@ func NewUserHandler(userService services.UserService) *UserHandler {
 	}
 }
 
-// PingHandler simple health check
-func PingHandler(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{"message": "Go node works"})
-}
-
-// StatusHandler reports rudimentary status
-func StatusHandler(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{
-		"status":   "Server is running",
-		"database": "Connected",
-	})
-}
-
 // TestEmailHandler triggers a test email send
 func TestEmailHandler(c *gin.Context) {
 	testEmail := config.Env.SMTPTestDestination
