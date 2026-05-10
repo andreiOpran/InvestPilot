@@ -250,7 +250,7 @@ export function Dashboard() {
   const hasPortfolio = portfolio?.holdings && portfolio.holdings.length > 0;
 
   return (
-    <div className="p-6 md:p-8 space-y-6 max-w-6xl mx-auto">
+    <div className="p-6 md:p-8 space-y-6 max-w-7xl mx-auto">
 
       {/* Page header */}
       <div className="space-y-0.5">
