@@ -67,8 +67,8 @@ func (r *userRepository) CashoutTx(userID uint, amount float64, fundingLog *mode
 	return r.db.Transaction(func(tx *gorm.DB) error {
 		// atomically update wallet balance only if there are enough funds
 		result := tx.Model(&models.Wallet{}).
-			Where("user_id = ? AND balance >= ?", userID, amount).
-			Update("balance", gorm.Expr("balance - ?", amount))
+			Where("user_id = ? AND balance + 0.005 >= ?", userID, amount).
+			Update("balance", gorm.Expr("ROUND(balance - ?, 10)", amount))
 		if result.Error != nil {
 			return result.Error
 		}

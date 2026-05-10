@@ -2,6 +2,7 @@ package services
 
 import (
 	"errors"
+	"math"
 
 	"github.com/andreiOpran/licenta/operational-node/internal/models"
 	"github.com/andreiOpran/licenta/operational-node/internal/repositories"
@@ -95,6 +96,7 @@ func (s *userService) Cashout(userID uint, amount float64) (float64, error) {
 	if amount <= 0 {
 		return 0, ErrAmountNegative
 	}
+	amount = math.Round(amount*100) / 100
 
 	// generate cashout log with mock Stripe ID
 	mockStripeID := "sim_out_" + uuid.New().String()
