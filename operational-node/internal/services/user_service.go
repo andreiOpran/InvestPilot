@@ -55,6 +55,7 @@ func (s *userService) UpdateUserProfile(userID uint, req models.UpdateProfileReq
 
 // This is now unused, as deposit is made by stripe webhooks, which calls the DepositTx()
 func (s *userService) DepositFunds(userID uint, amount float64) (float64, error) {
+	amount = math.Round(amount*100) / 100
 	stripeID := "sim_paper_trading_deposit"
 	funding := &models.Funding{
 		UserID:          userID,
@@ -79,7 +80,7 @@ func (s *userService) DepositFunds(userID uint, amount float64) (float64, error)
 }
 
 func (s *userService) ProcessWebhookDeposit(userID uint, paymentIntentAmount int64, stripeID string) error {
-	amount := float64(paymentIntentAmount) / 100.0 // convert cents back to flat dollar float
+	amount := math.Round(float64(paymentIntentAmount)/100.0*100) / 100 // cents to dollars, rounded to 2 decimals
 
 	// generate funding ledger log
 	funding := &models.Funding{

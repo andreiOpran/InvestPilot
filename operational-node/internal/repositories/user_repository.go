@@ -53,7 +53,7 @@ func (r *userRepository) DepositTx(userID uint, amount float64, fundingLog *mode
 		// atomically update wallet balance
 		err := tx.Model(&models.Wallet{}).
 			Where("user_id = ?", userID).
-			Update("balance", gorm.Expr("balance + ?", amount)).Error
+			Update("balance", gorm.Expr("ROUND(balance + ?, 10)", amount)).Error
 		if err != nil {
 			return err
 		}
