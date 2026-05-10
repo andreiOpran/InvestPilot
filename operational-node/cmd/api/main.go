@@ -45,6 +45,12 @@ func main() {
 		log.Println("[SYSTEM] Cron jobs disabled — scheduling handled by Kubernetes CronJobs")
 	}
 
+	if config.Env.GinMode == "release" {
+		gin.SetMode(gin.ReleaseMode)
+	} else {
+		gin.SetMode(gin.DebugMode)
+	}
+
 	r := gin.Default()
 	router.SetupRoutes(r)
 

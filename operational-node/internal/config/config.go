@@ -10,7 +10,7 @@ import (
 
 // AppSettings holds application configuration populated from environment
 type AppSettings struct {
-	AppEnv                           string           `env:"APP_ENV" envDefault:"development"` // in production change to "production"
+	AppEnv                           string           `env:"APP_ENV" envDefault:"development"`
 	DatabaseURL                      string           `env:"DATABASE_URL,required"`
 	AESMasterKey                     string           `env:"AES_MASTER_KEY,required"`
 	StripeSecretKey                  string           `env:"STRIPE_SECRET_KEY,required"`
@@ -53,6 +53,7 @@ type AppSettings struct {
 	TransactionCountDefault          int              `env:"TRANSACTION_COUNT_DEFAULT" envDefault:"10"`
 	CleanupCronSchedule              string           `env:"CLEANUP_CRON" envDefault:"0 3 * * *"`
 	CleanupBatchSize                 int              `env:"CLEANUP_BATCH_SIZE" envDefault:"1000"`
+	GinMode                          string           `env:"GIN_MODE" envDefault:"debug"`
 	ServerPort                       string           `env:"PORT" envDefault:"8081"`
 	BcryptCost                       int              `env:"BCRYPT_COST" envDefault:"14"`
 	SecureTokenBytes                 int              `env:"SECURE_TOKEN_BYTES" envDefault:"32"`
