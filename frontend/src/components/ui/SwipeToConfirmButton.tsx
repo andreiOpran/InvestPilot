@@ -6,6 +6,7 @@ interface SwipeToConfirmButtonProps {
   label: string;
   onConfirm: () => Promise<void> | void;
   isLoading?: boolean;
+  disabled?: boolean;
   open?: boolean;
   variant?: "default" | "destructive";
   className?: string;
@@ -20,6 +21,7 @@ export function SwipeToConfirmButton({
   label,
   onConfirm,
   isLoading = false,
+  disabled = false,
   open,
   variant = "default",
   className,
@@ -150,7 +152,7 @@ export function SwipeToConfirmButton({
   }, []); // stable — all mutable state via refs
 
   const onPointerDown = (e: React.MouseEvent | React.TouchEvent) => {
-    if (stateRef.current !== "idle" || isLoading) return;
+    if (stateRef.current !== "idle" || isLoading || disabled) return;
     updateTrackWidth();
     isDragging.current = true;
     dragStartX.current = "touches" in e ? e.touches[0].clientX : e.clientX;
@@ -163,7 +165,7 @@ export function SwipeToConfirmButton({
   const isActive = state === "dragging";
   const isConfirmed = state === "confirmed" || state === "loading";
   const isSuccess = state === "success";
-  const isDisabled = isLoading || isConfirmed || isSuccess;
+  const isDisabled = isLoading || isConfirmed || isSuccess || disabled;
 
   const fillWidth = isConfirmed || isSuccess
     ? "100%"
@@ -180,6 +182,7 @@ export function SwipeToConfirmButton({
           ? "bg-red-950/40 border border-red-900/30"
           : "bg-primary/10 border border-primary/20",
         "transition-all duration-200",
+        disabled && "opacity-40 cursor-not-allowed",
         className
       )}
       style={{ userSelect: "none", WebkitUserSelect: "none" }}

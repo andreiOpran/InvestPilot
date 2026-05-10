@@ -22,7 +22,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "@/components/ui/CurrencyInput";
 import { SwipeToConfirmButton } from "@/components/ui/SwipeToConfirmButton";
 
 interface DepositDialogProps {
@@ -41,6 +41,8 @@ export function DepositDialog({ open, onOpenChange }: DepositDialogProps) {
     },
   });
 
+  const amount = form.watch("amount");
+
   const onSubmit = async (data: DepositFormValues) => {
     setIsSubmitting(true);
     try {
@@ -51,8 +53,7 @@ export function DepositDialog({ open, onOpenChange }: DepositDialogProps) {
       setUser(userRes.data);
 
       toast.success("Funds added successfully!");
-      onOpenChange(false);
-      form.reset();
+      setTimeout(() => { onOpenChange(false); form.reset(); }, 1200);
     } catch (error: any) {
       toast.error("Failed to process deposit. Please try again.");
       throw error;
@@ -80,12 +81,11 @@ export function DepositDialog({ open, onOpenChange }: DepositDialogProps) {
                 <FormItem>
                   <FormLabel>Amount (USD)</FormLabel>
                   <FormControl>
-                    <Input
-                      type="number"
-                      step="0.01"
+                    <CurrencyInput
                       placeholder="Enter amount..."
-                      {...field}
-                      value={field.value || ""}
+                      value={field.value || 0}
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
                     />
                   </FormControl>
                   <FormMessage />
@@ -98,6 +98,7 @@ export function DepositDialog({ open, onOpenChange }: DepositDialogProps) {
                 label="Deposit Funds"
                 onConfirm={form.handleSubmit(onSubmit)}
                 isLoading={isSubmitting}
+                disabled={!amount || amount <= 0}
                 open={open}
               />
             </div>

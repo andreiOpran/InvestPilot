@@ -25,7 +25,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "@/components/ui/CurrencyInput";
 import { SwipeToConfirmButton } from "@/components/ui/SwipeToConfirmButton";
 
 interface SellDialogProps {
@@ -44,6 +44,8 @@ export function SellDialog({ open, onOpenChange, portfolioValue }: SellDialogPro
     defaultValues: { amount: 0 },
   });
 
+  const amount = form.watch("amount");
+
   const onSubmit = async (data: SellFormValues) => {
     setIsSubmitting(true);
     try {
@@ -57,8 +59,7 @@ export function SellDialog({ open, onOpenChange, portfolioValue }: SellDialogPro
       queryClient.invalidateQueries({ queryKey: ["transactions"] });
 
       toast.success("Funds returned to wallet");
-      onOpenChange(false);
-      form.reset();
+      setTimeout(() => { onOpenChange(false); form.reset(); }, 1200);
     } catch (error: any) {
       const msg = error.response?.data?.error || "Failed to process sell";
       if (
@@ -118,12 +119,11 @@ export function SellDialog({ open, onOpenChange, portfolioValue }: SellDialogPro
                 <FormItem>
                   <FormLabel>Sell Amount (USD)</FormLabel>
                   <FormControl>
-                    <Input
-                      type="number"
-                      step="0.01"
+                    <CurrencyInput
                       placeholder="Enter amount..."
-                      {...field}
-                      value={field.value || ""}
+                      value={field.value || 0}
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
                     />
                   </FormControl>
                   <FormMessage />
@@ -136,6 +136,7 @@ export function SellDialog({ open, onOpenChange, portfolioValue }: SellDialogPro
                 label="Confirm Sell"
                 onConfirm={form.handleSubmit(onSubmit)}
                 isLoading={isSubmitting}
+                disabled={!amount || amount <= 0 || (portfolioValue !== undefined && Math.round(amount * 100) > Math.round(portfolioValue * 100))}
                 open={open}
                 variant="destructive"
               />

@@ -22,7 +22,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "@/components/ui/CurrencyInput";
 import { SwipeToConfirmButton } from "@/components/ui/SwipeToConfirmButton";
 
 interface CashoutDialogProps {
@@ -41,6 +41,8 @@ export function CashoutDialog({ open, onOpenChange }: CashoutDialogProps) {
     },
   });
 
+  const amount = form.watch("amount");
+
   const onSubmit = async (data: CashoutFormValues) => {
     setIsSubmitting(true);
     try {
@@ -51,8 +53,7 @@ export function CashoutDialog({ open, onOpenChange }: CashoutDialogProps) {
       setUser(userRes.data);
 
       toast.success("Withdrawal processed successfully!");
-      onOpenChange(false);
-      form.reset();
+      setTimeout(() => { onOpenChange(false); form.reset(); }, 1200);
     } catch (error: any) {
       const msg = error.response?.data?.error || "Failed to process withdrawal";
       if (error.response?.status === 400 && msg.toLowerCase().includes("insufficient")) {
@@ -92,12 +93,11 @@ export function CashoutDialog({ open, onOpenChange }: CashoutDialogProps) {
                 <FormItem>
                   <FormLabel>Amount to Withdraw (USD)</FormLabel>
                   <FormControl>
-                    <Input
-                      type="number"
-                      step="0.01"
+                    <CurrencyInput
                       placeholder="Enter amount..."
-                      {...field}
-                      value={field.value || ""}
+                      value={field.value || 0}
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
                     />
                   </FormControl>
                   <FormMessage />
@@ -110,6 +110,7 @@ export function CashoutDialog({ open, onOpenChange }: CashoutDialogProps) {
                 label="Confirm Withdrawal"
                 onConfirm={form.handleSubmit(onSubmit)}
                 isLoading={isSubmitting}
+                disabled={!amount || amount <= 0 || Math.round(amount * 100) > Math.round((user?.wallet_balance ?? 0) * 100)}
                 open={open}
               />
             </div>

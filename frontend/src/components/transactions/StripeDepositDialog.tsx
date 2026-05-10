@@ -30,8 +30,9 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "@/components/ui/CurrencyInput";
 import { Button } from "@/components/ui/button";
+import { SwipeToConfirmButton } from "@/components/ui/SwipeToConfirmButton";
 
 // Make sure to call `loadStripe` outside of a component’s render to avoid
 // recreating the `Stripe` object on every render.
@@ -110,6 +111,8 @@ function AmountForm({ onIntentCreated }: AmountFormProps) {
     },
   });
 
+  const amount = form.watch("amount");
+
   const onSubmit = async (data: DepositFormValues) => {
     setIsSubmitting(true);
     try {
@@ -118,9 +121,11 @@ function AmountForm({ onIntentCreated }: AmountFormProps) {
         onIntentCreated(response.data.client_secret, data.amount);
       } else {
         toast.error("Failed to initialize payment.");
+        throw new Error("No client secret");
       }
     } catch (error: any) {
       toast.error("Failed to initialize payment. Please try again.");
+      throw error;
     } finally {
       setIsSubmitting(false);
     }
@@ -136,12 +141,11 @@ function AmountForm({ onIntentCreated }: AmountFormProps) {
             <FormItem>
               <FormLabel>Amount (USD)</FormLabel>
               <FormControl>
-                <Input
-                  type="number"
-                  step="0.01"
+                <CurrencyInput
                   placeholder="Enter amount..."
-                  {...field}
-                  value={field.value || ""}
+                  value={field.value || 0}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
                 />
               </FormControl>
               <FormMessage />
@@ -150,14 +154,14 @@ function AmountForm({ onIntentCreated }: AmountFormProps) {
         />
 
         <div className="flex justify-end pt-4">
-          <Button type="submit" disabled={isSubmitting} className="w-full">
+          <Button type="submit" disabled={isSubmitting || !amount || amount <= 0} className="w-full">
             {isSubmitting ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Initializing...
               </>
             ) : (
-              "Next"
+              "Continue to Payment"
             )}
           </Button>
         </div>
@@ -180,50 +184,37 @@ function CheckoutForm({ amount, onSuccess }: CheckoutFormProps) {
 
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!stripe || !elements) {
-      // Stripe.js hasn't yet loaded.
-      return;
-    }
+  const handlePay = async () => {
+    if (!stripe || !elements) return;
 
     setIsLoading(true);
+    try {
+      const { error, paymentIntent } = await stripe.confirmPayment({
+        elements,
+        confirmParams: {},
+        redirect: "if_required",
+      });
 
-    const { error, paymentIntent } = await stripe.confirmPayment({
-      elements,
-      confirmParams: {
-        // Return URL is required if we want to redirect, but for modal flow
-        // we can attempt redirect: 'if_required' to handle it inline when possible.
-        // If the payment method requires redirection (like iDEAL), it will redirect.
-        // For cards, it can be inline.
-      },
-      redirect: "if_required",
-    });
-
-    if (error) {
-      // This point will only be reached if there is an immediate error when
-      // confirming the payment. Otherwise, your customer will be redirected to
-      // your `return_url`.
-      toast.error(error.message ?? "An unexpected error occurred.");
-      setIsLoading(false);
-    } else if (paymentIntent && paymentIntent.status === "succeeded") {
-      toast.success("Deposit submitted! Funds will arrive after confirmation.");
-      
-      // Force refresh user data to show new balance
-      try {
-        const userRes = await userApi.getUser();
-        setUser(userRes.data);
-      } catch (e) {
-        console.error("Failed to refresh user data after stripe success", e);
+      if (error) {
+        toast.error(error.message ?? "An unexpected error occurred.");
+        throw error;
+      } else if (paymentIntent && paymentIntent.status === "succeeded") {
+        toast.success("Deposit submitted! Funds will arrive after confirmation.");
+        try {
+          const userRes = await userApi.getUser();
+          setUser(userRes.data);
+        } catch (e) {
+          console.error("Failed to refresh user data after stripe success", e);
+        }
+        setTimeout(() => onSuccess(), 2200);
+      } else if (paymentIntent && paymentIntent.status === "processing") {
+        toast.info("Payment is processing. We'll update you when it succeeds.");
+        setTimeout(() => onSuccess(), 2200);
+      } else {
+        toast.error("Payment failed. Please try again.");
+        throw new Error("Payment failed");
       }
-
-      onSuccess();
-    } else if (paymentIntent && paymentIntent.status === "processing") {
-      toast.info("Payment is processing. We'll update you when it succeeds.");
-      onSuccess();
-    } else {
-      toast.error("Payment failed. Please try again.");
+    } finally {
       setIsLoading(false);
     }
   };
@@ -238,24 +229,15 @@ function CheckoutForm({ amount, onSuccess }: CheckoutFormProps) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 pt-4">
+    <div className="space-y-4 pt-4">
       <PaymentElement id="payment-element" />
       <div className="flex justify-end pt-4">
-        <Button
-          type="submit"
-          disabled={isLoading}
-          className="w-full"
-        >
-          {isLoading ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Processing...
-            </>
-          ) : (
-            `Pay $${amount.toFixed(2)}`
-          )}
-        </Button>
+        <SwipeToConfirmButton
+          label={`Pay $${amount.toFixed(2)}`}
+          onConfirm={handlePay}
+          isLoading={isLoading}
+        />
       </div>
-    </form>
+    </div>
   );
 }

@@ -24,7 +24,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "@/components/ui/CurrencyInput";
 import { SwipeToConfirmButton } from "@/components/ui/SwipeToConfirmButton";
 
 interface InvestDialogProps {
@@ -45,6 +45,8 @@ export function InvestDialog({ open, onOpenChange, onSuccess }: InvestDialogProp
     },
   });
 
+  const amount = form.watch("amount");
+
   const onSubmit = async (data: InvestFormValues) => {
     setIsSubmitting(true);
     try {
@@ -55,8 +57,7 @@ export function InvestDialog({ open, onOpenChange, onSuccess }: InvestDialogProp
       setUser(userRes.data);
 
       toast.success("Investment added to portfolio");
-      onOpenChange(false);
-      form.reset();
+      setTimeout(() => { onOpenChange(false); form.reset(); }, 1200);
       queryClient.invalidateQueries({ queryKey: ["portfolio-allocation"] });
       queryClient.invalidateQueries({ queryKey: ["portfolio-history"] });
       queryClient.invalidateQueries({ queryKey: ["transactions"] });
@@ -101,12 +102,11 @@ export function InvestDialog({ open, onOpenChange, onSuccess }: InvestDialogProp
                 <FormItem>
                   <FormLabel>Investment Amount (USD)</FormLabel>
                   <FormControl>
-                    <Input
-                      type="number"
-                      step="0.01"
+                    <CurrencyInput
                       placeholder="Enter amount..."
-                      {...field}
-                      value={field.value || ""}
+                      value={field.value || 0}
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
                     />
                   </FormControl>
                   <FormMessage />
@@ -119,6 +119,7 @@ export function InvestDialog({ open, onOpenChange, onSuccess }: InvestDialogProp
                 label="Confirm Investment"
                 onConfirm={form.handleSubmit(onSubmit)}
                 isLoading={isSubmitting}
+                disabled={!amount || amount <= 0}
                 open={open}
               />
             </div>
