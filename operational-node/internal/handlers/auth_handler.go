@@ -277,6 +277,7 @@ func (h *AuthHandler) ResetPasswordHandler(c *gin.Context) {
 		if validator.IsPasswordValidationError(err) {
 			// return specific password requirement that was not met
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
 		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not complete reset process"})
 		return
