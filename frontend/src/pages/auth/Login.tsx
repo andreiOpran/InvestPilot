@@ -255,7 +255,7 @@ export function Login() {
                   </label>
                   <p className="text-xs text-muted-foreground leading-relaxed">
                     Enter the 6-digit code from your authenticator app for{' '}
-                    <span className="font-medium text-foreground break-all">{credentialsRef.current.email}</span>
+                    <span className="font-medium text-foreground break-words">{credentialsRef.current.email}</span>
                   </p>
                 </div>
                 <Input
