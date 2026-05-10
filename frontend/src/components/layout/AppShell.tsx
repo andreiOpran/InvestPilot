@@ -157,11 +157,22 @@ export function AppShell() {
         <main className="flex-1 overflow-auto bg-muted/20">
           <Suspense
             fallback={
-              <div className="p-6 space-y-6">
-                <Skeleton className="h-[120px] w-full max-w-sm rounded-xl" />
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <Skeleton className="h-[300px] rounded-xl" />
-                  <Skeleton className="h-[300px] rounded-xl" />
+              <div className="p-6 md:p-8 space-y-6 max-w-7xl mx-auto">
+                {/* Page header */}
+                <div className="space-y-1.5">
+                  <Skeleton className="h-6 w-32" />
+                  <Skeleton className="h-4 w-48" />
+                </div>
+                {/* KPI grid */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <Skeleton className="h-[160px] rounded-xl" />
+                  <Skeleton className="h-[160px] rounded-xl" />
+                  <Skeleton className="h-[160px] rounded-xl" />
+                </div>
+                {/* Charts grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Skeleton className="h-[320px] rounded-xl" />
+                  <Skeleton className="h-[320px] rounded-xl" />
                 </div>
               </div>
             }
