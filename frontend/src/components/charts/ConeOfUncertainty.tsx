@@ -63,6 +63,7 @@ export function ConeOfUncertainty({ data, inputs }: ConeOfUncertaintyProps) {
           />
 
           <YAxis
+            orientation="right"
             tickFormatter={(val) => {
               if (val >= 1000) return `$${(val / 1000).toFixed(0)}k`;
               return `$${val}`;
@@ -71,7 +72,7 @@ export function ConeOfUncertainty({ data, inputs }: ConeOfUncertaintyProps) {
             fontSize={12}
             tickLine={false}
             axisLine={false}
-            dx={-10}
+            dx={10}
             domain={['auto', 'auto']}
           />
 
@@ -149,7 +150,7 @@ export function ConeOfUncertainty({ data, inputs }: ConeOfUncertaintyProps) {
         </ComposedChart>
       </ResponsiveContainer>
       </div>
-      <div className="absolute bottom-0 left-6 flex items-center gap-2">
+      <div className="pl-4 bottom-0 left-6 flex items-center gap-2">
         <Checkbox id="show-contrib" checked={showContribution} onCheckedChange={(c) => setShowContribution(!!c)} />
         <label htmlFor="show-contrib" className="text-xs text-muted-foreground cursor-pointer select-none">
           Show Your Contribution

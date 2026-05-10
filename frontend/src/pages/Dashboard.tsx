@@ -120,9 +120,10 @@ function MiniPerformanceChart() {
         <span className="text-xs text-muted-foreground">past 30 days</span>
       </div>
       <ResponsiveContainer width="100%" height={220}>
-        <LineChartIcon data={points} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
+        <LineChartIcon data={points} margin={{ top: 4, right: 4, left: 4, bottom: 0 }}>
           <XAxis dataKey="timestamp" tick={false} axisLine={false} tickLine={false} />
           <YAxis
+            orientation="right"
             tickFormatter={(v) => `${v > 0 ? "+" : ""}${v.toFixed(0)}%`}
             tick={{ fontSize: 10, fill: "var(--muted-foreground)" }}
             axisLine={false}

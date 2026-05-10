@@ -126,6 +126,7 @@ export function ValueOverTime({ onInvestClick }: ValueOverTimeProps) {
                   tickLine={false}
                 />
                 <YAxis
+                  orientation="right"
                   tickFormatter={formatUSD}
                   tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
                   axisLine={false}
@@ -171,7 +172,7 @@ export function ValueOverTime({ onInvestClick }: ValueOverTimeProps) {
               </AreaChart>
             </ResponsiveContainer>
 
-            <div className="flex items-center gap-2 mt-3 pl-1">
+            <div className="flex items-center gap-2 mt-3 mb-2 pl-4">
               <Checkbox
                 id="show-net-contributions"
                 checked={showNetContributions}

@@ -139,7 +139,7 @@ export function PerformanceChart({ onInvestClick }: PerformanceChartProps) {
             style={{ opacity: isFetching ? 0.4 : 1 }}
           >
             <ResponsiveContainer width="100%" height={400}>
-              <LineChart data={enriched} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
+              <LineChart data={enriched} margin={{ top: 10, right: 10, left: 20, bottom: 0 }}>
                 <defs>
                   <linearGradient id="performanceGradient" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor="#10b981" stopOpacity={0.8} />
@@ -157,6 +157,7 @@ export function PerformanceChart({ onInvestClick }: PerformanceChartProps) {
                   tickLine={false}
                 />
                 <YAxis
+                  orientation="right"
                   tickFormatter={formatPct}
                   tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
                   axisLine={false}
