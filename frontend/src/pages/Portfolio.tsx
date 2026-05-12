@@ -53,7 +53,7 @@ function StatCard({ label, value, rawValue, sub, subPositive, icon, loading }: S
               <TooltipProvider delayDuration={200}>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <p className="text-xl font-bold tracking-tight truncate cursor-default">{value}</p>
+                    <span className="block text-xl font-bold tracking-tight truncate cursor-default w-fit max-w-full">{value}</span>
                   </TooltipTrigger>
                   <TooltipContent>{formatUSDFull(rawValue)}</TooltipContent>
                 </Tooltip>
