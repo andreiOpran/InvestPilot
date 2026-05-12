@@ -31,7 +31,13 @@ func (h *StripeHandler) CreateIntentHandler(c *gin.Context) {
 		return
 	}
 
-	clientSecret, err := h.stripeService.CreatePaymentIntent(userID, req.Amount)
+	user, err := h.userService.GetUserProfile(userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to initialize payment gateway"})
+		return
+	}
+
+	clientSecret, err := h.stripeService.CreatePaymentIntent(userID, req.Amount, user.Email)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to initialize payment gateway"})
 		return

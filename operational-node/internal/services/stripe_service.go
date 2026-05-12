@@ -11,7 +11,7 @@ import (
 )
 
 type StripeService interface {
-	CreatePaymentIntent(userID uint, amount float64) (string, error)
+	CreatePaymentIntent(userID uint, amount float64, receiptEmail string) (string, error)
 	VerifyWebhookSignature(payload []byte, signature string) (stripe.Event, error)
 }
 
@@ -22,13 +22,14 @@ func NewStripeService() StripeService {
 	return &stripeService{}
 }
 
-func (s *stripeService) CreatePaymentIntent(userID uint, amount float64) (string, error) {
+func (s *stripeService) CreatePaymentIntent(userID uint, amount float64, receiptEmail string) (string, error) {
 	// stripe expects cents, so we multiply by 100
 	amountCents := int64(amount * 100)
 
 	params := &stripe.PaymentIntentParams{
-		Amount:   stripe.Int64(amountCents),
-		Currency: stripe.String(string(stripe.CurrencyUSD)),
+		Amount:       stripe.Int64(amountCents),
+		Currency:     stripe.String(string(stripe.CurrencyUSD)),
+		ReceiptEmail: stripe.String(receiptEmail),
 		Metadata: map[string]string{
 			"user_id": strconv.FormatUint(uint64(userID), 10), // for mapping webhooks back to user
 		},
