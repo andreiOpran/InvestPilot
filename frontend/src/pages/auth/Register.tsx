@@ -28,7 +28,7 @@ export function Register() {
   const form = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
     mode: 'onChange',
-    defaultValues: { email: '', password: '' },
+    defaultValues: { email: '', password: '', confirmPassword: '' },
   });
 
   const onSubmit = async (data: RegisterFormValues) => {
@@ -39,6 +39,7 @@ export function Register() {
 
     try {
       await authApi.register(data.email, data.password, turnstileToken);
+      // confirmPassword is UI-only — not sent to API
       navigate('/register-success');
     } catch (error: any) {
       if (error.response?.status === 409) {
@@ -74,11 +75,12 @@ export function Register() {
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
 
-              {(form.formState.errors.email || form.formState.errors.password) && (
+              {(form.formState.errors.email || form.formState.errors.password || form.formState.errors.confirmPassword) && (
                 <Alert variant="destructive">
                   <AlertDescription className="space-y-1">
                     {form.formState.errors.email?.message && <p>{form.formState.errors.email.message}</p>}
                     {form.formState.errors.password?.message && <p>{form.formState.errors.password.message}</p>}
+                    {form.formState.errors.confirmPassword?.message && <p>{form.formState.errors.confirmPassword.message}</p>}
                   </AlertDescription>
                 </Alert>
               )}
@@ -103,6 +105,20 @@ export function Register() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Password</FormLabel>
+                    <FormControl>
+                      <PasswordInput placeholder="••••••••" {...field} className="h-10" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="confirmPassword"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Confirm Password</FormLabel>
                     <FormControl>
                       <PasswordInput placeholder="••••••••" {...field} className="h-10" />
                     </FormControl>

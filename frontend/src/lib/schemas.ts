@@ -67,10 +67,13 @@ export const registerSchema = z
   .object({
     email: emailValidation,
     password: z.string().min(1, "Password is required"),
+    confirmPassword: z.string().min(1, "Please confirm your password"),
   })
-  .superRefine(({ email, password }, ctx) => {
-    if (!password) return;
-    addPasswordIssues(password, [email], ctx, ["password"]);
+  .superRefine(({ email, password, confirmPassword }, ctx) => {
+    if (password) addPasswordIssues(password, [email], ctx, ["password"]);
+    if (confirmPassword && password !== confirmPassword) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Passwords do not match", path: ["confirmPassword"] });
+    }
   });
 
 export const loginSchema = z.object({
