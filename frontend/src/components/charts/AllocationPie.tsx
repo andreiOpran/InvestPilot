@@ -6,7 +6,6 @@ import {
   Cell,
   Tooltip,
   ResponsiveContainer,
-  Legend,
   BarChart,
   Bar,
   XAxis,
@@ -153,37 +152,42 @@ export function AllocationPie({ showTitle = true, onInvestClick }: AllocationPie
         ) : !hasData ? (
           <EmptyAllocationState onInvestClick={onInvestClick} />
         ) : chartType === "pie" ? (
-          <ResponsiveContainer width="100%" height={400}>
-            <PieChart>
-              <Pie
-                data={pieData}
-                cx="50%"
-                cy="45%"
-                innerRadius={80}
-                outerRadius={120}
-                paddingAngle={2}
-                dataKey="value"
-                stroke="none"
-              >
-                {pieData.map((entry: any, index: number) => (
-                  <Cell key={`cell-${index}`} fill={entry.fill} />
-                ))}
-              </Pie>
-              <Tooltip content={<CustomTooltip totalValue={totalValue} />} cursor={false} />
-              <Legend
-                verticalAlign="bottom"
-                height={36}
-                formatter={(value, entry: any) => {
-                  const pct = totalValue > 0 ? (entry.payload.value / totalValue) * 100 : 0;
-                  return (
-                    <span className="text-foreground font-medium ml-1">
-                      {value} <span className="text-muted-foreground font-normal">({pct.toFixed(1)}%)</span>
-                    </span>
-                  );
-                }}
-              />
-            </PieChart>
-          </ResponsiveContainer>
+          <div>
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie
+                  data={pieData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={70}
+                  outerRadius={110}
+                  paddingAngle={2}
+                  dataKey="value"
+                  stroke="none"
+                >
+                  {pieData.map((entry: any, index: number) => (
+                    <Cell key={`cell-${index}`} fill={entry.fill} />
+                  ))}
+                </Pie>
+                <Tooltip content={<CustomTooltip totalValue={totalValue} />} cursor={false} />
+              </PieChart>
+            </ResponsiveContainer>
+            <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 px-2 pb-2 mt-1">
+              {pieData.map((entry: any) => {
+                const pct = totalValue > 0 ? (entry.value / totalValue) * 100 : 0;
+                return (
+                  <div key={entry.name} className="flex items-center gap-1.5">
+                    <div
+                      className="w-2.5 h-2.5 rounded-full shrink-0"
+                      style={{ backgroundColor: entry.fill }}
+                    />
+                    <span className="text-xs font-medium text-foreground">{entry.name}</span>
+                    <span className="text-xs text-muted-foreground">({pct.toFixed(1)}%)</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         ) : (
           <ResponsiveContainer width="100%" height={400}>
             <BarChart data={pieData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
