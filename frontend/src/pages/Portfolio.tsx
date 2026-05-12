@@ -16,13 +16,44 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
-function formatUSD(value: number) {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
+function swapSeparators(s: string) {
+  return s.replace(/,/g, "\x00").replace(/\./g, ",").replace(/\x00/g, ".");
+}
+
+function isCompact(value: number) {
+  return Math.abs(value) >= 10_000;
+}
+
+function formatUSDFull(value: number) {
+  const str = new Intl.NumberFormat("en-US", {
+    style: "currency", currency: "USD",
+    minimumFractionDigits: 2, maximumFractionDigits: 2,
   }).format(value);
+  return str.replace(/[\d,.]+/, (m) => swapSeparators(m));
+}
+
+function formatUSD(value: number) {
+  const abs = Math.abs(value);
+  let str: string;
+  if (abs >= 1_000_000) {
+    str = new Intl.NumberFormat("en-US", {
+      style: "currency", currency: "USD",
+      notation: "compact", compactDisplay: "short",
+      maximumFractionDigits: 2,
+    }).format(value);
+  } else if (abs >= 10_000) {
+    str = new Intl.NumberFormat("en-US", {
+      style: "currency", currency: "USD",
+      notation: "compact", compactDisplay: "short",
+      maximumFractionDigits: 1,
+    }).format(value);
+  } else {
+    str = new Intl.NumberFormat("en-US", {
+      style: "currency", currency: "USD",
+      minimumFractionDigits: 2, maximumFractionDigits: 2,
+    }).format(value);
+  }
+  return str.replace(/[\d,.]+/, (m) => swapSeparators(m));
 }
 
 function formatPct(value: number) {
@@ -33,13 +64,14 @@ function formatPct(value: number) {
 interface StatCardProps {
   label: string;
   value: string;
+  rawValue?: number;
   sub?: string;
   subPositive?: boolean;
   icon: React.ReactNode;
   loading: boolean;
 }
 
-function StatCard({ label, value, sub, subPositive, icon, loading }: StatCardProps) {
+function StatCard({ label, value, rawValue, sub, subPositive, icon, loading }: StatCardProps) {
   return (
     <Card>
       <CardContent className="pt-2 pb-2">
@@ -57,7 +89,18 @@ function StatCard({ label, value, sub, subPositive, icon, loading }: StatCardPro
               </div>
               <span className="text-muted-foreground/40">{icon}</span>
             </div>
-            <p className="text-xl font-bold tracking-tight">{value}</p>
+            {rawValue !== undefined && isCompact(rawValue) ? (
+              <TooltipProvider delayDuration={200}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <p className="text-xl font-bold tracking-tight truncate cursor-default">{value}</p>
+                  </TooltipTrigger>
+                  <TooltipContent>{formatUSDFull(rawValue)}</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            ) : (
+              <p className="text-xl font-bold tracking-tight truncate">{value}</p>
+            )}
             {sub !== undefined && (
               <p className={`text-xs font-medium ${
                 subPositive === undefined
@@ -120,18 +163,21 @@ export function Portfolio() {
         <StatCard
           label="Portfolio Value"
           value={formatUSD(liveTotal)}
+          rawValue={liveTotal}
           icon={<DollarSign className="h-3.5 w-3.5" />}
           loading={isLoading}
         />
         <StatCard
           label="Net Contributions"
           value={formatUSD(netContributions)}
+          rawValue={netContributions}
           icon={<BarChart3 className="h-3.5 w-3.5" />}
           loading={isLoading}
         />
         <StatCard
           label="All-Time P&L"
           value={formatUSD(allTimePL)}
+          rawValue={allTimePL}
           sub={netContributions > 0 ? formatPct(allTimePct) : undefined}
           subPositive={netContributions > 0 ? isGain : undefined}
           icon={isGain

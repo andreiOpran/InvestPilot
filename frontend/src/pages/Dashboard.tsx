@@ -48,12 +48,59 @@ import {
   TooltipTrigger as UITooltipTrigger,
 } from "@/components/ui/tooltip";
 
-function formatUSD(value: number) {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    minimumFractionDigits: 2,
+function swapSeparators(s: string) {
+  return s.replace(/,/g, "\x00").replace(/\./g, ",").replace(/\x00/g, ".");
+}
+
+function isCompact(value: number) {
+  return Math.abs(value) >= 10_000;
+}
+
+function formatUSDFull(value: number) {
+  const str = new Intl.NumberFormat("en-US", {
+    style: "currency", currency: "USD",
+    minimumFractionDigits: 2, maximumFractionDigits: 2,
   }).format(value);
+  return str.replace(/[\d,.]+/, (m) => swapSeparators(m));
+}
+
+function CompactMoney({ value, className }: { value: number; className?: string }) {
+  const formatted = formatUSD(value);
+  if (!isCompact(value)) return <span className={className}>{formatted}</span>;
+  return (
+    <UITooltipProvider delayDuration={200}>
+      <UITooltip>
+        <UITooltipTrigger asChild>
+          <span className={`cursor-default ${className ?? ""}`}>{formatted}</span>
+        </UITooltipTrigger>
+        <UITooltipContent>{formatUSDFull(value)}</UITooltipContent>
+      </UITooltip>
+    </UITooltipProvider>
+  );
+}
+
+function formatUSD(value: number) {
+  const abs = Math.abs(value);
+  let str: string;
+  if (abs >= 1_000_000) {
+    str = new Intl.NumberFormat("en-US", {
+      style: "currency", currency: "USD",
+      notation: "compact", compactDisplay: "short",
+      maximumFractionDigits: 2,
+    }).format(value);
+  } else if (abs >= 10_000) {
+    str = new Intl.NumberFormat("en-US", {
+      style: "currency", currency: "USD",
+      notation: "compact", compactDisplay: "short",
+      maximumFractionDigits: 1,
+    }).format(value);
+  } else {
+    str = new Intl.NumberFormat("en-US", {
+      style: "currency", currency: "USD",
+      minimumFractionDigits: 2, maximumFractionDigits: 2,
+    }).format(value);
+  }
+  return str.replace(/[\d,.]+/, (m) => swapSeparators(m));
 }
 
 function formatPct(value: number) {
@@ -304,8 +351,8 @@ export function Dashboard() {
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Wallet Balance</p>
               <Wallet className="h-4 w-4 text-muted-foreground/50" />
             </div>
-            <CardTitle className="text-2xl font-bold tracking-tight">
-              {formatUSD(user?.wallet_balance ?? 0)}
+            <CardTitle className="text-2xl font-bold tracking-tight truncate">
+              <CompactMoney value={user?.wallet_balance ?? 0} />
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -354,8 +401,8 @@ export function Dashboard() {
             {portfolioLoading ? (
               <Skeleton className="h-8 w-32 mt-1" />
             ) : (
-              <CardTitle className="text-2xl font-bold tracking-tight">
-                {hasPortfolio ? formatUSD(liveTotal) : "N/A"}
+              <CardTitle className="text-2xl font-bold tracking-tight truncate">
+                {hasPortfolio ? <CompactMoney value={liveTotal} /> : "N/A"}
               </CardTitle>
             )}
           </CardHeader>
@@ -370,12 +417,12 @@ export function Dashboard() {
               <div className="space-y-2 text-xs">
                 <div className="flex justify-between items-center">
                   <span className="text-muted-foreground">Net contributions</span>
-                  <span className="font-mono font-medium">{formatUSD(netContributions)}</span>
+                  <span className="font-mono font-medium"><CompactMoney value={netContributions} /></span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-muted-foreground">All-time P&L</span>
                   <span className={`font-mono font-semibold ${isGain ? "text-emerald-500" : "text-red-500"}`}>
-                    {isGain ? "+" : ""}{formatUSD(allTimePL)}
+                    {isGain ? "+" : ""}<CompactMoney value={allTimePL} />
                   </span>
                 </div>
               </div>
