@@ -23,7 +23,7 @@ spec:
                 - --show-error
                 - -X
                 - POST
-                - http://operational-service.investpilot.svc.cluster.local:8081/api/v1/internal/pipeline/daily
+                - http://operational-service.investpilot.svc.cluster.local:8081/internal/pipeline/daily
                 - -H
                 - "X-Internal-Secret: $(INTERNAL_ENDPOINT_SECRET)"
               env:
@@ -58,7 +58,7 @@ spec:
                 - --show-error
                 - -X
                 - POST
-                - http://operational-service.investpilot.svc.cluster.local:8081/api/v1/internal/pipeline/intraday
+                - http://operational-service.investpilot.svc.cluster.local:8081/internal/pipeline/intraday
                 - -H
                 - "X-Internal-Secret: $(INTERNAL_ENDPOINT_SECRET)"
               env:
@@ -93,7 +93,7 @@ spec:
                 - --show-error
                 - -X
                 - POST
-                - http://operational-service.investpilot.svc.cluster.local:8081/api/v1/internal/rebalance
+                - http://operational-service.investpilot.svc.cluster.local:8081/internal/rebalance
                 - -H
                 - "X-Internal-Secret: $(INTERNAL_ENDPOINT_SECRET)"
               env:
@@ -128,7 +128,7 @@ spec:
                 - --show-error
                 - -X
                 - POST
-                - http://operational-service.investpilot.svc.cluster.local:8081/api/v1/internal/cleanup
+                - http://operational-service.investpilot.svc.cluster.local:8081/internal/cleanup
                 - -H
                 - "X-Internal-Secret: $(INTERNAL_ENDPOINT_SECRET)"
               env:
