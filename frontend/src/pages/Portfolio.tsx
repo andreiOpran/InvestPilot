@@ -54,16 +54,6 @@ function StatCard({ label, value, sub, subPositive, icon, loading }: StatCardPro
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1">
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{label}</p>
-                <TooltipProvider delayDuration={300}>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Info className="h-3 w-3 text-muted-foreground/40 cursor-default" />
-                    </TooltipTrigger>
-                    <TooltipContent side="top">
-                      Updated every 15 minutes
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
               </div>
               <span className="text-muted-foreground/40">{icon}</span>
             </div>
