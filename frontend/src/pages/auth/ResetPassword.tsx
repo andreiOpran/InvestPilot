@@ -8,8 +8,8 @@ import { resetPasswordSchema, type ResetPasswordFormValues } from '@/lib/schemas
 import { authApi } from '@/api/auth';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { PasswordInput } from '@/components/ui/password-input';
+import { PasswordRequirements } from '@/components/ui/password-requirements';
 import {
   Form,
   FormControl,
@@ -24,10 +24,11 @@ export function ResetPassword() {
   const token = searchParams.get('token');
 
   const [status, setStatus] = useState<'idle' | 'success' | 'invalid_token'>('idle');
+  const [passwordFocused, setPasswordFocused] = useState(false);
 
   const form = useForm<ResetPasswordFormValues>({
     resolver: zodResolver(resetPasswordSchema),
-    mode: 'onChange',
+    mode: 'onTouched',
     defaultValues: { token: token || '', newPassword: '', confirmPassword: '' },
   });
 
@@ -118,7 +119,7 @@ export function ResetPassword() {
 
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                {(form.formState.errors.newPassword || form.formState.errors.confirmPassword || form.formState.errors.root) && (
+                {form.formState.submitCount > 0 && (form.formState.errors.newPassword || form.formState.errors.confirmPassword || form.formState.errors.root) && (
                   <Alert variant="destructive">
                     <AlertDescription className="space-y-1">
                       {form.formState.errors.newPassword?.message && <p>{form.formState.errors.newPassword.message}{form.formState.errors.newPassword.message.endsWith('.') ? '' : '.'}</p>}
@@ -135,9 +136,17 @@ export function ResetPassword() {
                     <FormItem>
                       <FormLabel className="text-xs font-medium text-muted-foreground uppercase tracking-wide">New Password</FormLabel>
                       <FormControl>
-                        <PasswordInput placeholder="••••••••" {...field} className="h-10" />
+                        <PasswordInput
+                          placeholder="••••••••"
+                          {...field}
+                          className="h-10"
+                          onFocus={() => setPasswordFocused(true)}
+                          onBlur={() => { setPasswordFocused(false); field.onBlur(); }}
+                        />
                       </FormControl>
-                      <FormMessage />
+                      {(passwordFocused || field.value.length > 0) && (
+                        <PasswordRequirements password={field.value} />
+                      )}
                     </FormItem>
                   )}
                 />

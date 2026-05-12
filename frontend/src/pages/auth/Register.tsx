@@ -12,6 +12,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { PasswordInput } from '@/components/ui/password-input';
+import { PasswordRequirements } from '@/components/ui/password-requirements';
 import {
   Form,
   FormControl,
@@ -24,10 +25,11 @@ import {
 export function Register() {
   const navigate = useNavigate();
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const [passwordFocused, setPasswordFocused] = useState(false);
 
   const form = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
-    mode: 'onChange',
+    mode: 'onTouched',
     defaultValues: { email: '', password: '', confirmPassword: '' },
   });
 
@@ -75,7 +77,7 @@ export function Register() {
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
 
-              {(form.formState.errors.email || form.formState.errors.password || form.formState.errors.confirmPassword) && (
+              {form.formState.submitCount > 0 && (form.formState.errors.email || form.formState.errors.password || form.formState.errors.confirmPassword) && (
                 <Alert variant="destructive">
                   <AlertDescription className="space-y-1">
                     {form.formState.errors.email?.message && <p>{form.formState.errors.email.message}</p>}
@@ -106,9 +108,17 @@ export function Register() {
                   <FormItem>
                     <FormLabel className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Password</FormLabel>
                     <FormControl>
-                      <PasswordInput placeholder="••••••••" {...field} className="h-10" />
+                      <PasswordInput
+                        placeholder="••••••••"
+                        {...field}
+                        className="h-10"
+                        onFocus={() => setPasswordFocused(true)}
+                        onBlur={() => { setPasswordFocused(false); field.onBlur(); }}
+                      />
                     </FormControl>
-                    <FormMessage />
+                    {(passwordFocused || field.value.length > 0) && (
+                      <PasswordRequirements password={field.value} />
+                    )}
                   </FormItem>
                 )}
               />
