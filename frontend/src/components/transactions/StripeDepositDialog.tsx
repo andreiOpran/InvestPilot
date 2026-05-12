@@ -3,6 +3,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
+import { formatUSDFull } from "@/lib/format";
 import { loadStripe } from "@stripe/stripe-js";
 import {
   Elements,
@@ -233,7 +234,7 @@ function CheckoutForm({ amount, onSuccess }: CheckoutFormProps) {
       <PaymentElement id="payment-element" />
       <div className="flex justify-end pt-4">
         <SwipeToConfirmButton
-          label={`Pay $${amount.toFixed(2)}`}
+          label={`Pay ${formatUSDFull(amount)}`}
           onConfirm={handlePay}
           isLoading={isLoading}
         />

@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { TrendingUp, TrendingDown, DollarSign, BarChart3, LineChart, Info } from "lucide-react";
 
 import { portfolioApi } from "@/api/portfolio";
+import { formatUSD, formatUSDFull, formatPct } from "@/lib/format";
 import { ValueOverTime } from "@/components/charts/ValueOverTime";
 import { PerformanceChart } from "@/components/charts/PerformanceChart";
 import { ChartErrorBoundary } from "@/components/charts/ChartErrorBoundary";
@@ -16,49 +17,8 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
-function swapSeparators(s: string) {
-  return s.replace(/,/g, "\x00").replace(/\./g, ",").replace(/\x00/g, ".");
-}
-
 function isCompact(value: number) {
   return Math.abs(value) >= 10_000;
-}
-
-function formatUSDFull(value: number) {
-  const str = new Intl.NumberFormat("en-US", {
-    style: "currency", currency: "USD",
-    minimumFractionDigits: 2, maximumFractionDigits: 2,
-  }).format(value);
-  return str.replace(/[\d,.]+/, (m) => swapSeparators(m));
-}
-
-function formatUSD(value: number) {
-  const abs = Math.abs(value);
-  let str: string;
-  if (abs >= 1_000_000) {
-    str = new Intl.NumberFormat("en-US", {
-      style: "currency", currency: "USD",
-      notation: "compact", compactDisplay: "short",
-      maximumFractionDigits: 2,
-    }).format(value);
-  } else if (abs >= 10_000) {
-    str = new Intl.NumberFormat("en-US", {
-      style: "currency", currency: "USD",
-      notation: "compact", compactDisplay: "short",
-      maximumFractionDigits: 1,
-    }).format(value);
-  } else {
-    str = new Intl.NumberFormat("en-US", {
-      style: "currency", currency: "USD",
-      minimumFractionDigits: 2, maximumFractionDigits: 2,
-    }).format(value);
-  }
-  return str.replace(/[\d,.]+/, (m) => swapSeparators(m));
-}
-
-function formatPct(value: number) {
-  const sign = value >= 0 ? "+" : "";
-  return `${sign}${value.toFixed(2)}%`;
 }
 
 interface StatCardProps {

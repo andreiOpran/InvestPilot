@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { cashoutSchema, type CashoutFormValues } from "@/lib/schemas";
 import { userApi } from "@/api/user";
 import { useAuthStore } from "@/stores/authStore";
+import { formatUSDFull } from "@/lib/format";
 
 import {
   Dialog,
@@ -80,7 +81,7 @@ export function CashoutDialog({ open, onOpenChange }: CashoutDialogProps) {
         <div className="bg-muted p-4 rounded-md mb-4 text-sm flex justify-between items-center">
           <span className="text-muted-foreground">Available Balance:</span>
           <span className="font-semibold text-foreground">
-            ${user?.wallet_balance?.toFixed(2) || "0.00"}
+            {formatUSDFull(user?.wallet_balance ?? 0)}
           </span>
         </div>
 

@@ -30,6 +30,7 @@ import {
 
 import { useAuthStore } from "@/stores/authStore";
 import { portfolioApi } from "@/api/portfolio";
+import { formatUSD, formatUSDFull, formatPct, formatPctPlain } from "@/lib/format";
 
 import { DepositDialog } from "@/components/transactions/DepositDialog";
 import { StripeDepositDialog } from "@/components/transactions/StripeDepositDialog";
@@ -48,20 +49,8 @@ import {
   TooltipTrigger as UITooltipTrigger,
 } from "@/components/ui/tooltip";
 
-function swapSeparators(s: string) {
-  return s.replace(/,/g, "\x00").replace(/\./g, ",").replace(/\x00/g, ".");
-}
-
 function isCompact(value: number) {
   return Math.abs(value) >= 10_000;
-}
-
-function formatUSDFull(value: number) {
-  const str = new Intl.NumberFormat("en-US", {
-    style: "currency", currency: "USD",
-    minimumFractionDigits: 2, maximumFractionDigits: 2,
-  }).format(value);
-  return str.replace(/[\d,.]+/, (m) => swapSeparators(m));
 }
 
 function CompactMoney({ value, className }: { value: number; className?: string }) {
@@ -77,35 +66,6 @@ function CompactMoney({ value, className }: { value: number; className?: string 
       </UITooltip>
     </UITooltipProvider>
   );
-}
-
-function formatUSD(value: number) {
-  const abs = Math.abs(value);
-  let str: string;
-  if (abs >= 1_000_000) {
-    str = new Intl.NumberFormat("en-US", {
-      style: "currency", currency: "USD",
-      notation: "compact", compactDisplay: "short",
-      maximumFractionDigits: 2,
-    }).format(value);
-  } else if (abs >= 10_000) {
-    str = new Intl.NumberFormat("en-US", {
-      style: "currency", currency: "USD",
-      notation: "compact", compactDisplay: "short",
-      maximumFractionDigits: 1,
-    }).format(value);
-  } else {
-    str = new Intl.NumberFormat("en-US", {
-      style: "currency", currency: "USD",
-      minimumFractionDigits: 2, maximumFractionDigits: 2,
-    }).format(value);
-  }
-  return str.replace(/[\d,.]+/, (m) => swapSeparators(m));
-}
-
-function formatPct(value: number) {
-  const sign = value >= 0 ? "+" : "";
-  return `${sign}${value.toFixed(2)}%`;
 }
 
 const riskLabels: Record<number, string> = {
@@ -125,7 +85,7 @@ function MiniPerfTooltip({ active, payload, label }: any) {
     <div className="rounded-md border bg-popover px-2.5 py-1.5 shadow-md text-xs space-y-0.5 min-w-[140px]">
       <p className="text-muted-foreground">{date}</p>
       <p className={`font-mono font-semibold ${isGain ? "text-emerald-400" : "text-red-400"}`}>
-        {isGain ? "+" : ""}{val.toFixed(2)}%
+        {isGain ? "+" : ""}{formatPctPlain(val)}
       </p>
     </div>
   );
@@ -162,7 +122,7 @@ function MiniPerformanceChart() {
     <div className="space-y-2">
       <div className="flex items-baseline gap-2">
         <span className={`text-lg font-bold font-mono tracking-tight ${isGain ? "text-emerald-500" : "text-red-500"}`}>
-          {isGain ? "+" : ""}{last.toFixed(2)}%
+          {isGain ? "+" : ""}{formatPctPlain(last)}
         </span>
         <span className="text-xs text-muted-foreground">past 30 days</span>
       </div>
@@ -208,7 +168,7 @@ function MiniAllocTooltip({ active, payload, totalValue }: any) {
   return (
     <div className="rounded-md border bg-popover px-2.5 py-1.5 shadow-md text-xs space-y-0.5 min-w-[120px]">
       <p className="font-semibold">{d.name}</p>
-      <p className="text-muted-foreground font-mono">{pct.toFixed(1)}%</p>
+      <p className="text-muted-foreground font-mono">{formatPctPlain(pct, 1)}</p>
     </div>
   );
 }

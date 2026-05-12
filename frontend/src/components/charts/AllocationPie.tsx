@@ -16,13 +16,7 @@ import { PieChart as PieChartIcon, BarChart3 as BarChartIcon } from "lucide-reac
 import { Button } from "@/components/ui/button";
 import { ChartErrorBoundary, ChartSkeleton } from "./ChartErrorBoundary";
 import { portfolioApi } from "@/api/portfolio";
-
-function formatUSD(value: number) {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-  }).format(value);
-}
+import { formatUSDFull, formatUSDNoFrac, formatPctPlain } from "@/lib/format";
 
 const COLORS = [
   "var(--chart-1)",
@@ -57,11 +51,11 @@ function CustomTooltip({ active, payload, totalValue }: CustomTooltipProps) {
       </div>
       <div className="flex justify-between gap-4">
         <span className="text-muted-foreground">Allocation</span>
-        <span className="font-mono font-medium">{pct.toFixed(1)}%</span>
+        <span className="font-mono font-medium">{formatPctPlain(pct, 1)}</span>
       </div>
       <div className="flex justify-between gap-4">
         <span className="text-muted-foreground">Value</span>
-        <span className="font-mono font-medium">{formatUSD(data.value)}</span>
+        <span className="font-mono font-medium">{formatUSDFull(data.value)}</span>
       </div>
     </div>
   );
@@ -182,7 +176,7 @@ export function AllocationPie({ showTitle = true, onInvestClick }: AllocationPie
                       style={{ backgroundColor: entry.fill }}
                     />
                     <span className="text-xs font-medium text-foreground">{entry.name}</span>
-                    <span className="text-xs text-muted-foreground">({pct.toFixed(1)}%)</span>
+                    <span className="text-xs text-muted-foreground">({formatPctPlain(pct, 1)})</span>
                   </div>
                 );
               })}
@@ -205,7 +199,7 @@ export function AllocationPie({ showTitle = true, onInvestClick }: AllocationPie
                 fontSize={12} 
                 tickLine={false} 
                 axisLine={false}
-                tickFormatter={(val) => `$${val}`}
+                tickFormatter={(val) => formatUSDNoFrac(val)}
                 dx={-10}
               />
               <Tooltip content={<CustomTooltip totalValue={totalValue} />} cursor={{ fill: 'var(--muted)', opacity: 0.4 }} />

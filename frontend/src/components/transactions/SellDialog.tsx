@@ -9,6 +9,7 @@ import { sellSchema, type SellFormValues } from "@/lib/schemas";
 import { portfolioApi } from "@/api/portfolio";
 import { userApi } from "@/api/user";
 import { useAuthStore } from "@/stores/authStore";
+import { formatUSDFull } from "@/lib/format";
 
 import {
   Dialog,
@@ -102,10 +103,7 @@ export function SellDialog({ open, onOpenChange, portfolioValue }: SellDialogPro
           <div className="bg-muted p-4 rounded-md text-sm flex justify-between items-center">
             <span className="text-muted-foreground">Available to Sell:</span>
             <span className="font-semibold text-foreground">
-              {new Intl.NumberFormat("en-US", {
-                style: "currency",
-                currency: "USD",
-              }).format(portfolioValue)}
+              {formatUSDFull(portfolioValue)}
             </span>
           </div>
         )}

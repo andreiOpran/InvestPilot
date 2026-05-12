@@ -12,6 +12,7 @@ import {
   TrendingUp,
 } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
+import { formatUSDFull } from '@/lib/format';
 import { userApi } from '@/api/user';
 import { portfolioApi } from '@/api/portfolio';
 import { LogoutButton } from '@/components/auth/LogoutButton';
@@ -52,9 +53,6 @@ export function AppShell() {
 
   const portfolioValue = portfolioData?.live_total_value ?? 0;
   const hasPortfolio = portfolioData?.holdings && portfolioData.holdings.length > 0;
-
-  const formatUSD = (v: number) =>
-    new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(v);
 
   const NavLinks = ({ onNavigate }: { onNavigate?: () => void }) => (
     <nav className="flex flex-col gap-2">
@@ -125,14 +123,14 @@ export function AppShell() {
             {/* Wallet Balance Badge */}
             <Badge variant="secondary" className="hidden sm:flex h-9 px-4 py-2 gap-2 text-sm">
               <Wallet className="h-4 w-4 text-primary" />
-              <span>{formatUSD(user?.wallet_balance || 0)}</span>
+              <span>{formatUSDFull(user?.wallet_balance || 0)}</span>
             </Badge>
 
             {/* Portfolio Value Badge */}
             {hasPortfolio && (
               <Badge variant="outline" className="hidden sm:flex h-9 px-4 py-2 gap-2 text-sm border-emerald-500/40 text-emerald-600 dark:text-emerald-400">
                 <TrendingUp className="h-4 w-4" />
-                <span>{formatUSD(portfolioValue)}</span>
+                <span>{formatUSDFull(portfolioValue)}</span>
               </Badge>
             )}
 

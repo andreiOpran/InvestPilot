@@ -19,15 +19,7 @@ import { Button } from "@/components/ui/button";
 import { TimeRangeSelector, type TimeRange } from "./TimeRangeSelector";
 import { ChartErrorBoundary, ChartSkeleton } from "./ChartErrorBoundary";
 import { portfolioApi } from "@/api/portfolio";
-
-function formatUSD(value: number) {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(value);
-}
+import { formatUSDNoFrac, formatPctPlain } from "@/lib/format";
 
 interface CustomTooltipProps {
   active?: boolean;
@@ -56,18 +48,18 @@ function CustomTooltip({ active, payload, label, showNetContributions, range }: 
       <div className=" pt-1.5" />
       <div className="flex justify-between gap-4">
         <span className="text-muted-foreground">Portfolio Value</span>
-        <span className="font-mono font-semibold">{formatUSD(portfolioValue)}</span>
+        <span className="font-mono font-semibold">{formatUSDNoFrac(portfolioValue)}</span>
       </div>
       {showNetContributions && (
         <div className="flex justify-between gap-4">
           <span className="text-muted-foreground">Net Contributions</span>
-          <span className="font-mono">{formatUSD(netContributions)}</span>
+          <span className="font-mono">{formatUSDNoFrac(netContributions)}</span>
         </div>
       )}
       <div className="border-t pt-1.5 flex justify-between gap-4">
         <span className="text-muted-foreground">Unrealized G/L</span>
         <span className={`font-mono font-semibold ${isGain ? "text-emerald-400" : "text-red-400"}`}>
-          {isGain ? "+" : ""}{formatUSD(gainLoss)} ({isGain ? "+" : ""}{gainLossPct.toFixed(2)}%)
+          {isGain ? "+" : ""}{formatUSDNoFrac(gainLoss)} ({isGain ? "+" : ""}{formatPctPlain(gainLossPct)})
         </span>
       </div>
     </div>
@@ -127,7 +119,7 @@ export function ValueOverTime({ onInvestClick }: ValueOverTimeProps) {
                 />
                 <YAxis
                   orientation="right"
-                  tickFormatter={formatUSD}
+                  tickFormatter={formatUSDNoFrac}
                   tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
                   axisLine={false}
                   tickLine={false}

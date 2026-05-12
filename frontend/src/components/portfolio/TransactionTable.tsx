@@ -23,6 +23,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { portfolioApi } from "@/api/portfolio";
+import { formatUSDFull } from "@/lib/format";
 
 /* ------------------------------------------------------------------ */
 /* Types                                                               */
@@ -53,13 +54,6 @@ const ROWS_PER_PAGE = 10;
 /* ------------------------------------------------------------------ */
 /* Helpers                                                             */
 /* ------------------------------------------------------------------ */
-
-function formatUSD(value: number) {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-  }).format(value);
-}
 
 const TYPE_CONFIG: Record<
   string,
@@ -312,7 +306,7 @@ export function TransactionTable() {
                         }
                       >
                         {cfg.sign}
-                        {formatUSD(tx.amount)}
+                        {formatUSDFull(tx.amount)}
                       </span>
                     </TableCell>
                     <TableCell className="text-right">

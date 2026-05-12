@@ -11,18 +11,11 @@ import {
 } from "recharts";
 import type { ForecastData } from "@/hooks/useForecast";
 import { Checkbox } from "@/components/ui/checkbox";
+import { formatUSDNoFrac } from "@/lib/format";
 
 interface ConeOfUncertaintyProps {
   data: ForecastData;
   inputs: { initialInvestment: number; monthlyContribution: number };
-}
-
-function formatUSD(value: number) {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    maximumFractionDigits: 0,
-  }).format(value);
 }
 
 export function ConeOfUncertainty({ data, inputs }: ConeOfUncertaintyProps) {
@@ -87,23 +80,23 @@ export function ConeOfUncertainty({ data, inputs }: ConeOfUncertaintyProps) {
                     <div className="flex items-center gap-2">
                       <div className="w-3 h-3 rounded-full bg-green-500/50" />
                       <span className="text-sm">Optimistic (P95):</span>
-                      <span className="text-sm font-mono ml-auto">{formatUSD(row.p95)}</span>
+                      <span className="text-sm font-mono ml-auto">{formatUSDNoFrac(row.p95)}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <div className="w-3 h-3 rounded-full bg-[var(--chart-5)]" />
                       <span className="text-sm">Expected (P50):</span>
-                      <span className="text-sm font-mono font-medium ml-auto">{formatUSD(row.p50)}</span>
+                      <span className="text-sm font-mono font-medium ml-auto">{formatUSDNoFrac(row.p50)}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <div className="w-3 h-3 rounded-full bg-red-500/50" />
                       <span className="text-sm">Pessimistic (P5):</span>
-                      <span className="text-sm font-mono ml-auto">{formatUSD(row.p5)}</span>
+                      <span className="text-sm font-mono ml-auto">{formatUSDNoFrac(row.p5)}</span>
                     </div>
                     {showContribution && (
                       <div className="flex items-center gap-2">
                         <div className="w-3 h-3 rounded-full bg-purple-500" />
                         <span className="text-sm">Your Contribution:</span>
-                        <span className="text-sm font-mono ml-auto">{formatUSD(row.contribution)}</span>
+                        <span className="text-sm font-mono ml-auto">{formatUSDNoFrac(row.contribution)}</span>
                       </div>
                     )}
                   </div>

@@ -7,6 +7,7 @@ import { useForecast } from "@/hooks/useForecast";
 import { forecastSchema } from "@/lib/schemas";
 import type { ForecastFormValues } from "@/lib/schemas";
 import { ConeOfUncertainty } from "@/components/charts/ConeOfUncertainty";
+import { formatPctPlain, formatUSDNoFrac } from "@/lib/format";
 import { ChartErrorBoundary } from "@/components/charts/ChartErrorBoundary";
 
 import { Button } from "@/components/ui/button";
@@ -187,23 +188,23 @@ export function Forecast() {
                       <div>
                         <span className="text-muted-foreground">Volatility: </span>
                         <span className="font-mono font-medium">
-                          {(forecastData.stats.historical_annual_volatility * 100).toFixed(2)}%
+                          {formatPctPlain(forecastData.stats.historical_annual_volatility * 100)}
                         </span>
                       </div>
                       <div>
                         <span className="text-muted-foreground">Return: </span>
                         <span className="font-mono font-medium">
-                          {(forecastData.stats.historical_annual_return * 100).toFixed(2)}%
+                          {formatPctPlain(forecastData.stats.historical_annual_return * 100)}
                         </span>
                       </div>
                     </div>
                     <div className="flex items-center gap-0 text-[11px] rounded-md border bg-muted/40 overflow-hidden">
                       <span className="px-2.5 py-1 text-muted-foreground border-r">
-                        <span className="text-foreground font-mono font-medium">${inputs.initialInvestment.toLocaleString()}</span>
+                        <span className="text-foreground font-mono font-medium">{formatUSDNoFrac(inputs.initialInvestment)}</span>
                         {" "}initial
                       </span>
                       <span className="px-2.5 py-1 text-muted-foreground border-r">
-                        <span className="text-foreground font-mono font-medium">${inputs.monthlyContribution.toLocaleString()}</span>
+                        <span className="text-foreground font-mono font-medium">{formatUSDNoFrac(inputs.monthlyContribution)}</span>
                         {" "}/mo
                       </span>
                       <span className="px-2.5 py-1 text-muted-foreground">

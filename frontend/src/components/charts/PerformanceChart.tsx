@@ -16,20 +16,7 @@ import { Button } from "@/components/ui/button";
 import { TimeRangeSelector, type TimeRange } from "./TimeRangeSelector";
 import { ChartErrorBoundary, ChartSkeleton } from "./ChartErrorBoundary";
 import { portfolioApi } from "@/api/portfolio";
-
-function formatPct(value: number) {
-  const sign = value >= 0 ? "+" : "";
-  return `${sign}${value.toFixed(2)}%`;
-}
-
-function formatUSD(value: number) {
-  const sign = value >= 0 ? "+" : "";
-  return `${sign}${new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    minimumFractionDigits: 0,
-  }).format(value)}`;
-}
+import { formatPct, formatUSDSigned } from "@/lib/format";
 
 interface CustomTooltipProps {
   active?: boolean;
@@ -78,7 +65,7 @@ function CustomTooltip({ active, payload, label, data, range }: CustomTooltipPro
         <span
           className={`font-mono ${isGain ? "text-emerald-400" : "text-red-400"}`}
         >
-          {formatUSD(absoluteChange)}
+          {formatUSDSigned(absoluteChange)}
         </span>
       </div>
     </div>

@@ -8,6 +8,7 @@ import { investSchema, type InvestFormValues } from "@/lib/schemas";
 import { portfolioApi } from "@/api/portfolio";
 import { userApi } from "@/api/user";
 import { useAuthStore } from "@/stores/authStore";
+import { formatUSDFull } from "@/lib/format";
 
 import {
   Dialog,
@@ -89,7 +90,7 @@ export function InvestDialog({ open, onOpenChange, onSuccess }: InvestDialogProp
         <div className="bg-muted p-4 rounded-md mb-4 text-sm flex justify-between items-center">
           <span className="text-muted-foreground">Available to Invest:</span>
           <span className="font-semibold text-foreground">
-            ${user?.wallet_balance?.toFixed(2) || "0.00"}
+            {formatUSDFull(user?.wallet_balance ?? 0)}
           </span>
         </div>
 
