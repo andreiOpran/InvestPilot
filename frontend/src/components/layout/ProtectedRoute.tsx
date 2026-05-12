@@ -12,27 +12,46 @@ export function ProtectedRoute() {
     return (
       <div className="flex h-screen w-full bg-background">
         {/* Sidebar Skeleton */}
-        <div className="hidden md:flex w-64 flex-col border-r p-6 gap-6">
-          <Skeleton className="h-8 w-32 mb-6" />
-          <div className="space-y-4">
-            <Skeleton className="h-4 w-full" />
-            <Skeleton className="h-4 w-5/6" />
-            <Skeleton className="h-4 w-full" />
+        <div className="hidden md:flex w-64 flex-col border-r bg-card">
+          <div className="flex h-16 items-center px-6 border-b gap-2">
+            <Skeleton className="h-5 w-5 rounded" />
+            <Skeleton className="h-5 w-24" />
+          </div>
+          <div className="flex-1 py-6 px-4 space-y-2">
+            {[...Array(4)].map((_, i) => (
+              <Skeleton key={i} className="h-9 w-full rounded-lg" />
+            ))}
           </div>
         </div>
         {/* Main Content Skeleton */}
-        <div className="flex-1 flex flex-col">
+        <div className="flex flex-1 flex-col overflow-hidden">
           {/* Header Skeleton */}
-          <div className="h-16 border-b flex items-center px-6 justify-end gap-4">
-            <Skeleton className="h-8 w-24 rounded-full" />
-            <Skeleton className="h-8 w-8 rounded-full" />
+          <div className="h-16 border-b bg-card flex items-center px-4 md:px-6 justify-end gap-3">
+            <Skeleton className="h-9 w-28 rounded-md hidden sm:block" />
+            <Skeleton className="h-9 w-9 rounded-md" />
+            <Skeleton className="h-8 w-px hidden sm:block" />
+            <Skeleton className="h-4 w-20 hidden sm:block" />
+            <Skeleton className="h-9 w-9 rounded-md" />
           </div>
-          {/* Body Skeleton */}
-          <div className="p-6 space-y-6">
-            <Skeleton className="h-[120px] w-full max-w-sm rounded-xl" />
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Skeleton className="h-[300px] rounded-xl" />
-              <Skeleton className="h-[300px] rounded-xl" />
+          {/* Body Skeleton — matches Dashboard layout */}
+          <div className="flex-1 overflow-auto bg-muted/20">
+            <div className="p-6 md:p-8 space-y-6 max-w-7xl mx-auto">
+              {/* Page header */}
+              <div className="space-y-1.5">
+                <Skeleton className="h-6 w-32" />
+                <Skeleton className="h-4 w-48" />
+              </div>
+              {/* KPI grid */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Skeleton className="h-[160px] rounded-xl" />
+                <Skeleton className="h-[160px] rounded-xl" />
+                <Skeleton className="h-[160px] rounded-xl" />
+              </div>
+              {/* Charts grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Skeleton className="h-[320px] rounded-xl" />
+                <Skeleton className="h-[320px] rounded-xl" />
+              </div>
             </div>
           </div>
         </div>
