@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/andreiOpran/licenta/operational-node/internal/config"
+	"github.com/andreiOpran/licenta/operational-node/utils/realip"
 	"github.com/gin-gonic/gin"
 	"golang.org/x/time/rate"
 )
@@ -42,7 +43,7 @@ func cleanupOldClients() {
 
 func IPRateLimiter() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		ip := c.ClientIP()
+		ip := realip.Get(c)
 
 		mu.Lock()
 

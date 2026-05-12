@@ -10,6 +10,7 @@ import (
 	"github.com/andreiOpran/licenta/operational-node/internal/models"
 	"github.com/andreiOpran/licenta/operational-node/internal/services"
 	"github.com/andreiOpran/licenta/operational-node/utils/cookie"
+	"github.com/andreiOpran/licenta/operational-node/utils/realip"
 	"github.com/andreiOpran/licenta/operational-node/utils/turnstile"
 	"github.com/andreiOpran/licenta/operational-node/utils/validator"
 )
@@ -33,7 +34,7 @@ func (h *AuthHandler) RegisterHandler(c *gin.Context) {
 	}
 
 	// turnstile anti-bot check
-	err := turnstile.Verify(req.TurnstileToken, c.ClientIP())
+	err := turnstile.Verify(req.TurnstileToken, realip.Get(c))
 	if err != nil {
 		c.JSON(http.StatusForbidden, gin.H{"error": "Captcha verification failed."})
 		return
@@ -86,13 +87,13 @@ func (h *AuthHandler) LoginHandler(c *gin.Context) {
 	}
 
 	// turnstile anti-bot check
-	err := turnstile.Verify(req.TurnstileToken, c.ClientIP())
+	err := turnstile.Verify(req.TurnstileToken, realip.Get(c))
 	if err != nil {
 		c.JSON(http.StatusForbidden, gin.H{"error": "Captcha verification failed."})
 		return
 	}
 
-	result, err := h.authService.AuthenticateUser(req.Email, req.Password, c.ClientIP(), c.Request.UserAgent())
+	result, err := h.authService.AuthenticateUser(req.Email, req.Password, realip.Get(c), c.Request.UserAgent())
 	if err != nil {
 		if errors.Is(err, services.ErrInvalidCredentials) {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid email or password"})
@@ -158,7 +159,7 @@ func (h *AuthHandler) Verify2FAHandler(c *gin.Context) {
 		return
 	}
 
-	accessToken, refreshToken, err := h.authService.Verify2FA(req.Email, req.Password, req.Token, c.ClientIP(), c.Request.UserAgent())
+	accessToken, refreshToken, err := h.authService.Verify2FA(req.Email, req.Password, req.Token, realip.Get(c), c.Request.UserAgent())
 	if err != nil {
 		if errors.Is(err, services.ErrInvalidCredentials) {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials or token"})
@@ -200,7 +201,7 @@ func (h *AuthHandler) RefreshTokenHandler(c *gin.Context) {
 		return
 	}
 
-	accessToken, refreshToken, err := h.authService.RefreshToken(cookieRefreshToken, c.ClientIP(), c.Request.UserAgent())
+	accessToken, refreshToken, err := h.authService.RefreshToken(cookieRefreshToken, realip.Get(c), c.Request.UserAgent())
 	if err != nil {
 		if errors.Is(err, services.ErrTokenInvalid) || errors.Is(err, services.ErrTokenExpired) {
 			cookie.Clear(c, "refresh_token", "/api/v1")
@@ -245,7 +246,7 @@ func (h *AuthHandler) ForgotPasswordHandler(c *gin.Context) {
 	}
 
 	// turnstile anti-bot check
-	err := turnstile.Verify(req.TurnstileToken, c.ClientIP())
+	err := turnstile.Verify(req.TurnstileToken, realip.Get(c))
 	if err != nil {
 		c.JSON(http.StatusForbidden, gin.H{"error": "Captcha verification failed."})
 		return
