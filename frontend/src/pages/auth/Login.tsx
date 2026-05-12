@@ -14,6 +14,7 @@ import { useAuthStore } from '@/stores/authStore';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { PasswordInput } from '@/components/ui/password-input';
 import {
   Form,
   FormControl,
@@ -218,7 +219,7 @@ export function Login() {
                         </Link>
                       </div>
                       <FormControl>
-                        <Input type="password" placeholder="••••••••" {...field} className="h-10" />
+                        <PasswordInput placeholder="••••••••" {...field} className="h-10" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

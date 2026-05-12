@@ -9,6 +9,7 @@ import { authApi } from '@/api/auth';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { PasswordInput } from '@/components/ui/password-input';
 import {
   Form,
   FormControl,
@@ -134,7 +135,7 @@ export function ResetPassword() {
                     <FormItem>
                       <FormLabel className="text-xs font-medium text-muted-foreground uppercase tracking-wide">New Password</FormLabel>
                       <FormControl>
-                        <Input type="password" placeholder="••••••••" {...field} className="h-10" />
+                        <PasswordInput placeholder="••••••••" {...field} className="h-10" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -148,7 +149,7 @@ export function ResetPassword() {
                     <FormItem>
                       <FormLabel className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Confirm Password</FormLabel>
                       <FormControl>
-                        <Input type="password" placeholder="••••••••" {...field} className="h-10" />
+                        <PasswordInput placeholder="••••••••" {...field} className="h-10" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
