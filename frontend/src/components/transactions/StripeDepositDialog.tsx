@@ -41,7 +41,56 @@ const PUBLISHABLE_KEY = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
 if (!PUBLISHABLE_KEY) {
   console.warn("Stripe Publishable Key is missing from environment variables.");
 }
-const stripePromise = loadStripe(PUBLISHABLE_KEY || "");
+const stripePromise = loadStripe(PUBLISHABLE_KEY || "", {
+  developerTools: { assistant: { enabled: false } },
+});
+
+const stripeAppearance = {
+  theme: 'night' as const,
+  variables: {
+    colorPrimary: '#4ade80',
+    colorBackground: '#27272f',
+    colorText: '#fafafa',
+    colorDanger: '#f87171',
+    colorTextPlaceholder: '#71717a',
+    colorTextSecondary: '#a1a1aa',
+    fontFamily: "system-ui, 'Segoe UI', Roboto, sans-serif",
+    borderRadius: '7px',
+    spacingUnit: '4px',
+  },
+  rules: {
+    '.Input': {
+      border: '1px solid rgba(255, 255, 255, 0.1)',
+      backgroundColor: '#27272f',
+    },
+    '.Input:focus': {
+      borderColor: '#4ade80',
+      boxShadow: '0 0 0 1px #4ade80, 0 0 0 3px rgba(74, 222, 128, 0.12)',
+    },
+    '.Input--invalid': {
+      borderColor: '#f87171',
+      boxShadow: '0 0 0 1px #f87171',
+    },
+    '.Tab': {
+      border: '1px solid rgba(255, 255, 255, 0.1)',
+      backgroundColor: '#27272f',
+    },
+    '.Tab:hover': {
+      border: '1px solid rgba(255, 255, 255, 0.2)',
+      color: '#fafafa',
+    },
+    '.Tab--selected': {
+      border: '1px solid #4ade80',
+      boxShadow: '0 0 0 1px #4ade80',
+    },
+    '.Label': {
+      color: '#a1a1aa',
+    },
+    '.Error': {
+      color: '#f87171',
+    },
+  },
+};
 
 interface StripeDepositDialogProps {
   open: boolean;
@@ -82,7 +131,7 @@ export function StripeDepositDialog({ open, onOpenChange }: StripeDepositDialogP
             }}
           />
         ) : (
-          <Elements stripe={stripePromise} options={{ clientSecret, appearance: { theme: 'stripe' } }}>
+          <Elements stripe={stripePromise} options={{ clientSecret, appearance: stripeAppearance }}>
             <CheckoutForm
               amount={amount!}
               onSuccess={() => {
