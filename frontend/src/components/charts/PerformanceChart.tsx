@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/button";
 import { TimeRangeSelector, type TimeRange } from "./TimeRangeSelector";
 import { ChartErrorBoundary, ChartSkeleton } from "./ChartErrorBoundary";
 import { portfolioApi } from "@/api/portfolio";
-import { formatPct, formatUSDSigned } from "@/lib/format";
+import { formatPct, formatPctTrimmed, formatUSDSigned } from "@/lib/format";
 
 interface CustomTooltipProps {
   active?: boolean;
@@ -145,7 +145,7 @@ export function PerformanceChart({ onInvestClick }: PerformanceChartProps) {
                 />
                 <YAxis
                   orientation="right"
-                  tickFormatter={formatPct}
+                  tickFormatter={formatPctTrimmed}
                   tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
                   axisLine={false}
                   tickLine={false}

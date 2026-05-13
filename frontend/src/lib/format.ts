@@ -49,6 +49,13 @@ export function formatPctPlain(value: number, decimals = 2): string {
   return `${value.toFixed(decimals).replace(".", ",")}%`;
 }
 
+/** Percentage with sign, max 2 decimals, no trailing zeros. */
+export function formatPctTrimmed(value: number): string {
+  const sign = value >= 0 ? "+" : "";
+  const rounded = Math.round(value * 100) / 100;
+  return `${sign}${rounded.toString().replace(".", ",")}%`;
+}
+
 /** Compact USD for chart axes: B for billions, M for millions, k for thousands. */
 export function formatUSDCompact(value: number): string {
   const abs = Math.abs(value);
