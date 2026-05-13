@@ -1,7 +1,5 @@
 package models
 
-import "github.com/golang-jwt/jwt/v5"
-
 // struct to read incoming json data from request
 type DepositRequest struct {
 	Amount float64 `json:"amount" binding:"required,gt=0"` // greater than 0
@@ -30,11 +28,6 @@ type LoginRequest struct {
 	TurnstileToken string `json:"turnstile_token" binding:"required"`
 }
 
-type Claims struct {
-	UserID uint `json:"user_id"`
-	jwt.RegisteredClaims
-}
-
 type Verify2FARequest struct {
 	Email    string `json:"email" binding:"required,email"`
 	Password string `json:"password" binding:"required"`
@@ -59,18 +52,6 @@ type RefreshRequest struct {
 	RefreshToken string `json:"refresh_token" binding:"required"`
 }
 
-type PortfolioHistoryResponse struct {
-	Range string                  `json:"range"`
-	Data  []PortfolioHistoryPoint `json:"data"`
-}
-
-type PaginatedTransactionsResponse struct {
-	Data       []UnifiedTransaction `json:"data"`
-	TotalCount int64                `json:"total_count"`
-	Page       int                  `json:"page"`
-	Limit      int                  `json:"limit"`
-}
-
 type ForecastRequest struct {
 	InitialInvestment   *float64 `json:"initial_investment" binding:"required,min=0"`
 	MonthlyContribution float64  `json:"monthly_contribution" binding:"min=0"`
@@ -83,20 +64,4 @@ type DepositIntentRequest struct {
 
 type CashoutRequest struct {
 	Amount float64 `json:"amount" binding:"required,gt=0"`
-}
-
-type HoldingResponse struct {
-	Ticker       string  `json:"ticker"`
-	Shares       float64 `json:"shares"`
-	CurrentPrice float64 `json:"current_price"`
-	CurrentValue float64 `json:"current_value"`
-	TargetWeight float64 `json:"target_weight"`
-}
-
-type PortfolioSummaryResponse struct {
-	LiveTotalValue    float64           `json:"live_total_value"`
-	NetContributions  float64           `json:"net_contributions"`
-	AllTimeProfitLoss float64           `json:"all_time_profit_loss"`
-	RoundID           uint              `json:"round_id"`
-	Holdings          []HoldingResponse `json:"holdings"`
 }

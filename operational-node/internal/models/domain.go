@@ -135,21 +135,6 @@ type IntradayMarketData struct {
 	CreatedAt time.Time
 }
 
-// PortfolioHistoryPoint holds a users portfolio value and contributions at a given timestamp
-type PortfolioHistoryPoint struct {
-	Timestamp        time.Time `json:"timestamp"`
-	PortfolioValue   float64   `json:"portfolio_value"`
-	ReturnPercentage float64   `json:"return_percentage"`
-	NetContributions float64   `json:"net_contributions"`
-}
-
-// AssetPricePoint holds a ticker together with its price at a given timestamp
-type AssetPricePoint struct {
-	Ticker    string
-	Timestamp time.Time
-	Price     float64
-}
-
 // pre-computed HRP bucket weights, written daily by
 // decisional-node, read by operational-node on rebalance day
 type ModelPortfolio struct {
@@ -170,11 +155,4 @@ type ForecastResult struct {
 	Payload   string // JSON with percentile arrays, nil until complete
 	CreatedAt time.Time
 	UpdatedAt time.Time
-}
-
-type DepositInvoiceEmailData struct {
-	BaseURL         string
-	AmountFormatted string
-	TransactionID   string
-	Date            string
 }
