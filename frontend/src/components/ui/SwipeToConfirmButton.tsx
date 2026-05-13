@@ -67,7 +67,7 @@ export function SwipeToConfirmButton({
     if (!isLoading && stateRef.current === "loading") {
       setState("success");
       stateRef.current = "success";
-      const t = setTimeout(() => reset(), 1200);
+      const t = setTimeout(() => reset(), 2500);
       return () => clearTimeout(t);
     }
   }, [isLoading, reset]);
