@@ -128,9 +128,6 @@ def process_generate_models(payload: dict, repo: DataRepository):
     # convert absolute pices to daily returns (percentages)
     daily_returns = prices_wide.pct_change().dropna()
     
-    # lates price of all tickers to return at the end
-    latest_price = prices_wide.iloc[-1].to_dict()
-    
     verbose = payload.get("verbose", False)
     if verbose:
         save_debug_csv(prices_wide, "0_prices_wide.csv")
