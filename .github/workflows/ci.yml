@@ -1,0 +1,138 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: ["**"]
+
+jobs:
+  # Operational Node: unit tests, vet, lint 
+  go:
+    name: Operational Node - Test, Vet & Lint
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: operational-node
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+          cache-dependency-path: operational-node/go.sum
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: latest
+          working-directory: operational-node
+
+      - name: Run unit tests
+        run: |
+          go test -v \
+            -coverprofile=coverage.out \
+            ./internal/handlers/... \
+            ./internal/services/... \
+            ./internal/repositories/...
+
+      - name: Coverage summary
+        run: go tool cover -func=coverage.out
+
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: operational-node/coverage.out
+          retention-days: 7
+
+  #  Decisional node: lint, syntax check, dependency audit 
+  #
+  # No pytest tests exist yet for this service. The job still provides real
+  # value: ruff catches style/logic issues, py_compile catches syntax errors
+  # in every file, and pip-audit flags CVEs in the pinned requirements.
+  # Add `pytest decisional-node/` here once test files are written.
+  # 
+  decisional-node:
+    name: Decisional Node - Lint, Syntax & Audit
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: decisional-node
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+          cache-dependency-path: decisional-node/requirements.txt
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Install tooling
+        run: pip install ruff pip-audit
+
+      # ruff replaces flake8 + isort + pyupgrade - catches unused imports,
+      # undefined names, bad style, common bugs
+      - name: Lint (ruff)
+        run: ruff check .
+
+      # Compile every .py file - catches SyntaxErrors that ruff misses
+      # (ruff parses but doesn't always catch all runtime-visible syntax issues)
+      - name: Syntax check
+        run: |
+          find . -name "*.py" -not -path "./.venv/*" \
+            | xargs python -m py_compile
+
+      # pip-audit checks every pinned package in requirements.txt against
+      # the OSV/PyPI advisory database - Python equivalent of npm audit
+      - name: Audit dependencies (pip-audit)
+        run: pip-audit -r requirements.txt
+
+  # Frontend: lint, type-check, build, audit 
+  frontend:
+    name: Frontend - Lint, Build & Audit
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      # ESLint - catches React hooks violations, unused vars, TS-specific rules
+      - name: Lint
+        run: npm run lint
+
+      # tsc -b + vite build - type errors fail the build, not just warn
+      - name: Build (includes TypeScript type-check)
+        run: npm run build
+
+      # Only fail on high or critical CVEs - informational/low findings are noise
+      - name: Audit dependencies
+        run: npm audit --audit-level=high
