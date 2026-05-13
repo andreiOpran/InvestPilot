@@ -104,7 +104,7 @@ func (s *userService) ProcessWebhookDeposit(userID uint, paymentIntentAmount int
 			BaseURL:         config.Env.FrontendBaseURL,
 			AmountFormatted: fmt.Sprintf("$%.2f", amount),
 			TransactionID:   stripeID,
-			Date:            time.Now().UTC().Format("January 1, 2000 12:00 UTC"),
+			Date:            time.Now().UTC().Format("January 2, 2006 15:04 UTC"),
 		}
 		if subject, body, err := mailer.BuildEmailContent("deposit_invoice", data); err == nil {
 			go func() {
