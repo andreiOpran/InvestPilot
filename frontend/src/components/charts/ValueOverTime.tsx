@@ -10,6 +10,7 @@ import {
   Tooltip,
   ResponsiveContainer,
   Legend,
+  ReferenceLine,
 } from "recharts";
 import { format, parseISO } from "date-fns";
 import { TrendingUp } from "lucide-react";
@@ -97,13 +98,22 @@ export function ValueOverTime({ onInvestClick }: ValueOverTimeProps) {
           </div>
         ) : !hasData ? (
           <EmptyPortfolioState onInvestClick={onInvestClick} />
-        ) : (
+        ) : (() => {
+          const points = data!.data;
+          const values = points.map((d: any) => d.portfolio_value);
+          const minVal = Math.min(...values);
+          const maxVal = Math.max(...values);
+          const pad = (maxVal - minVal) * 0.08 || maxVal * 0.02;
+          const yDomain: [number, number] = [minVal - pad, maxVal + pad];
+          const startValue: number = points[0]?.portfolio_value;
+
+          return (
           <div
             className="transition-opacity duration-300"
             style={{ opacity: isFetching ? 0.4 : 1 }}
           >
             <ResponsiveContainer width="100%" height={400}>
-              <AreaChart data={data!.data} margin={{ top: 10, right: 10, left: 20, bottom: 0 }}>
+              <AreaChart data={points} margin={{ top: 10, right: 10, left: 20, bottom: 0 }}>
                 <defs>
                   <linearGradient id="portfolioGradient" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="var(--color-primary, #10b981)" stopOpacity={0.4} />
@@ -119,6 +129,7 @@ export function ValueOverTime({ onInvestClick }: ValueOverTimeProps) {
                 />
                 <YAxis
                   orientation="right"
+                  domain={yDomain}
                   tickFormatter={formatUSDNoFrac}
                   tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
                   axisLine={false}
@@ -139,6 +150,14 @@ export function ValueOverTime({ onInvestClick }: ValueOverTimeProps) {
                   }
                   wrapperStyle={{ fontSize: 12 }}
                 />
+                {startValue != null && (
+                  <ReferenceLine
+                    y={startValue}
+                    stroke="var(--chart-grid)"
+                    strokeWidth={1.5}
+                    strokeDasharray="3 3"
+                  />
+                )}
                 <Area
                   type="monotone"
                   dataKey="portfolio_value"
@@ -175,7 +194,8 @@ export function ValueOverTime({ onInvestClick }: ValueOverTimeProps) {
               </Label>
             </div>
           </div>
-        )}
+          );
+        })()}
       </ChartErrorBoundary>
     </div>
   );
