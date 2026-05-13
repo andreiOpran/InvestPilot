@@ -171,3 +171,10 @@ type ForecastResult struct {
 	CreatedAt time.Time
 	UpdatedAt time.Time
 }
+
+type DepositInvoiceEmailData struct {
+	BaseURL         string
+	AmountFormatted string
+	TransactionID   string
+	Date            string
+}

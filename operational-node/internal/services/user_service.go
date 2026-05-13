@@ -2,8 +2,12 @@ package services
 
 import (
 	"errors"
+	"fmt"
 	"math"
+	"time"
 
+	"github.com/andreiOpran/licenta/operational-node/internal/config"
+	"github.com/andreiOpran/licenta/operational-node/internal/mailer"
 	"github.com/andreiOpran/licenta/operational-node/internal/models"
 	"github.com/andreiOpran/licenta/operational-node/internal/repositories"
 	"github.com/google/uuid"
@@ -90,7 +94,26 @@ func (s *userService) ProcessWebhookDeposit(userID uint, paymentIntentAmount int
 		StripePaymentID: stripeID,
 		Status:          "COMPLETED",
 	}
-	return s.userRepo.DepositTx(userID, amount, funding)
+	if err := s.userRepo.DepositTx(userID, amount, funding); err != nil {
+		return err
+	}
+
+	// send invoice mail
+	if user, err := s.userRepo.FindByID(userID); err == nil {
+		data := models.DepositInvoiceEmailData{
+			BaseURL:         config.Env.FrontendBaseURL,
+			AmountFormatted: fmt.Sprintf("$%.2f", amount),
+			TransactionID:   stripeID,
+			Date:            time.Now().UTC().Format("January 1, 2000 12:00 UTC"),
+		}
+		if subject, body, err := mailer.BuildEmailContent("deposit_invoice", data); err == nil {
+			go func() {
+				_ = mailer.Client.SendEmail(user.Email, subject, body)
+			}()
+		}
+	}
+
+	return nil
 }
 
 func (s *userService) Cashout(userID uint, amount float64) (float64, error) {
