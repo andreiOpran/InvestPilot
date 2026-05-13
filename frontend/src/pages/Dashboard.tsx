@@ -30,7 +30,7 @@ import {
 
 import { useAuthStore } from "@/stores/authStore";
 import { portfolioApi } from "@/api/portfolio";
-import { formatUSD, formatUSDFull, formatPct, formatPctPlain } from "@/lib/format";
+import { formatUSD, formatUSDFull, formatPct, formatPctPlain, formatPctTrimmed } from "@/lib/format";
 
 import { DepositDialog } from "@/components/transactions/DepositDialog";
 import { StripeDepositDialog } from "@/components/transactions/StripeDepositDialog";
@@ -131,7 +131,7 @@ function MiniPerformanceChart() {
           <XAxis dataKey="timestamp" tick={false} axisLine={false} tickLine={false} />
           <YAxis
             orientation="right"
-            tickFormatter={(v) => `${v > 0 ? "+" : ""}${v.toFixed(0)}%`}
+            tickFormatter={formatPctTrimmed}
             tick={{ fontSize: 10, fill: "var(--muted-foreground)" }}
             axisLine={false}
             tickLine={false}
