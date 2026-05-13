@@ -62,20 +62,85 @@ func TestUserRepository_Save(t *testing.T) {
 	})
 }
 
-// TODO: update to use the DepositTx() instead of AddWalletBalance()
-// func TestUserRepository_AddWalletBalance(t *testing.T) {
-// 	db, cleanup := setupTestDB()
-// 	defer cleanup()
-// 	repo := NewUserRepository(db)
+func TestUserRepository_DepositTx(t *testing.T) {
+	db, cleanup := setupTestDB()
+	defer cleanup()
+	repo := NewUserRepository(db)
 
-// 	t.Run("AddWalletBalance_success_updatesBalance", func(t *testing.T) {
-// 		user := models.User{Email: "add@test.com", Wallet: models.Wallet{Balance: 100.0}}
-// 		db.Create(&user)
+	t.Run("DepositTx_success_updatesBalanceAndCreatesFundingLog", func(t *testing.T) {
+		user := models.User{Email: "deposit@test.com", Wallet: models.Wallet{Balance: 100.0}}
+		db.Create(&user)
 
-// 		err := repo.AddWalletBalance(user.ID, 50.5)
-// 		assert.NoError(t, err)
+		funding := &models.Funding{
+			UserID:          user.ID,
+			Type:            "DEPOSIT",
+			Amount:          50.0,
+			StripePaymentID: "pi_test_1",
+			Status:          "COMPLETED",
+		}
+		err := repo.DepositTx(user.ID, 50.0, funding)
+		assert.NoError(t, err)
 
-// 		wallet, _ := repo.FindWalletByUserID(user.ID)
-// 		assert.Equal(t, 150.5, wallet.Balance)
-// 	})
-// }
+		var wallet models.Wallet
+		db.Where("user_id = ?", user.ID).First(&wallet)
+		assert.InDelta(t, 150.0, wallet.Balance, 0.01)
+
+		var count int64
+		db.Model(&models.Funding{}).Where("user_id = ? AND stripe_payment_id = ?", user.ID, "pi_test_1").Count(&count)
+		assert.Equal(t, int64(1), count)
+	})
+}
+
+func TestUserRepository_CashoutTx(t *testing.T) {
+	db, cleanup := setupTestDB()
+	defer cleanup()
+	repo := NewUserRepository(db)
+
+	t.Run("CashoutTx_success_updatesBalance", func(t *testing.T) {
+		user := models.User{Email: "cashout@test.com", Wallet: models.Wallet{Balance: 200.0}}
+		db.Create(&user)
+
+		funding := &models.Funding{
+			UserID:          user.ID,
+			Type:            "WITHDRAWAL",
+			Amount:          75.0,
+			StripePaymentID: "sim_out_1",
+			Status:          "COMPLETED",
+		}
+		err := repo.CashoutTx(user.ID, 75.0, funding)
+		assert.NoError(t, err)
+
+		var wallet models.Wallet
+		db.Where("user_id = ?", user.ID).First(&wallet)
+		assert.InDelta(t, 125.0, wallet.Balance, 0.01)
+	})
+
+	t.Run("CashoutTx_insufficientFunds_returnsError", func(t *testing.T) {
+		user := models.User{Email: "broke@test.com", Wallet: models.Wallet{Balance: 10.0}}
+		db.Create(&user)
+
+		funding := &models.Funding{
+			UserID: user.ID,
+			Type:   "WITHDRAWAL",
+			Amount: 500.0,
+			Status: "COMPLETED",
+		}
+		err := repo.CashoutTx(user.ID, 500.0, funding)
+		assert.ErrorIs(t, err, ErrUserCashoutInsufficientFunds)
+	})
+}
+
+func TestUserRepository_FindWalletByUserID(t *testing.T) {
+	db, cleanup := setupTestDB()
+	defer cleanup()
+	repo := NewUserRepository(db)
+
+	t.Run("FindWalletByUserID_success_returnsWallet", func(t *testing.T) {
+		user := models.User{Email: "fw@test.com", Wallet: models.Wallet{Balance: 99.0}}
+		db.Create(&user)
+
+		wallet, err := repo.FindWalletByUserID(user.ID)
+		assert.NoError(t, err)
+		assert.InDelta(t, 99.0, wallet.Balance, 0.01)
+	})
+}

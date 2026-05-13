@@ -8,9 +8,16 @@ import (
 	"github.com/andreiOpran/licenta/operational-node/internal/models"
 )
 
-// MockAuthRepository implementation for testing
 type MockAuthRepository struct {
 	mock.Mock
+}
+
+func (m *MockAuthRepository) FindUserByID(id uint) (*models.User, error) {
+	args := m.Called(id)
+	if args.Get(0) != nil {
+		return args.Get(0).(*models.User), args.Error(1)
+	}
+	return nil, args.Error(1)
 }
 
 func (m *MockAuthRepository) FindUserByEmail(email string) (*models.User, error) {
@@ -24,6 +31,16 @@ func (m *MockAuthRepository) FindUserByEmail(email string) (*models.User, error)
 func (m *MockAuthRepository) CreateUser(user *models.User) error {
 	args := m.Called(user)
 	return args.Error(0)
+}
+
+func (m *MockAuthRepository) CreateLoginAttempt(attempt *models.LoginAttempt) error {
+	args := m.Called(attempt)
+	return args.Error(0)
+}
+
+func (m *MockAuthRepository) GetConsecutiveFailedAttempts(userID uint) (int, time.Time, error) {
+	args := m.Called(userID)
+	return args.Int(0), args.Get(1).(time.Time), args.Error(2)
 }
 
 func (m *MockAuthRepository) CreateActionToken(token *models.ActionToken) error {

@@ -1,13 +1,18 @@
 package repositories
 
 import (
+	"github.com/andreiOpran/licenta/operational-node/internal/config"
 	"github.com/andreiOpran/licenta/operational-node/internal/database"
 	"github.com/andreiOpran/licenta/operational-node/internal/models"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
 
-// setupTestDB initializes a fresh in-memory database for each test
+func init() {
+	config.Env.LoginAttemptScanningLimit = 30
+	config.Env.CleanupBatchSize = 100
+}
+
 func setupTestDB() (*gorm.DB, func()) {
 	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
 	if err != nil {
@@ -16,15 +21,22 @@ func setupTestDB() (*gorm.DB, func()) {
 
 	database.DB = db
 
-	// run migrations
 	database.DB.AutoMigrate(
 		&models.User{},
 		&models.Session{},
 		&models.ActionToken{},
+		&models.LoginAttempt{},
 		&models.Wallet{},
+		&models.Funding{},
+		&models.Transaction{},
+		&models.InvestmentRound{},
+		&models.Holding{},
+		&models.ForecastResult{},
+		&models.DailyMarketData{},
+		&models.IntradayMarketData{},
+		&models.ModelPortfolio{},
 	)
 
-	// return the db instance and a cleanup function
 	return db, func() {
 		database.DB = nil
 	}

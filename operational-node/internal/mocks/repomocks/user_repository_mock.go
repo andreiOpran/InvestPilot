@@ -6,7 +6,6 @@ import (
 	"github.com/andreiOpran/licenta/operational-node/internal/models"
 )
 
-// MockUserRepository implementation for testing
 type MockUserRepository struct {
 	mock.Mock
 }
@@ -32,11 +31,6 @@ func (m *MockUserRepository) Save(user *models.User) error {
 	return args.Error(0)
 }
 
-func (m *MockUserRepository) AddWalletBalance(userID uint, amount float64) error {
-	args := m.Called(userID, amount)
-	return args.Error(0)
-}
-
 func (m *MockUserRepository) FindWalletByUserID(userID uint) (*models.Wallet, error) {
 	args := m.Called(userID)
 	if args.Get(0) != nil {
@@ -45,12 +39,12 @@ func (m *MockUserRepository) FindWalletByUserID(userID uint) (*models.Wallet, er
 	return nil, args.Error(1)
 }
 
-// TODO: implement
-func (r *MockUserRepository) DepositTx(userID uint, amount float64, stripeID string) error {
-	return nil
+func (m *MockUserRepository) DepositTx(userID uint, amount float64, fundingLog *models.Funding) error {
+	args := m.Called(userID, amount, fundingLog)
+	return args.Error(0)
 }
 
-// TODO: implement
-func (r *MockUserRepository) CashoutTx(userID uint, amount float64) error {
-	return nil
+func (m *MockUserRepository) CashoutTx(userID uint, amount float64, fundingLog *models.Funding) error {
+	args := m.Called(userID, amount, fundingLog)
+	return args.Error(0)
 }

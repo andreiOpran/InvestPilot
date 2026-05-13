@@ -9,6 +9,7 @@ import (
 
 	"github.com/andreiOpran/licenta/operational-node/internal/mocks/repomocks"
 	"github.com/andreiOpran/licenta/operational-node/internal/models"
+	"github.com/andreiOpran/licenta/operational-node/internal/repositories"
 )
 
 func TestGetUserProfile_userNotFound_returnsError(t *testing.T) {
@@ -67,11 +68,79 @@ func TestDepositFunds_validRequest_returnsNewBalance(t *testing.T) {
 	mockRepo := new(repomocks.MockUserRepository)
 	service := NewUserService(mockRepo)
 
-	mockRepo.On("AddWalletBalance", uint(1), 50.5).Return(nil).Once()
+	mockRepo.On("DepositTx", uint(1), 50.5, mock.AnythingOfType("*models.Funding")).Return(nil).Once()
 	mockRepo.On("FindWalletByUserID", uint(1)).Return(&models.Wallet{Balance: 150.5}, nil).Once()
 
 	newBalance, err := service.DepositFunds(1, 50.5)
 	assert.NoError(t, err)
 	assert.Equal(t, 150.5, newBalance)
+	mockRepo.AssertExpectations(t)
+}
+
+func TestDepositFunds_depositTxError_returnsError(t *testing.T) {
+	mockRepo := new(repomocks.MockUserRepository)
+	service := NewUserService(mockRepo)
+
+	mockRepo.On("DepositTx", uint(1), 100.0, mock.AnythingOfType("*models.Funding")).Return(ErrInternal).Once()
+
+	_, err := service.DepositFunds(1, 100.0)
+	assert.ErrorIs(t, err, ErrInternal)
+	mockRepo.AssertExpectations(t)
+}
+
+func TestDepositFunds_walletFetchError_returnsError(t *testing.T) {
+	mockRepo := new(repomocks.MockUserRepository)
+	service := NewUserService(mockRepo)
+
+	mockRepo.On("DepositTx", uint(1), 100.0, mock.AnythingOfType("*models.Funding")).Return(nil).Once()
+	mockRepo.On("FindWalletByUserID", uint(1)).Return(nil, ErrInternal).Once()
+
+	_, err := service.DepositFunds(1, 100.0)
+	assert.ErrorIs(t, err, ErrUserNotFound)
+	mockRepo.AssertExpectations(t)
+}
+
+func TestCashout_insufficientBalance_returnsError(t *testing.T) {
+	mockRepo := new(repomocks.MockUserRepository)
+	service := NewUserService(mockRepo)
+
+	mockRepo.On("CashoutTx", uint(1), 500.0, mock.AnythingOfType("*models.Funding")).Return(repositories.ErrUserCashoutInsufficientFunds).Once()
+
+	_, err := service.Cashout(1, 500.0)
+	assert.ErrorIs(t, err, ErrInsufficientBalance)
+	mockRepo.AssertExpectations(t)
+}
+
+func TestCashout_validRequest_returnsNewBalance(t *testing.T) {
+	mockRepo := new(repomocks.MockUserRepository)
+	service := NewUserService(mockRepo)
+
+	mockRepo.On("CashoutTx", uint(1), 50.0, mock.AnythingOfType("*models.Funding")).Return(nil).Once()
+	mockRepo.On("FindWalletByUserID", uint(1)).Return(&models.Wallet{Balance: 50.0}, nil).Once()
+
+	newBalance, err := service.Cashout(1, 50.0)
+	assert.NoError(t, err)
+	assert.Equal(t, 50.0, newBalance)
+	mockRepo.AssertExpectations(t)
+}
+
+func TestCashout_negativeAmount_returnsError(t *testing.T) {
+	mockRepo := new(repomocks.MockUserRepository)
+	service := NewUserService(mockRepo)
+
+	_, err := service.Cashout(1, -10.0)
+	assert.ErrorIs(t, err, ErrAmountNegative)
+	mockRepo.AssertExpectations(t)
+}
+
+func TestProcessWebhookDeposit_validRequest_depositsSuccessfully(t *testing.T) {
+	mockRepo := new(repomocks.MockUserRepository)
+	service := NewUserService(mockRepo)
+
+	mockRepo.On("DepositTx", uint(1), 10.0, mock.AnythingOfType("*models.Funding")).Return(nil).Once()
+	mockRepo.On("FindByID", uint(1)).Return(&models.User{Email: "user@test.com"}, nil).Once()
+
+	err := service.ProcessWebhookDeposit(1, 1000, "pi_test_123") // 1000 cents = $10.00
+	assert.NoError(t, err)
 	mockRepo.AssertExpectations(t)
 }

@@ -47,6 +47,26 @@ func TestSetup2FAHandler(t *testing.T) {
 		assert.Contains(t, w.Body.String(), "already enabled")
 	})
 
+	t.Run("Setup2FAHandler_userNotFound_returns404", func(t *testing.T) {
+		mockSvc.On("Setup2FA", uint(1)).Return("", "", "", services.ErrUserNotFound).Once()
+
+		req, _ := http.NewRequest(http.MethodGet, "/2fa/setup", nil)
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusNotFound, w.Code)
+	})
+
+	t.Run("Setup2FAHandler_internalError_returns500", func(t *testing.T) {
+		mockSvc.On("Setup2FA", uint(1)).Return("", "", "", services.ErrInternal).Once()
+
+		req, _ := http.NewRequest(http.MethodGet, "/2fa/setup", nil)
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusInternalServerError, w.Code)
+	})
+
 	t.Run("Setup2FAHandler_success_returns200", func(t *testing.T) {
 		mockSvc.On("Setup2FA", uint(1)).Return("secret", "otpauth://...", "base64qr", nil).Once()
 
@@ -65,6 +85,58 @@ func TestSetup2FAHandler(t *testing.T) {
 func TestEnable2FAHandler(t *testing.T) {
 	mockSvc := new(servicemocks.MockSecurityService)
 	r := setupSecurityRouter(mockSvc)
+
+	t.Run("Enable2FAHandler_badJSON_returns400", func(t *testing.T) {
+		req, _ := http.NewRequest(http.MethodPost, "/2fa/enable", bytes.NewBufferString("bad-json"))
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+	})
+
+	t.Run("Enable2FAHandler_userNotFound_returns404", func(t *testing.T) {
+		payload := models.Enable2FARequest{Token: "111111"}
+		body, _ := json.Marshal(payload)
+
+		mockSvc.On("Enable2FA", uint(1), "111111").Return(services.ErrUserNotFound).Once()
+
+		req, _ := http.NewRequest(http.MethodPost, "/2fa/enable", bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusNotFound, w.Code)
+	})
+
+	t.Run("Enable2FAHandler_alreadyEnabled_returns400", func(t *testing.T) {
+		payload := models.Enable2FARequest{Token: "222222"}
+		body, _ := json.Marshal(payload)
+
+		mockSvc.On("Enable2FA", uint(1), "222222").Return(services.Err2FAAlreadyEnabled).Once()
+
+		req, _ := http.NewRequest(http.MethodPost, "/2fa/enable", bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+		assert.Contains(t, w.Body.String(), "already enabled")
+	})
+
+	t.Run("Enable2FAHandler_internalError_returns500", func(t *testing.T) {
+		payload := models.Enable2FARequest{Token: "333333"}
+		body, _ := json.Marshal(payload)
+
+		mockSvc.On("Enable2FA", uint(1), "333333").Return(services.ErrInternal).Once()
+
+		req, _ := http.NewRequest(http.MethodPost, "/2fa/enable", bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusInternalServerError, w.Code)
+	})
 
 	t.Run("Enable2FAHandler_invalidToken_returns400", func(t *testing.T) {
 		payload := models.Enable2FARequest{Token: "000000"}

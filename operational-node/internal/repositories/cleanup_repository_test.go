@@ -36,4 +36,15 @@ func TestCleanupRepository(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, int64(2), rows) // expecting exactly 2 sessions to be deleted
 	})
+
+	t.Run("DeleteOldLoginAttemptsBatch_success", func(t *testing.T) {
+		old := now.Add(-48 * time.Hour)
+		db.Create(&models.LoginAttempt{UserID: 1, IPAddress: "1.1.1.1", CreatedAt: old})
+		db.Create(&models.LoginAttempt{UserID: 1, IPAddress: "2.2.2.2", CreatedAt: now})
+
+		retentionDate := now.Add(-24 * time.Hour)
+		rows, err := repo.DeleteOldLoginAttemptsBatch(retentionDate, 10)
+		assert.NoError(t, err)
+		assert.Equal(t, int64(1), rows)
+	})
 }

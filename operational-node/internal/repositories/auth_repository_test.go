@@ -119,8 +119,19 @@ func TestAuthRepository_SessionOperations(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, int64(1), rows)
 
-		err = repo.DeleteSessionByToken("refresh-1")
+		err = repo.DeleteSession(foundSess)
 		assert.NoError(t, err)
+
+		_, err = repo.FindSessionByToken("refresh-1")
+		assert.Error(t, err)
+	})
+
+	t.Run("DeleteSessionByToken_success", func(t *testing.T) {
+		db.Create(&models.Session{FamilyID: "by-token", RefreshToken: "delete-me-token"})
+		err := repo.DeleteSessionByToken("delete-me-token")
+		assert.NoError(t, err)
+		_, err = repo.FindSessionByToken("delete-me-token")
+		assert.Error(t, err)
 	})
 
 	t.Run("DeleteSessionsByFamily_success", func(t *testing.T) {
@@ -133,5 +144,48 @@ func TestAuthRepository_SessionOperations(t *testing.T) {
 		var count int64
 		db.Model(&models.Session{}).Where("family_id = ?", "fam-kill").Count(&count)
 		assert.Equal(t, int64(0), count)
+	})
+}
+
+func TestAuthRepository_FindUserByID(t *testing.T) {
+	db, cleanup := setupTestDB()
+	defer cleanup()
+	repo := NewAuthRepository(db)
+
+	user := &models.User{Email: "byid@test.com", Password: "hash"}
+	db.Create(user)
+
+	found, err := repo.FindUserByID(user.ID)
+	assert.NoError(t, err)
+	assert.Equal(t, user.ID, found.ID)
+
+	_, err = repo.FindUserByID(9999)
+	assert.Error(t, err)
+}
+
+func TestAuthRepository_LoginAttempts(t *testing.T) {
+	db, cleanup := setupTestDB()
+	defer cleanup()
+	repo := NewAuthRepository(db)
+
+	user := &models.User{Email: "login-attempt@test.com", Password: "hash"}
+	db.Create(user)
+
+	t.Run("CreateLoginAttempt_success", func(t *testing.T) {
+		attempt := &models.LoginAttempt{
+			UserID:    user.ID,
+			IsSuccess: false,
+			IPAddress: "127.0.0.1",
+			CreatedAt: time.Now(),
+		}
+		err := repo.CreateLoginAttempt(attempt)
+		assert.NoError(t, err)
+		assert.NotZero(t, attempt.ID)
+	})
+
+	t.Run("GetConsecutiveFailedAttempts_returnsCount", func(t *testing.T) {
+		count, _, err := repo.GetConsecutiveFailedAttempts(user.ID)
+		assert.NoError(t, err)
+		assert.Equal(t, 1, count) // created one failed attempt above
 	})
 }
