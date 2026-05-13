@@ -48,3 +48,19 @@ export function formatPct(value: number, decimals = 2): string {
 export function formatPctPlain(value: number, decimals = 2): string {
   return `${value.toFixed(decimals).replace(".", ",")}%`;
 }
+
+/** Compact USD for chart axes: B for billions, M for millions, k for thousands. */
+export function formatUSDCompact(value: number): string {
+  const abs = Math.abs(value);
+  const sign = value < 0 ? "-" : "";
+
+  if (abs >= 1_000_000_000) {
+    return `$${sign}${(abs / 1_000_000_000).toFixed(1)}B`;
+  } else if (abs >= 1_000_000) {
+    return `$${sign}${(abs / 1_000_000).toFixed(0)}M`;
+  } else if (abs >= 1_000) {
+    return `$${sign}${(abs / 1_000).toFixed(0)}k`;
+  } else {
+    return `$${sign}${Math.floor(abs)}`;
+  }
+}

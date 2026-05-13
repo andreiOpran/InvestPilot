@@ -11,7 +11,7 @@ import {
 } from "recharts";
 import type { ForecastData } from "@/hooks/useForecast";
 import { Checkbox } from "@/components/ui/checkbox";
-import { formatUSDNoFrac } from "@/lib/format";
+import { formatUSDNoFrac, formatUSDCompact } from "@/lib/format";
 
 interface ConeOfUncertaintyProps {
   data: ForecastData;
@@ -57,10 +57,7 @@ export function ConeOfUncertainty({ data, inputs }: ConeOfUncertaintyProps) {
 
           <YAxis
             orientation="right"
-            tickFormatter={(val) => {
-              if (val >= 1000) return `$${(val / 1000).toFixed(0)}k`;
-              return `$${val}`;
-            }}
+            tickFormatter={formatUSDCompact}
             stroke="var(--muted-foreground)"
             fontSize={12}
             tickLine={false}

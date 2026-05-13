@@ -16,7 +16,7 @@ import { PieChart as PieChartIcon, BarChart3 as BarChartIcon } from "lucide-reac
 import { Button } from "@/components/ui/button";
 import { ChartErrorBoundary, ChartSkeleton } from "./ChartErrorBoundary";
 import { portfolioApi } from "@/api/portfolio";
-import { formatUSDFull, formatUSDNoFrac, formatPctPlain } from "@/lib/format";
+import { formatUSDFull, formatUSDCompact, formatPctPlain } from "@/lib/format";
 
 const COLORS = [
   "var(--chart-1)",
@@ -194,12 +194,12 @@ export function AllocationPie({ showTitle = true, onInvestClick }: AllocationPie
                 axisLine={false} 
                 dy={10}
               />
-              <YAxis 
-                stroke="var(--muted-foreground)" 
-                fontSize={12} 
-                tickLine={false} 
+              <YAxis
+                stroke="var(--muted-foreground)"
+                fontSize={12}
+                tickLine={false}
                 axisLine={false}
-                tickFormatter={(val) => formatUSDNoFrac(val)}
+                tickFormatter={formatUSDCompact}
                 dx={-10}
               />
               <Tooltip content={<CustomTooltip totalValue={totalValue} />} cursor={{ fill: 'var(--muted)', opacity: 0.4 }} />
