@@ -8,6 +8,8 @@
   <meta http-equiv="X-UA-Compatible" content="IE=edge" />
   <meta name="x-apple-disable-message-reformatting" />
   <title>Deposit Confirmation</title>
+  <style>
+  </style>
 </head>
 <body style="margin:0;padding:0;background-color:#f1f5f9;font-family:Arial,Helvetica,sans-serif;-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;">
 
@@ -50,7 +52,7 @@
                     <table role="presentation" cellpadding="0" cellspacing="0" border="0">
                       <tr>
                         <td width="76" height="76" style="width:76px;height:76px;background-color:#f0fdf4;border-radius:38px;text-align:center;vertical-align:middle;">
-                          <img src="{{ .BaseURL }}/email-assets/icon-shield.png" width="34" height="34" alt="" style="display:block;margin:0 auto;border:0;">
+                          <img src="{{ .BaseURL }}/email-assets/icon-dollar.png" width="34" height="34" alt="" style="display:block;margin:0 auto;border:0;">
                         </td>
                       </tr>
                     </table>
@@ -93,34 +95,20 @@
                     <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border:1px solid #e2e8f0;border-radius:10px;overflow:hidden;">
                       <tr>
                         <td style="padding:14px 20px;border-bottom:1px solid #e2e8f0;background-color:#f8fafc;">
-                          <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
-                            <tr>
-                              <td style="font-family:Arial,Helvetica,sans-serif;font-size:12px;font-weight:600;color:#94a3b8;letter-spacing:0.5px;text-transform:uppercase;">Transaction ID</td>
-                              <td align="right" style="font-family:'Courier New',Courier,monospace;font-size:12px;color:#475569;word-break:break-all;">{{ .TransactionID }}</td>
-                            </tr>
-                          </table>
+                          <p style="margin:0 0 4px 0;font-family:Arial,Helvetica,sans-serif;font-size:12px;font-weight:600;color:#94a3b8;letter-spacing:0.5px;text-transform:uppercase;">Transaction ID</p>
+                          <p style="margin:0;font-family:'Courier New',Courier,monospace;font-size:12px;color:#475569;word-break:break-all;">{{ .TransactionID }}</p>
                         </td>
                       </tr>
                       <tr>
                         <td style="padding:14px 20px;border-bottom:1px solid #e2e8f0;">
-                          <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
-                            <tr>
-                              <td style="font-family:Arial,Helvetica,sans-serif;font-size:12px;font-weight:600;color:#94a3b8;letter-spacing:0.5px;text-transform:uppercase;">Date</td>
-                              <td align="right" style="font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#475569;">{{ .Date }}</td>
-                            </tr>
-                          </table>
+                          <p style="margin:0 0 4px 0;font-family:Arial,Helvetica,sans-serif;font-size:12px;font-weight:600;color:#94a3b8;letter-spacing:0.5px;text-transform:uppercase;">Date</p>
+                          <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#475569;">{{ .Date }}</p>
                         </td>
                       </tr>
                       <tr>
                         <td style="padding:14px 20px;">
-                          <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
-                            <tr>
-                              <td style="font-family:Arial,Helvetica,sans-serif;font-size:12px;font-weight:600;color:#94a3b8;letter-spacing:0.5px;text-transform:uppercase;">Status</td>
-                              <td align="right">
-                                <span style="display:inline-block;padding:3px 10px;background-color:#f0fdf4;border:1px solid #bbf7d0;border-radius:99px;font-family:Arial,Helvetica,sans-serif;font-size:12px;font-weight:700;color:#16a34a;">Completed</span>
-                              </td>
-                            </tr>
-                          </table>
+                          <p style="margin:0 0 6px 0;font-family:Arial,Helvetica,sans-serif;font-size:12px;font-weight:600;color:#94a3b8;letter-spacing:0.5px;text-transform:uppercase;">Status</p>
+                          <span style="display:inline-block;padding:3px 10px;background-color:#f0fdf4;border:1px solid #bbf7d0;border-radius:99px;font-family:Arial,Helvetica,sans-serif;font-size:12px;font-weight:700;color:#16a34a;">Completed</span>
                         </td>
                       </tr>
                     </table>
@@ -141,7 +129,7 @@
                 <!-- Footer note -->
                 <tr>
                   <td style="padding:18px 48px 40px 48px;">
-                    <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#94a3b8;line-height:1.6;">
+                    <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#94a3b8;line-height:1.5;">
                       If you did not initiate this deposit or believe this is an error, please contact us immediately.
                     </p>
                   </td>
