@@ -8,6 +8,7 @@ interface CurrencyInputProps {
   placeholder?: string;
   className?: string;
   disabled?: boolean;
+  allowDecimals?: boolean;
 }
 
 function toDisplay(clean: string): string {
@@ -23,9 +24,10 @@ function toNumber(clean: string): number {
   return parseFloat(clean.replace(",", ".")) || 0;
 }
 
-function fromNumber(n: number): string {
+function fromNumber(n: number, allowDecimals: boolean = true): string {
   if (!n) return "";
-  return n.toFixed(2).replace(/\.?0+$/, "").replace(".", ",");
+  const fixed = allowDecimals ? n.toFixed(2) : Math.floor(n).toString();
+  return fixed.replace(/\.?0+$/, "").replace(".", ",");
 }
 
 export function CurrencyInput({
@@ -35,17 +37,18 @@ export function CurrencyInput({
   placeholder,
   className,
   disabled,
+  allowDecimals = true,
 }: CurrencyInputProps) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const [clean, setClean] = useState(() => fromNumber(value));
+  const [clean, setClean] = useState(() => fromNumber(value, allowDecimals));
   const isFocused = useRef(false);
 
   useEffect(() => {
     if (!isFocused.current && toNumber(clean) !== value) {
-      setClean(fromNumber(value));
+      setClean(fromNumber(value, allowDecimals));
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [value]);
+  }, [value, allowDecimals]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const raw = e.target.value;
@@ -65,7 +68,7 @@ export function CurrencyInput({
         } else {
           newClean += ch;
         }
-      } else if (ch === "," && !commaFound) {
+      } else if (ch === "," && !commaFound && allowDecimals) {
         newClean += ch;
         commaFound = true;
       }
@@ -81,6 +84,14 @@ export function CurrencyInput({
     newClean = trimmedInt + decClean;
     if (ci === -1 || cursorInClean <= intClean.length) {
       cursorInClean = Math.max(0, cursorInClean - removed);
+    }
+
+    // Strip decimals if not allowed
+    if (!allowDecimals) {
+      const ci = newClean.indexOf(",");
+      if (ci !== -1) {
+        newClean = newClean.slice(0, ci);
+      }
     }
 
     const display = toDisplay(newClean);

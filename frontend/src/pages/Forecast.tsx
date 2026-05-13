@@ -12,11 +12,11 @@ import { ChartErrorBoundary } from "@/components/charts/ChartErrorBoundary";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { CurrencyInput } from "@/components/ui/CurrencyInput";
 
 const riskLabels: Record<number, string> = {
   1: "Very Conservative",
@@ -103,15 +103,14 @@ export function Forecast() {
 
                 <div className="space-y-1.5">
                   <Label htmlFor="initial_investment" className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                    Initial investment ($)
+                    Initial investment
                   </Label>
-                  <Input
-                    id="initial_investment"
-                    type="number"
-                    step="1"
+                  <CurrencyInput
                     disabled={isDisabled}
-                    {...form.register("initial_investment")}
-                    className="h-9 text-sm"
+                    value={form.watch("initial_investment")}
+                    onChange={(val) => form.setValue("initial_investment", val)}
+                    placeholder="Enter amount..."
+                    allowDecimals={false}
                   />
                   {form.formState.errors.initial_investment && (
                     <p className="text-xs text-destructive">{form.formState.errors.initial_investment.message}</p>
@@ -120,15 +119,14 @@ export function Forecast() {
 
                 <div className="space-y-1.5">
                   <Label htmlFor="monthly_contribution" className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                    Monthly contribution ($)
+                    Monthly contribution
                   </Label>
-                  <Input
-                    id="monthly_contribution"
-                    type="number"
-                    step="1"
+                  <CurrencyInput
                     disabled={isDisabled}
-                    {...form.register("monthly_contribution")}
-                    className="h-9 text-sm"
+                    value={form.watch("monthly_contribution") || 0}
+                    onChange={(val) => form.setValue("monthly_contribution", val)}
+                    placeholder="Enter amount..."
+                    allowDecimals={false}
                   />
                   {form.formState.errors.monthly_contribution && (
                     <p className="text-xs text-destructive">{form.formState.errors.monthly_contribution.message}</p>
