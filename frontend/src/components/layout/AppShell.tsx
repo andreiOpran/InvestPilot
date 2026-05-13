@@ -155,7 +155,7 @@ export function AppShell() {
         <main className="flex-1 overflow-auto bg-muted/20">
           <Suspense
             fallback={
-              <div className="p-6 md:p-8 space-y-6 max-w-7xl mx-auto">
+              <div className="p-4 md:p-8 space-y-6 max-w-7xl mx-auto">
                 {/* Page header */}
                 <div className="space-y-1.5">
                   <Skeleton className="h-6 w-32" />

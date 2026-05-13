@@ -98,7 +98,7 @@ export function Portfolio() {
   const hasHoldings = Boolean(data?.holdings?.length);
 
   return (
-    <div className="p-6 md:p-8 space-y-6 max-w-7xl mx-auto">
+    <div className="p-4 md:p-8 space-y-6 max-w-7xl mx-auto">
 
       {/* Header */}
       <div className="space-y-0.5">
