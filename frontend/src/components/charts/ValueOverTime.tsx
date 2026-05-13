@@ -10,7 +10,6 @@ import {
   Tooltip,
   ResponsiveContainer,
   Legend,
-  ReferenceLine,
 } from "recharts";
 import { format, parseISO } from "date-fns";
 import { TrendingUp } from "lucide-react";
@@ -105,7 +104,6 @@ export function ValueOverTime({ onInvestClick }: ValueOverTimeProps) {
           const maxVal = Math.max(...values);
           const pad = (maxVal - minVal) * 0.08 || maxVal * 0.02;
           const yDomain: [number, number] = [minVal - pad, maxVal + pad];
-          const startValue: number = points[0]?.portfolio_value;
 
           return (
           <div
@@ -150,14 +148,6 @@ export function ValueOverTime({ onInvestClick }: ValueOverTimeProps) {
                   }
                   wrapperStyle={{ fontSize: 12 }}
                 />
-                {startValue != null && (
-                  <ReferenceLine
-                    y={startValue}
-                    stroke="var(--chart-grid)"
-                    strokeWidth={1.5}
-                    strokeDasharray="3 3"
-                  />
-                )}
                 <Area
                   type="monotone"
                   dataKey="portfolio_value"
