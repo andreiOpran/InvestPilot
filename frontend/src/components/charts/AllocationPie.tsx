@@ -120,8 +120,8 @@ export function AllocationPie({ showTitle = true, onInvestClick }: AllocationPie
               onClick={() => setChartType("pie")}
               className="h-8 px-3"
             >
-              <PieChartIcon className="h-4 w-4 mr-2" />
-              Pie
+              <PieChartIcon className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Pie</span>
             </Button>
             <Button
               variant={chartType === "bar" ? "secondary" : "ghost"}
@@ -129,8 +129,8 @@ export function AllocationPie({ showTitle = true, onInvestClick }: AllocationPie
               onClick={() => setChartType("bar")}
               className="h-8 px-3"
             >
-              <BarChartIcon className="h-4 w-4 mr-2" />
-              Bar
+              <BarChartIcon className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Bar</span>
             </Button>
           </div>
         )}

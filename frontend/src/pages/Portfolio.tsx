@@ -214,8 +214,8 @@ export function Portfolio() {
                   onClick={() => setChartTab("value")}
                   className="h-8 px-3"
                 >
-                  <LineChart className="h-4 w-4 mr-2" />
-                  Value
+                  <LineChart className="h-4 w-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Value</span>
                 </Button>
                 <Button
                   variant={chartTab === "performance" ? "secondary" : "ghost"}
@@ -223,8 +223,8 @@ export function Portfolio() {
                   onClick={() => setChartTab("performance")}
                   className="h-8 px-3"
                 >
-                  <TrendingUp className="h-4 w-4 mr-2" />
-                  Performance
+                  <TrendingUp className="h-4 w-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Performance</span>
                 </Button>
               </div>
             </div>

@@ -226,11 +226,11 @@ export function TransactionTable() {
         <div className="flex bg-muted/50 p-1 rounded-lg">
           {(
             [
-              ["all", "All"],
-              ["funding", "Deposits & Cashouts"],
-              ["portfolio", "Investments & Sells"],
-            ] as [FilterGroup, string][]
-          ).map(([key, label]) => (
+              ["all", "All", "All"],
+              ["funding", "Deposits & Cashouts", "Deposits"],
+              ["portfolio", "Investments & Sells", "Investments"],
+            ] as [FilterGroup, string, string][]
+          ).map(([key, label, shortLabel]) => (
             <Button
               key={key}
               variant={filter === key ? "secondary" : "ghost"}
@@ -238,7 +238,8 @@ export function TransactionTable() {
               onClick={() => setFilterAndReset(key)}
               className="h-8 px-3 text-xs"
             >
-              {label}
+              <span className="hidden sm:inline">{label}</span>
+              <span className="sm:hidden">{shortLabel}</span>
             </Button>
           ))}
         </div>
