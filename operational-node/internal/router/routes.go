@@ -2,6 +2,7 @@ package router
 
 import (
 	"github.com/gin-gonic/gin"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"github.com/andreiOpran/licenta/operational-node/internal/database"
 	"github.com/andreiOpran/licenta/operational-node/internal/handlers"
@@ -16,6 +17,7 @@ func SetupRoutes(r *gin.Engine) {
 	r.Use(middleware.CORSMiddleware())
 	r.Use(middleware.IPRateLimiter())
 	r.Use(middleware.SecurityHeadersMiddleware())
+	r.Use(middleware.MetricsMiddleware())
 
 	// init repositories
 	authRepo := repositories.NewAuthRepository(database.DB)
@@ -104,4 +106,7 @@ func SetupRoutes(r *gin.Engine) {
 
 	// catch-all for client-side routing
 	r.NoRoute(handlers.SPAFallbackHandler("../frontend/dist/index.html"))
+
+	// expose metrics
+	r.GET("/metrics", gin.WrapH(promhttp.Handler()))
 }

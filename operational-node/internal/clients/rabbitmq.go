@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/andreiOpran/licenta/operational-node/internal/config"
+	"github.com/andreiOpran/licenta/operational-node/internal/metrics"
 	"github.com/rabbitmq/amqp091-go"
 )
 
@@ -76,6 +77,7 @@ func (r *RMQClient) PublishCommand(command string, payload interface{}) error {
 	}
 	body, err := json.Marshal(msg)
 	if err != nil {
+		metrics.CommandsPublished.WithLabelValues(command, "error").Inc()
 		return err
 	}
 
@@ -96,10 +98,12 @@ func (r *RMQClient) PublishCommand(command string, payload interface{}) error {
 		})
 	if err != nil {
 		log.Printf("[ERROR-PUBLISHER] Failed to publish %s: %v", command, err)
+		metrics.CommandsPublished.WithLabelValues(command, "error").Inc()
 		return err
 	}
 
 	log.Printf("[PUBLISHER] Published command: %s", command)
+	metrics.CommandsPublished.WithLabelValues(command, "success").Inc()
 	return nil
 }
 

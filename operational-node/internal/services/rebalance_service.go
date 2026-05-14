@@ -8,6 +8,7 @@ import (
 
 	"github.com/andreiOpran/licenta/operational-node/internal/clients"
 	"github.com/andreiOpran/licenta/operational-node/internal/config"
+	"github.com/andreiOpran/licenta/operational-node/internal/metrics"
 	"github.com/andreiOpran/licenta/operational-node/internal/models"
 	"github.com/andreiOpran/licenta/operational-node/internal/repositories"
 )
@@ -36,6 +37,7 @@ func (s *rebalanceService) RunMonthlyRebalance() error {
 	daysOld := int(time.Since(maxDate).Hours() / 24)
 	maxDaysStaleness := config.Env.Investment.PriceStalenessDays
 	if daysOld > maxDaysStaleness+2 {
+		metrics.RebalanceStaleDataAborts.Inc()
 		log.Printf("[REBALANCE ABORTED] %v", ErrRebalancePausedStaleMarketData)
 		return ErrRebalancePausedStaleMarketData
 	}
