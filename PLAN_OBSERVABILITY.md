@@ -3,7 +3,7 @@
 
 **Stack:** Grafana Cloud (hosted Prometheus + Grafana + Alertmanager) · Grafana Agent (in-cluster scraper, ~50MB) · Email alerting via Grafana Cloud contact points
 **Namespace:** `monitoring` (agent only) · `investpilot` (app metrics scraped from here)
-**Custom metrics:** Go operational node (commands sent, HTTP latency) · Python decisional node (commands received, pipeline duration, stale-data failures)
+**Custom metrics:** Go operational node (commands sent, HTTP latency, rebalance stale aborts) · Python decisional node (commands received, pipeline duration, forecast duration, rebalance metrics)
 
 > **Why Grafana Cloud instead of in-cluster Prometheus:**
 > The cluster nodes (1GB workers, 2GB master already running etcd + Traefik) do not have
@@ -550,16 +550,6 @@ COMMANDS_RECEIVED = Counter(
     ["command", "status"],
 )
 
-# ── Stale Data Failures ──────────────────────────────────────────────────────
-# Labels:
-#   command — which command triggered the stale check
-#   reason  — "price_stale", "no_data", "ticker_missing", "db_error"
-STALE_DATA_FAILURES = Counter(
-    "investpilot_decisional_stale_data_failures_total",
-    "Number of commands aborted because market data was stale or missing.",
-    ["command", "reason"],
-)
-
 # ── Command Processing Duration ──────────────────────────────────────────────
 # This is the pipeline duration equivalent — Go only publishes commands and
 # cannot know when Python finishes. Python measures the actual execution time.
@@ -571,10 +561,10 @@ COMMAND_DURATION = Histogram(
 )
 
 # ── Pipeline Duration (full pipeline pass) ───────────────────────────────────
-# Tracks wall-clock time for composite pipelines that span multiple commands
-# (e.g. CMD_SYNC_DAILY + CMD_GENERATE run sequentially as the daily pipeline).
+# Tracks wall-clock time for composite pipelines that span multiple commands.
 # Labels:
-#   pipeline — "daily" (sync+generate), "intraday" (sync only)
+#   pipeline — "daily" (CMD_SYNC_DAILY), "intraday" (CMD_SYNC_INTRADAY),
+#              "rebalance_batch" (CMD_REBALANCE_BATCH, scales with user count)
 PIPELINE_DURATION = Histogram(
     "investpilot_decisional_pipeline_duration_seconds",
     "Wall-clock duration of full pipeline passes executed by the decisional node.",
@@ -612,17 +602,7 @@ def start_metrics_server(port: int = 9090):
 Edit `decisional-node/app.py`:
 
 ```python
-from metrics import (
-    start_metrics_server,
-    COMMANDS_RECEIVED,
-    STALE_DATA_FAILURES,
-    COMMAND_DURATION,
-    PIPELINE_DURATION,
-    REBALANCE_ASSETS_SKIPPED,
-    REBALANCE_BATCH_USERS,
-    FORECAST_DURATION,
-)
-import time
+from metrics import COMMANDS_RECEIVED, COMMAND_DURATION, start_metrics_server
 
 def main():
     repo = DataRepository(settings.DATABASE_URL)
@@ -658,12 +638,10 @@ def main():
                 ch.basic_ack(delivery_tag=method.delivery_tag)
                 return
 
-            COMMAND_DURATION.labels(command=command).observe(time.time() - start_time)
-
-            if response and "error" in response:
-                COMMANDS_RECEIVED.labels(command=command, status="error").inc()
-            else:
-                COMMANDS_RECEIVED.labels(command=command, status="success").inc()
+            if command:
+                COMMAND_DURATION.labels(command=command).observe(time.time() - start_time)
+                status = "error" if (response and "error" in response) else "success"
+                COMMANDS_RECEIVED.labels(command=command, status=status).inc()
 
             if properties.reply_to and response is not None:
                 ch.basic_publish(
@@ -678,122 +656,67 @@ def main():
 
         except Exception as e:
             logging.error(f"Error processing message: {e}")
-            COMMANDS_RECEIVED.labels(command=command or "UNKNOWN", status="error").inc()
         finally:
             ch.basic_ack(delivery_tag=method.delivery_tag)
 ```
 
-### Step 4 — Instrument command_handlers.py for stale data
+### Step 4 — Instrument command_handlers.py
 
-Edit `decisional-node/handlers/command_handlers.py`:
+Edit `decisional-node/handlers/command_handlers.py` — import metrics and add observations:
 
 ```python
-import time
 import logging
-from datetime import datetime, timedelta
-from metrics import STALE_DATA_FAILURES, REBALANCE_ASSETS_SKIPPED, REBALANCE_BATCH_USERS, FORECAST_DURATION, PIPELINE_DURATION
+import time
 
-
-def _check_data_staleness(repo, tickers: list, max_stale_days: int = 2) -> tuple[bool, str]:
-    """Returns (is_stale, reason). Checks every ticker has a fresh price row."""
-    cutoff = datetime.utcnow() - timedelta(days=max_stale_days)
-    try:
-        if repo.get_tickers_older_than(cutoff, tickers):
-            return True, "price_stale"
-        if repo.get_missing_tickers(tickers):
-            return True, "ticker_missing"
-        return False, ""
-    except Exception as e:
-        logging.error(f"Staleness check DB error: {e}")
-        return True, "db_error"
-
-
-def process_generate_models(payload: dict, repo):
-    all_tickers = payload.get("equity_tickers", []) + payload.get("bond_tickers", [])
-
-    # ── Staleness check ───────────────────────────────────────────────────
-    is_stale, reason = _check_data_staleness(repo, all_tickers)
-    if is_stale:
-        STALE_DATA_FAILURES.labels(command="CMD_GENERATE", reason=reason).inc()
-        logging.error(f"CMD_GENERATE aborted: stale data ({reason})")
-        return {"error": f"stale_data:{reason}"}
-    # ─────────────────────────────────────────────────────────────────────
-
-    # ... rest of existing logic ...
-
-
-def process_rebalance_user(payload: dict, repo):
-    req_id = payload.get("request_id")
-    current_alloc = payload.get("current_allocation", {})
-    target_weights = payload.get("target_weights", {})
-    threshold = payload.get("threshold", 0.02)
-    cash_first = payload.get("cash_first", True)
-
-    if not req_id or not target_weights:
-        return {"error": "request_id and target_weights required"}
-
-    adjusted, skipped = compute_rebalance(current_alloc, target_weights, threshold, cash_first)
-
-    # ── Track skipped assets ──────────────────────────────────────────────
-    if skipped:
-        REBALANCE_ASSETS_SKIPPED.inc(len(skipped))
-    # ─────────────────────────────────────────────────────────────────────
-
-    return {"request_id": req_id, "adjusted_targets": adjusted, "skipped": skipped}
-
-
-def process_rebalance_batch(payload: dict, repo):
-    threshold = payload.get("threshold", 0.02)
-    cash_first = payload.get("cash_first", True)
-    users = payload.get("users", [])
-
-    # ── Track batch size ──────────────────────────────────────────────────
-    REBALANCE_BATCH_USERS.observe(len(users))
-    # ─────────────────────────────────────────────────────────────────────
-
-    results = []
-    for u_req in users:
-        adjusted, skipped = compute_rebalance(
-            u_req.get("current_allocation", {}),
-            u_req.get("target_weights", {}),
-            threshold, cash_first
-        )
-        if skipped:
-            REBALANCE_ASSETS_SKIPPED.inc(len(skipped))
-        results.append({"request_id": u_req.get("request_id"), "adjusted_targets": adjusted, "skipped": skipped})
-
-    return {"results": results}
+from metrics import FORECAST_DURATION, PIPELINE_DURATION, REBALANCE_ASSETS_SKIPPED, REBALANCE_BATCH_USERS
 
 
 def process_sync_daily(payload: dict, repo):
     start = time.time()
-
     # ... existing sync logic ...
-
-    # ── Track daily pipeline duration ─────────────────────────────────────
     PIPELINE_DURATION.labels(pipeline="daily").observe(time.time() - start)
-    # ─────────────────────────────────────────────────────────────────────
 
 
 def process_sync_intraday(payload: dict, repo):
     start = time.time()
-
     # ... existing intraday sync logic ...
-
-    # ── Track intraday pipeline duration ──────────────────────────────────
     PIPELINE_DURATION.labels(pipeline="intraday").observe(time.time() - start)
-    # ─────────────────────────────────────────────────────────────────────
+
+
+def process_generate_models(payload: dict, repo):
+    # ... existing HRP logic ...
+    # (staleness checks belong in the Go operational node, not here)
+
+
+def process_rebalance_user(payload: dict, repo):
+    # ...
+    adjusted, skipped = compute_rebalance(current_alloc, target_weights, threshold, cash_first)
+    if skipped:
+        REBALANCE_ASSETS_SKIPPED.inc(len(skipped))
+    return {"request_id": req_id, "adjusted_targets": adjusted, "skipped": skipped}
+
+
+def process_rebalance_batch(payload: dict, repo):
+    users = payload.get("users", [])
+    REBALANCE_BATCH_USERS.observe(len(users))
+    start = time.time()
+    results = []
+    for u_req in users:
+        adjusted, skipped = compute_rebalance(...)
+        if skipped:
+            REBALANCE_ASSETS_SKIPPED.inc(len(skipped))
+        results.append({...})
+    PIPELINE_DURATION.labels(pipeline="rebalance_batch").observe(time.time() - start)
+    return {"results": results}
 
 
 def process_forecast(payload: dict, repo):
     start = time.time()
-
-    # ... existing forecast logic ...
-
-    # ── Track forecast duration ───────────────────────────────────────────
+    # ... existing Monte Carlo logic ...
     FORECAST_DURATION.observe(time.time() - start)
-    # ─────────────────────────────────────────────────────────────────────
 ```
+
+> **Note:** Staleness checks are the Go operational node's responsibility (`RebalanceStaleDataAborts` metric). Python trusts the data Go verified before publishing the command.
 
 ### Step 5 — Expose port 9090 in the Deployment
 
@@ -931,16 +854,6 @@ Pending: **0m** · Severity: `warning`
 
 ---
 
-#### Decisional Node — Stale Data Failure
-```promql
-increase(investpilot_decisional_stale_data_failures_total[5m]) > 0
-```
-Pending: **0m** · Severity: `critical`
-Summary: `Decisional node aborted {{ $labels.command }} due to stale market data ({{ $labels.reason }})`
-Description: `Model portfolio generation or rebalance did not run. Check the daily sync pipeline.`
-
----
-
 #### Operational Node — Rebalance Stale Abort
 ```promql
 increase(investpilot_operational_rebalance_stale_data_aborts_total[5m]) > 0
@@ -1053,19 +966,13 @@ Visualization: **Bar chart** · same style
 ```
 Visualization: **Gauge** · thresholds: 0=green, 5=yellow, 10=red
 
-#### Panel 4 — Stale Data Aborts (last 24h)
-```promql
-sum(increase(investpilot_decisional_stale_data_failures_total[24h]))
-```
-Visualization: **Stat** · red when > 0, green when 0
-
-#### Panel 5 — Go Rebalance Stale Aborts (last 24h)
+#### Panel 4 — Go Rebalance Stale Aborts (last 24h)
 ```promql
 sum(increase(investpilot_operational_rebalance_stale_data_aborts_total[24h]))
 ```
 Visualization: **Stat** · same style
 
-#### Panel 6 — Command Duration P99
+#### Panel 5 — Command Duration P99
 ```promql
 histogram_quantile(0.99,
   sum by (command, le) (
@@ -1075,7 +982,7 @@ histogram_quantile(0.99,
 ```
 Visualization: **Time series** · one line per `command`
 
-#### Panel 7 — Forecast Duration P50 / P95
+#### Panel 6 — Forecast Duration P50 / P95
 ```promql
 # Query A — P50
 histogram_quantile(0.50, rate(investpilot_decisional_forecast_duration_seconds_bucket[5m]))
@@ -1084,12 +991,12 @@ histogram_quantile(0.50, rate(investpilot_decisional_forecast_duration_seconds_b
 histogram_quantile(0.95, rate(investpilot_decisional_forecast_duration_seconds_bucket[5m]))
 ```
 
-#### Panel 8 — Assets Skipped in Rebalance
+#### Panel 7 — Assets Skipped in Rebalance
 ```promql
 rate(investpilot_decisional_rebalance_assets_skipped_total[5m])
 ```
 
-#### Panel 9 — Go API Request Rate & Error Rate
+#### Panel 8 — Go API Request Rate & Error Rate
 ```promql
 # Query A — request rate by path
 sum by (method, path, status) (
@@ -1105,7 +1012,7 @@ histogram_quantile(0.95,
 ```
 Visualization: **Time series** · Query A as bar chart overlay, Query B as lines
 
-#### Panel 10 — Pipeline Duration P50 / P95 (Decisional Node)
+#### Panel 9 — Pipeline Duration P50 / P95 — daily / intraday / rebalance_batch
 ```promql
 # Query A — P50
 histogram_quantile(0.50,
@@ -1123,7 +1030,7 @@ histogram_quantile(0.95,
 ```
 Visualization: **Time series** · one line per `pipeline` label · unit = seconds
 
-#### Panel 11 — Pod Restarts
+#### Panel 10 — Pod Restarts
 ```promql
 sum by (pod) (
   kube_pod_container_status_restarts_total{namespace="investpilot"}
@@ -1132,7 +1039,7 @@ sum by (pod) (
 Visualization: **Table** · sort descending
 
 
-#### Panel 12 — CronJob Last Success
+#### Panel 11 — CronJob Last Success
 ```promql
 kube_cronjob_status_last_successful_time{namespace="investpilot"}
 ```
