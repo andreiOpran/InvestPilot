@@ -11,7 +11,6 @@ jobs:
   go:
     name: Operational Node - Test, Vet & Lint
     runs-on: ubuntu-latest
-
     defaults:
       run:
         working-directory: operational-node
@@ -29,11 +28,12 @@ jobs:
       - name: Vet
         run: go vet ./...
 
-      - name: Lint
-        uses: golangci/golangci-lint-action@v6
-        with:
-          version: latest
-          working-directory: operational-node
+    # Add back when golangci-lint is released for Go 1.25
+    #   - name: Lint
+    #     uses: golangci/golangci-lint-action@v6
+    #     with:
+    #       version: latest
+    #       working-directory: operational-node
 
       - name: Run unit tests
         run: |
