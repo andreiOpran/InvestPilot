@@ -3,7 +3,7 @@
 
 **Stack:** Grafana Cloud (hosted Prometheus + Grafana + Alertmanager) · Grafana Agent (in-cluster scraper, ~50MB) · Email alerting via Grafana Cloud contact points
 **Namespace:** `monitoring` (agent only) · `investpilot` (app metrics scraped from here)
-**Custom metrics:** Go operational node (commands sent) · Python decisional node (commands received, stale-data failures)
+**Custom metrics:** Go operational node (commands sent, HTTP latency) · Python decisional node (commands received, pipeline duration, stale-data failures)
 
 > **Why Grafana Cloud instead of in-cluster Prometheus:**
 > The cluster nodes (1GB workers, 2GB master already running etcd + Traefik) do not have
@@ -16,22 +16,22 @@
 ## Architecture Overview
 
 ```
-                    ┌─────────────── In-cluster ───────────────────┐
+                    ┌─────────────── In-cluster ────────────────────┐
                     │                                               │
-  investpilot pods  │   Grafana Agent (DaemonSet, ~50MB/node)      │
-  (Go :8081/metrics)│     scrapes pods + nodes every 30s           │
+  investpilot pods  │   Grafana Agent (DaemonSet, ~50MB/node)       │
+  (Go :8081/metrics)│     scrapes pods + nodes every 30s            │
   (Python :9090/met)│          │                                    │
                     │          │  remote_write (HTTPS)              │
   node metrics ────►│          │                                    │
   kube-state-metrics│          ▼                                    │
                     └──────────┼────────────────────────────────────┘
                                │
-                    ┌──────────▼────────────── Grafana Cloud ──────┐
+                    ┌──────────▼────────────── Grafana Cloud ───────┐
                     │                                               │
                     │   Hosted Prometheus (stores 14 days)          │
                     │          │                                    │
                     │          ├──► Grafana UI (dashboards)         │
-                    │          │       grafana.com/your-stack        │
+                    │          │       grafana.com/your-stack       │
                     │          │                                    │
                     │          └──► Alertmanager → Email            │
                     │                                               │
@@ -393,20 +393,6 @@ var (
 		[]string{"command", "status"},
 	)
 
-	// PipelineDuration tracks how long each cron pipeline trigger takes end-to-end.
-	// Labels:
-	//   pipeline — "daily", "intraday", "rebalance"
-	PipelineDuration = promauto.NewHistogramVec(
-		prometheus.HistogramOpts{
-			Namespace: "investpilot",
-			Subsystem: "operational",
-			Name:      "pipeline_duration_seconds",
-			Help:      "Duration of cron pipeline executions in seconds.",
-			Buckets:   prometheus.DefBuckets,
-		},
-		[]string{"pipeline"},
-	)
-
 	// HttpRequestsTotal tracks all HTTP requests handled by the operational node.
 	HttpRequestsTotal = promauto.NewCounterVec(
 		prometheus.CounterOpts{
@@ -445,14 +431,43 @@ var (
 
 ### Step 3 — Expose the /metrics endpoint
 
+In `internal/router/routes.go`, register the handler and add the metrics middleware before route groups:
+
 ```go
 import "github.com/prometheus/client_golang/prometheus/promhttp"
 
-// If using Gin:
-router.GET("/metrics", gin.WrapH(promhttp.Handler()))
+r.Use(middleware.MetricsMiddleware())
+r.GET("/metrics", gin.WrapH(promhttp.Handler()))
+```
 
-// If using net/http:
-http.Handle("/metrics", promhttp.Handler())
+Create `internal/middleware/metrics.go`:
+
+```go
+package middleware
+
+import (
+	"strconv"
+	"time"
+
+	"github.com/gin-gonic/gin"
+	"github.com/andreiOpran/licenta/operational-node/internal/metrics"
+)
+
+func MetricsMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		start := time.Now()
+		c.Next()
+
+		path := c.FullPath()
+		if path == "" {
+			path = "unmatched"
+		}
+
+		status := strconv.Itoa(c.Writer.Status())
+		metrics.HttpRequestsTotal.WithLabelValues(c.Request.Method, path, status).Inc()
+		metrics.HttpRequestDuration.WithLabelValues(c.Request.Method, path).Observe(time.Since(start).Seconds())
+	}
+}
 ```
 
 > **Security note:** `/metrics` is on port `8081` but Traefik only forwards `/api/*` externally — the endpoint is only reachable inside the cluster by the Grafana Agent.
@@ -489,19 +504,7 @@ func (s *PipelineService) RunRebalance() error {
 }
 ```
 
-### Step 6 — Instrument pipeline duration
-
-```go
-func (s *PipelineService) RunDailyPipeline() error {
-	start := time.Now()
-	defer func() {
-		metrics.PipelineDuration.WithLabelValues("daily").Observe(time.Since(start).Seconds())
-	}()
-	// ... existing pipeline code ...
-}
-```
-
-### Step 7 — Add pod annotations to the Deployment
+### Step 6 — Add pod annotations to the Deployment
 
 Edit `k8s/operational-node-deployment.yaml`:
 
@@ -558,11 +561,25 @@ STALE_DATA_FAILURES = Counter(
 )
 
 # ── Command Processing Duration ──────────────────────────────────────────────
+# This is the pipeline duration equivalent — Go only publishes commands and
+# cannot know when Python finishes. Python measures the actual execution time.
 COMMAND_DURATION = Histogram(
     "investpilot_decisional_command_duration_seconds",
-    "Processing duration per command type.",
+    "Processing duration per command type (pipeline duration measured here, not in Go).",
     ["command"],
     buckets=[0.1, 0.5, 1.0, 2.5, 5.0, 10.0, 30.0, 60.0, 120.0],
+)
+
+# ── Pipeline Duration (full pipeline pass) ───────────────────────────────────
+# Tracks wall-clock time for composite pipelines that span multiple commands
+# (e.g. CMD_SYNC_DAILY + CMD_GENERATE run sequentially as the daily pipeline).
+# Labels:
+#   pipeline — "daily" (sync+generate), "intraday" (sync only)
+PIPELINE_DURATION = Histogram(
+    "investpilot_decisional_pipeline_duration_seconds",
+    "Wall-clock duration of full pipeline passes executed by the decisional node.",
+    ["pipeline"],
+    buckets=[1.0, 5.0, 10.0, 30.0, 60.0, 120.0, 300.0, 600.0],
 )
 
 # ── Rebalance Business Metrics ───────────────────────────────────────────────
@@ -600,6 +617,7 @@ from metrics import (
     COMMANDS_RECEIVED,
     STALE_DATA_FAILURES,
     COMMAND_DURATION,
+    PIPELINE_DURATION,
     REBALANCE_ASSETS_SKIPPED,
     REBALANCE_BATCH_USERS,
     FORECAST_DURATION,
@@ -673,7 +691,7 @@ Edit `decisional-node/handlers/command_handlers.py`:
 import time
 import logging
 from datetime import datetime, timedelta
-from metrics import STALE_DATA_FAILURES, REBALANCE_ASSETS_SKIPPED, REBALANCE_BATCH_USERS, FORECAST_DURATION
+from metrics import STALE_DATA_FAILURES, REBALANCE_ASSETS_SKIPPED, REBALANCE_BATCH_USERS, FORECAST_DURATION, PIPELINE_DURATION
 
 
 def _check_data_staleness(repo, tickers: list, max_stale_days: int = 2) -> tuple[bool, str]:
@@ -745,6 +763,26 @@ def process_rebalance_batch(payload: dict, repo):
         results.append({"request_id": u_req.get("request_id"), "adjusted_targets": adjusted, "skipped": skipped})
 
     return {"results": results}
+
+
+def process_sync_daily(payload: dict, repo):
+    start = time.time()
+
+    # ... existing sync logic ...
+
+    # ── Track daily pipeline duration ─────────────────────────────────────
+    PIPELINE_DURATION.labels(pipeline="daily").observe(time.time() - start)
+    # ─────────────────────────────────────────────────────────────────────
+
+
+def process_sync_intraday(payload: dict, repo):
+    start = time.time()
+
+    # ... existing intraday sync logic ...
+
+    # ── Track intraday pipeline duration ──────────────────────────────────
+    PIPELINE_DURATION.labels(pipeline="intraday").observe(time.time() - start)
+    # ─────────────────────────────────────────────────────────────────────
 
 
 def process_forecast(payload: dict, repo):
@@ -933,6 +971,18 @@ Summary: `Operational node failing to publish {{ $labels.command }} to RabbitMQ`
 
 ---
 
+#### Go API — High 5xx Error Rate
+```promql
+rate(investpilot_operational_http_requests_total{status=~"5.."}[5m])
+  /
+rate(investpilot_operational_http_requests_total[5m])
+> 0.05
+```
+Pending: **2m** · Severity: `critical`
+Summary: `Go API 5xx error rate >5% on {{ $labels.method }} {{ $labels.path }}`
+
+---
+
 #### Node High Memory (<15% free)
 ```promql
 node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes < 0.15
@@ -1039,7 +1089,41 @@ histogram_quantile(0.95, rate(investpilot_decisional_forecast_duration_seconds_b
 rate(investpilot_decisional_rebalance_assets_skipped_total[5m])
 ```
 
-#### Panel 9 — Pod Restarts
+#### Panel 9 — Go API Request Rate & Error Rate
+```promql
+# Query A — request rate by path
+sum by (method, path, status) (
+  rate(investpilot_operational_http_requests_total[5m])
+)
+
+# Query B — P95 latency per path
+histogram_quantile(0.95,
+  sum by (path, le) (
+    rate(investpilot_operational_http_request_duration_seconds_bucket[5m])
+  )
+)
+```
+Visualization: **Time series** · Query A as bar chart overlay, Query B as lines
+
+#### Panel 10 — Pipeline Duration P50 / P95 (Decisional Node)
+```promql
+# Query A — P50
+histogram_quantile(0.50,
+  sum by (pipeline, le) (
+    rate(investpilot_decisional_pipeline_duration_seconds_bucket[5m])
+  )
+)
+
+# Query B — P95
+histogram_quantile(0.95,
+  sum by (pipeline, le) (
+    rate(investpilot_decisional_pipeline_duration_seconds_bucket[5m])
+  )
+)
+```
+Visualization: **Time series** · one line per `pipeline` label · unit = seconds
+
+#### Panel 11 — Pod Restarts
 ```promql
 sum by (pod) (
   kube_pod_container_status_restarts_total{namespace="investpilot"}
@@ -1047,7 +1131,8 @@ sum by (pod) (
 ```
 Visualization: **Table** · sort descending
 
-#### Panel 10 — CronJob Last Success
+
+#### Panel 12 — CronJob Last Success
 ```promql
 kube_cronjob_status_last_successful_time{namespace="investpilot"}
 ```
