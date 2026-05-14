@@ -145,7 +145,7 @@ export function Landing() {
   const handleMouseLeave = useCallback(() => setHovered(false), []);
 
   return (
-    <div className="flex min-h-screen flex-col bg-background text-foreground">
+    <div className="flex min-h-screen flex-col bg-background text-foreground pt-16">
       <style>{`
         :root { --hg-base: 0.20; --hg-spot: 0.45; }
         .dark  { --hg-base: 0.10; --hg-spot: 0.25; }
@@ -164,7 +164,7 @@ export function Landing() {
       `}</style>
 
       {/* Nav */}
-      <header className="glass-nav sticky top-0 z-50 flex h-16 items-center justify-between border-b px-6 md:px-16" style={{ backdropFilter: 'blur(16px) saturate(180%)' }}>
+      <header className="glass-nav fixed top-0 left-0 right-0 z-50 flex h-16 items-center justify-between border-b px-6 md:px-16" style={{ backdropFilter: 'blur(16px) saturate(180%)' }}>
         <div className="flex items-center gap-2.5">
           <Navigation className="h-4 w-4 text-primary" />
           <span className="text-sm font-semibold tracking-tight" style={displayFont}>
