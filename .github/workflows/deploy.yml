@@ -7,7 +7,9 @@ on:
     branches: [main]
 
 jobs:
-  deploy:
+  # Build & push all three Docker images to ghcr.io
+  build:
+    name: Build & Push Images
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
 
@@ -41,6 +43,16 @@ jobs:
           docker build -t ghcr.io/${{ env.OWNER }}/investpilot-nginx-frontend:${{ github.sha }} ./frontend
           docker push ghcr.io/${{ env.OWNER }}/investpilot-nginx-frontend:${{ github.sha }}
 
+  # Roll out new image tags to the Kubernetes cluster
+  deploy:
+    name: Deploy to Kubernetes
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Set lowercase owner
+        run: echo "OWNER=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+
       - name: Set up kubectl
         run: |
           mkdir -p ~/.kube
@@ -48,9 +60,15 @@ jobs:
 
       - name: Update image tags in cluster
         run: |
-          kubectl set image deployment/operational-node operational-node=ghcr.io/${{ env.OWNER }}/investpilot-operational-node:${{ github.sha }} -n investpilot
-          kubectl set image deployment/decisional-node decisional-node=ghcr.io/${{ env.OWNER }}/investpilot-decisional-node:${{ github.sha }} -n investpilot
-          kubectl set image deployment/nginx-frontend nginx-frontend=ghcr.io/${{ env.OWNER }}/investpilot-nginx-frontend:${{ github.sha }} -n investpilot
+          kubectl set image deployment/operational-node \
+            operational-node=ghcr.io/${{ env.OWNER }}/investpilot-operational-node:${{ github.sha }} \
+            -n investpilot
+          kubectl set image deployment/decisional-node \
+            decisional-node=ghcr.io/${{ env.OWNER }}/investpilot-decisional-node:${{ github.sha }} \
+            -n investpilot
+          kubectl set image deployment/nginx-frontend \
+            nginx-frontend=ghcr.io/${{ env.OWNER }}/investpilot-nginx-frontend:${{ github.sha }} \
+            -n investpilot
 
       - name: Wait for rollout
         run: |
