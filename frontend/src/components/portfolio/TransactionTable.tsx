@@ -113,6 +113,16 @@ function SkeletonRows({ count = 5 }: { count?: number }) {
   );
 }
 
+function SortIcon({ field, sortField, sortDir }: { field: SortField; sortField: SortField; sortDir: SortDir }) {
+  if (sortField !== field)
+    return <ArrowUpDown className="ml-1 h-3.5 w-3.5 text-muted-foreground" />;
+  return sortDir === "asc" ? (
+    <ArrowUp className="ml-1 h-3.5 w-3.5" />
+  ) : (
+    <ArrowDown className="ml-1 h-3.5 w-3.5" />
+  );
+}
+
 function EmptyState() {
   return (
     <div className="flex flex-col items-center justify-center py-16 gap-4 text-center">
@@ -202,16 +212,6 @@ export function TransactionTable() {
     }
   };
 
-  const SortIcon = ({ field }: { field: SortField }) => {
-    if (sortField !== field)
-      return <ArrowUpDown className="ml-1 h-3.5 w-3.5 text-muted-foreground" />;
-    return sortDir === "asc" ? (
-      <ArrowUp className="ml-1 h-3.5 w-3.5" />
-    ) : (
-      <ArrowDown className="ml-1 h-3.5 w-3.5" />
-    );
-  };
-
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-2">
@@ -256,7 +256,7 @@ export function TransactionTable() {
                   onClick={() => toggleSort("timestamp")}
                 >
                   Date
-                  <SortIcon field="timestamp" />
+                  <SortIcon field="timestamp" sortField={sortField} sortDir={sortDir} />
                 </button>
               </TableHead>
               <TableHead className="text-center">Type</TableHead>
@@ -266,7 +266,7 @@ export function TransactionTable() {
                   onClick={() => toggleSort("amount")}
                 >
                   Amount
-                  <SortIcon field="amount" />
+                  <SortIcon field="amount" sortField={sortField} sortDir={sortDir} />
                 </button>
               </TableHead>
               <TableHead className="text-right">Status</TableHead>

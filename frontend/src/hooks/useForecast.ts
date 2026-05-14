@@ -32,24 +32,27 @@ export function useForecast() {
   });
 
   useEffect(() => {
-    if (pollError) {
-      setStatus("error");
-      if (loadingToastId !== null) toast.dismiss(loadingToastId);
-      toast.error("Forecast computation failed");
-    } else if (statusData?.data) {
-      const { status: taskStatus, payload } = statusData.data;
-
-      if (taskStatus === "complete") {
-        if (loadingToastId !== null) toast.dismiss(loadingToastId);
-        setForecastData(payload as ForecastData);
-        setStatus("complete");
-      } else if (taskStatus === "error" || taskStatus === "failed") {
+    if (!pollError && !statusData?.data) return;
+    const id = setTimeout(() => {
+      if (pollError) {
         setStatus("error");
         if (loadingToastId !== null) toast.dismiss(loadingToastId);
         toast.error("Forecast computation failed");
+      } else if (statusData?.data) {
+        const { status: taskStatus, payload } = statusData.data;
+        if (taskStatus === "complete") {
+          if (loadingToastId !== null) toast.dismiss(loadingToastId);
+          setForecastData(payload as ForecastData);
+          setStatus("complete");
+        } else if (taskStatus === "error" || taskStatus === "failed") {
+          setStatus("error");
+          if (loadingToastId !== null) toast.dismiss(loadingToastId);
+          toast.error("Forecast computation failed");
+        }
       }
-    }
-  }, [statusData, pollError]);
+    }, 0);
+    return () => clearTimeout(id);
+  }, [statusData, pollError, loadingToastId]);
 
   const submitForecast = async (initialInvestment: number, monthlyContribution: number, years: number) => {
     try {

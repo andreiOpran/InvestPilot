@@ -30,6 +30,30 @@ const navItems = [
   { name: 'Settings', path: '/settings', icon: Settings },
 ];
 
+function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
+  return (
+    <nav className="flex flex-col gap-2">
+      {navItems.map((item) => (
+        <NavLink
+          key={item.path}
+          to={item.path}
+          onClick={onNavigate}
+          className={({ isActive }) =>
+            `flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+              isActive
+                ? 'bg-primary/10 text-primary'
+                : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+            }`
+          }
+        >
+          <item.icon className="h-4 w-4" />
+          {item.name}
+        </NavLink>
+      ))}
+    </nav>
+  );
+}
+
 export function AppShell() {
   const { user, setUser } = useAuthStore();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -53,28 +77,6 @@ export function AppShell() {
 
   const portfolioValue = portfolioData?.live_total_value ?? 0;
   const hasPortfolio = portfolioData?.holdings && portfolioData.holdings.length > 0;
-
-  const NavLinks = ({ onNavigate }: { onNavigate?: () => void }) => (
-    <nav className="flex flex-col gap-2">
-      {navItems.map((item) => (
-        <NavLink
-          key={item.path}
-          to={item.path}
-          onClick={onNavigate}
-          className={({ isActive }) =>
-            `flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-              isActive
-                ? 'bg-primary/10 text-primary'
-                : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-            }`
-          }
-        >
-          <item.icon className="h-4 w-4" />
-          {item.name}
-        </NavLink>
-      ))}
-    </nav>
-  );
 
   return (
     <div className="flex min-h-screen w-full bg-background">

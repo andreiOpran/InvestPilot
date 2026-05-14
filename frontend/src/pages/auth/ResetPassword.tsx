@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -18,6 +18,29 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
+
+function StatusCard({ icon, iconClass, title, description, action }: {
+  icon: ReactNode;
+  iconClass: string;
+  title: string;
+  description: string;
+  action: ReactNode;
+}) {
+  return (
+    <div className="rounded-xl border bg-card shadow-sm p-8">
+      <div className="flex flex-col items-center text-center space-y-4">
+        <div className={`flex h-14 w-14 items-center justify-center rounded-full ${iconClass}`}>
+          {icon}
+        </div>
+        <div className="space-y-1.5">
+          <p className="font-semibold tracking-tight">{title}</p>
+          <p className="text-xs text-muted-foreground leading-relaxed max-w-xs">{description}</p>
+        </div>
+        {action}
+      </div>
+    </div>
+  );
+}
 
 export function ResetPassword() {
   const [searchParams] = useSearchParams();
@@ -48,27 +71,6 @@ export function ResetPassword() {
       }
     }
   };
-
-  const StatusCard = ({ icon, iconClass, title, description, action }: {
-    icon: React.ReactNode;
-    iconClass: string;
-    title: string;
-    description: string;
-    action: React.ReactNode;
-  }) => (
-    <div className="rounded-xl border bg-card shadow-sm p-8">
-      <div className="flex flex-col items-center text-center space-y-4">
-        <div className={`flex h-14 w-14 items-center justify-center rounded-full ${iconClass}`}>
-          {icon}
-        </div>
-        <div className="space-y-1.5">
-          <p className="font-semibold tracking-tight">{title}</p>
-          <p className="text-xs text-muted-foreground leading-relaxed max-w-xs">{description}</p>
-        </div>
-        {action}
-      </div>
-    </div>
-  );
 
   if (!token || status === 'invalid_token') {
     return (

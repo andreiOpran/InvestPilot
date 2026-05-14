@@ -9,21 +9,20 @@ export function VerifyEmail() {
   const [searchParams] = useSearchParams();
   const token = searchParams.get('token');
 
-  const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
+  const [status, setStatus] = useState<'loading' | 'success' | 'error'>(() =>
+    token ? 'loading' : 'error'
+  );
 
   useEffect(() => {
-    let isMounted = true;
+    if (!token) return;
 
-    if (!token) {
-      setStatus('error');
-      return;
-    }
+    let isMounted = true;
 
     const verify = async () => {
       try {
         await authApi.verifyEmail(token);
         if (isMounted) setStatus('success');
-      } catch (error) {
+      } catch {
         if (isMounted) setStatus('error');
       }
     };

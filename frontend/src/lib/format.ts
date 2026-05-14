@@ -1,4 +1,5 @@
 function swapSeparators(s: string): string {
+  // eslint-disable-next-line no-control-regex
   return s.replace(/,/g, "\x00").replace(/\./g, ",").replace(/\x00/g, ".");
 }
 

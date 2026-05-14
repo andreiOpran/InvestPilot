@@ -39,10 +39,15 @@ export function SwipeToConfirmButton({
   const maxDragRef = useRef(0);
   const stateRef = useRef<State>("idle");
 
-  onConfirmRef.current = onConfirm;
+  useEffect(() => {
+    onConfirmRef.current = onConfirm;
+  }, [onConfirm]);
 
   const maxDrag = trackWidth - THUMB_SIZE - 8;
-  maxDragRef.current = maxDrag;
+
+  useEffect(() => {
+    maxDragRef.current = trackWidth - THUMB_SIZE - 8;
+  }, [trackWidth]);
 
   const progress = maxDrag > 0 ? dragX / maxDrag : 0;
 
@@ -55,7 +60,9 @@ export function SwipeToConfirmButton({
 
   // Reset on dialog reopen
   useEffect(() => {
-    if (open) reset();
+    if (!open) return;
+    const id = setTimeout(reset, 0);
+    return () => clearTimeout(id);
   }, [open, reset]);
 
   // Track loading state transitions

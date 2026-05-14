@@ -37,7 +37,7 @@ export function ForgotPassword() {
     try {
       await authApi.forgotPassword(data.email, turnstileToken);
       setIsSubmitted(true);
-    } catch (error) {
+    } catch {
       toast.error('An error occurred. Please try again later.');
     }
   };

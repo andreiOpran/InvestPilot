@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
@@ -44,14 +44,18 @@ export class ChartErrorBoundary extends React.Component<
 }
 
 export function ChartSkeleton() {
+  const [barHeights] = useState<number[]>(() =>
+    Array.from({ length: 20 }, () => 30 + Math.random() * 70)
+  );
+
   return (
     <div className="space-y-3">
       <div className="flex items-end gap-1 h-[350px]">
-        {Array.from({ length: 20 }).map((_, i) => (
+        {barHeights.map((h, i) => (
           <Skeleton
             key={i}
             className="flex-1 rounded-sm"
-            style={{ height: `${30 + Math.random() * 70}%` }}
+            style={{ height: `${h}%` }}
           />
         ))}
       </div>

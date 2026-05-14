@@ -94,7 +94,7 @@ export function Onboarding() {
       setSummaryData({ riskTolerance: updatedUser.risk_tolerance, investmentHorizon: updatedUser.investment_horizon });
       toast.success(isEditMode ? 'Investment profile updated.' : 'Profile created successfully.');
       setViewState('summary');
-    } catch (error: any) {
+    } catch {
       toast.error('Something went wrong. Please try again.');
       setViewState('questions');
     }

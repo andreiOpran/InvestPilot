@@ -35,6 +35,7 @@ export function Login() {
   const [rateLimited, setRateLimited] = useState(false);
 
   const credentialsRef = useRef<{ email: string; password: string }>({ email: '', password: '' });
+  const [credentialsEmail, setCredentialsEmail] = useState('');
 
   const [totpCode, setTotpCode] = useState('');
   const [totpError, setTotpError] = useState<string | null>(null);
@@ -63,6 +64,7 @@ export function Login() {
 
       if (response.data.status === '2fa_required') {
         credentialsRef.current = { email: data.email, password: data.password };
+        setCredentialsEmail(data.email);
         setStep('2fa');
         return;
       }
@@ -141,6 +143,9 @@ export function Login() {
     setTotpError(null);
   };
 
+  // eslint-disable-next-line react-hooks/refs
+  const credentialsSubmitHandler = form.handleSubmit(onCredentialsSubmit);
+
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-muted/30 px-4 py-12">
       <div className="w-full max-w-sm space-y-6">
@@ -175,7 +180,7 @@ export function Login() {
           {/* Credentials step */}
           {step === 'credentials' && (
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(onCredentialsSubmit)} className="space-y-4">
+              <form onSubmit={credentialsSubmitHandler} className="space-y-4">
 
                 {form.formState.errors.root ? (
                   <Alert variant="destructive">
@@ -256,7 +261,7 @@ export function Login() {
                   </label>
                   <p className="text-xs text-muted-foreground leading-relaxed">
                     Enter the 6-digit code from your authenticator app for{' '}
-                    <span className="font-medium text-foreground break-words">{credentialsRef.current.email}</span>
+                    <span className="font-medium text-foreground break-words">{credentialsEmail}</span>
                   </p>
                 </div>
                 <Input
