@@ -1,9 +1,11 @@
 import logging
+import time
 
 import numpy as np
 import pandas as pd
 import yfinance as yf
 
+from metrics import FORECAST_DURATION, PIPELINE_DURATION, REBALANCE_ASSETS_SKIPPED, REBALANCE_BATCH_USERS
 from repositories.db_repository import DataRepository
 from services.hrp_service import compute_hrp_weights
 from services.monte_carlo_service import run_monte_carlo
@@ -20,6 +22,7 @@ def process_sync_daily(payload: dict, repo: DataRepository):
     table in the db
     """
     
+    start = time.time()
     try:
         all_tickers = payload.get("equity_tickers", []) + payload.get("bond_tickers", [])
 
@@ -41,6 +44,7 @@ def process_sync_daily(payload: dict, repo: DataRepository):
         
         repo.save_daily_market_data(rows_to_insert, payload["data_lifetime"])
         
+        PIPELINE_DURATION.labels(pipeline="daily").observe(time.time() - start)
         return {
             "message":       "Daily sync complete",
             "rows_inserted": len(rows_to_insert),
@@ -57,6 +61,7 @@ def process_sync_intraday(payload: dict, repo: DataRepository):
     for all tickers and puts them in intraday_market_data
     table in the db
     """
+    start = time.time()
     try:
         all_tickers = payload.get("equity_tickers", []) + payload.get("bond_tickers", [])
         
@@ -79,6 +84,7 @@ def process_sync_intraday(payload: dict, repo: DataRepository):
 
         repo.save_intraday_market_data(rows_to_insert, payload["data_lifetime"])
         
+        PIPELINE_DURATION.labels(pipeline="intraday").observe(time.time() - start)
         return {
             "message":       "Intraday sync complete",
             "rows_inserted": len(rows_to_insert),
@@ -250,6 +256,8 @@ def process_forecast(payload: dict, repo: DataRepository):
         logging.error("No task_id provided in CMD_FORECAST payload")
         return
     
+    start = time.time()
+    
     # load price data from the db, resulting in a tall table
     price_data_tall = repo.get_historical_prices_tall()
     
@@ -315,6 +323,7 @@ def process_forecast(payload: dict, repo: DataRepository):
     
     logging.info(f"Forecast complete for task {task_id}, saving to DB...")
     repo.update_forecast_status(task_id, "complete", result_payload)
+    FORECAST_DURATION.observe(time.time() - start)
 
 def process_rebalance_user(payload: dict, repo: DataRepository):
     """
@@ -352,6 +361,8 @@ def process_rebalance_user(payload: dict, repo: DataRepository):
         "skipped": skipped
     }
     
+    if skipped:
+        REBALANCE_ASSETS_SKIPPED.inc(len(skipped))
     logging.info(f"Rebalance {req_id} summary: {len(skipped)} assets skipped.")
     
     return reply
@@ -371,6 +382,9 @@ def process_rebalance_batch(payload: dict, repo: DataRepository):
     
     logging.info(f"Processing batch rebalance for {len(users)} users.")
     
+    REBALANCE_BATCH_USERS.observe(len(users))
+    start = time.time()
+    
     results = []
     
     for u_req in users:
@@ -389,11 +403,14 @@ def process_rebalance_batch(payload: dict, repo: DataRepository):
             cash_first
         )
         
+        if skipped:
+            REBALANCE_ASSETS_SKIPPED.inc(len(skipped))
         results.append({
             "request_id": request_id,
             "adjusted_targets": adjusted,
             "skipped": skipped
         })
         
+    PIPELINE_DURATION.labels(pipeline="rebalance_batch").observe(time.time() - start)
     logging.info(f"Batch rebalance complete. Returning {len(results)} results.")
     return {"results": results}

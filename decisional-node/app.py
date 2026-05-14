@@ -13,6 +13,7 @@ from handlers.command_handlers import (
     process_sync_daily,
     process_sync_intraday,
 )
+from metrics import COMMANDS_RECEIVED, COMMAND_DURATION, start_metrics_server
 from repositories.db_repository import DataRepository
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
@@ -20,6 +21,8 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
 
 def main():
     repo = DataRepository(settings.DATABASE_URL)
+    
+    start_metrics_server(port=9090)
     
     max_retries = 10
     connection = None
@@ -51,6 +54,7 @@ def main():
             
             # capture result dict
             response = None
+            start_time = time.time()
             
             if command == "CMD_SYNC_DAILY":
                 response = process_sync_daily(payload, repo)
@@ -66,8 +70,14 @@ def main():
                 response = process_forecast(payload, repo)
             else:
                 logging.warning(f"Unknown command: {command}")
+                COMMANDS_RECEIVED.labels(command=command or "UNKNOWN", status="unknown_command").inc()
                 response = {"error": f"Unknown command: {command}"}
-        
+            
+            if command:
+                COMMAND_DURATION.labels(command=command).observe(time.time() - start_time)
+                status = "error" if (response and "error" in response) else "success"
+                COMMANDS_RECEIVED.labels(command=command, status=status).inc()
+                
             # check if operational-node expects an RPC reply
             if properties.reply_to and response is not None:
                 ch.basic_publish(

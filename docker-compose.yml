@@ -21,6 +21,8 @@ services:
       - .env-decisional-node
     volumes:
       - ./decisional-node:/app
+    ports:
+      - "9090:9090"  # metrics
     networks:
       - vpc-network
     depends_on:
