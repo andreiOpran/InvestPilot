@@ -466,6 +466,29 @@ func (s *portfolioService) GetPortfolioHistory(userID uint, timeRange string) (m
 			if err != nil {
 				return models.PortfolioHistoryResponse{}, err
 			}
+
+			// find tickers in the extended rounds that weren't in the original set
+			var deltaTickers []string
+			for _, r := range rounds {
+				for _, h := range r.Holdings {
+					if h.Ticker != "USD" && !tickerMap[h.Ticker] {
+						tickerMap[h.Ticker] = true
+						deltaTickers = append(deltaTickers, h.Ticker)
+					}
+				}
+			}
+
+			// only fetch pricing for the genuinely new tickers
+			if len(deltaTickers) > 0 {
+				deltaPricing, err := s.portfolioRepo.GetPricingData(deltaTickers, effectiveSince, isIntraday)
+				if err != nil {
+					return models.PortfolioHistoryResponse{}, err
+				}
+				for ticker, prices := range deltaPricing {
+					pricing[ticker] = prices
+				}
+				tickers = append(tickers, deltaTickers...)
+			}
 		}
 	}
 

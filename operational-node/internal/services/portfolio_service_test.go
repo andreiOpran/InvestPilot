@@ -536,6 +536,92 @@ func TestGetPortfolioHistory(t *testing.T) {
 		assert.Equal(t, "1D", resp.Range)
 	})
 
+	t.Run("GetPortfolioHistory_tickersStaleAfterFallbackRoundRefetch_silentlyMissesTicker", func(t *testing.T) {
+		// Proves: when the intraday fallback re-fetches rounds with effectiveSince,
+		// any ticker in the new rounds but NOT in the original tickers slice is
+		// silently excluded from pricing, producing a wrong portfolioValue.
+		//
+		// Original round (since=Saturday): only SPY
+		// Re-fetched round (effectiveSince=Friday): SPY + VOO
+		// tickers is never updated -> VOO contributes 0 to portfolioValue
+		// Expected: SPY(450) + VOO(300) = 750 | Actual: SPY(450) only = 450
+
+		portfolioRepo := new(repomocks.MockPortfolioRepository)
+		userRepo := new(repomocks.MockUserRepository)
+		svc := NewPortfolioService(portfolioRepo, userRepo)
+
+		now := time.Now()
+		// simulate a Friday intraday price timestamp
+		fridayTS := now.AddDate(0, 0, -2).Truncate(24 * time.Hour).Add(14 * time.Hour)
+
+		// round returned by original GetHistoricalRounds(since=Saturday): only SPY
+		originalRound := models.InvestmentRound{
+			UserID:   1,
+			IsActive: true,
+			Holdings: []models.Holding{
+				{Ticker: "SPY", Shares: 1.0, PurchasePrice: 400.0},
+			},
+		}
+
+		// round returned by re-fetched GetHistoricalRounds(effectiveSince=Friday): SPY + VOO
+		extendedRound := models.InvestmentRound{
+			UserID:   1,
+			IsActive: true,
+			Holdings: []models.Holding{
+				{Ticker: "SPY", Shares: 1.0, PurchasePrice: 400.0},
+				{Ticker: "VOO", Shares: 1.0, PurchasePrice: 300.0},
+			},
+		}
+
+		// 1st GetHistoricalRounds call: original since window (Saturday)
+		portfolioRepo.On("GetHistoricalRounds", uint(1), mock.AnythingOfType("time.Time")).
+			Return([]models.InvestmentRound{originalRound}, nil).Once()
+
+		// 1st GetPricingData: since=Saturday, returns empty (weekend gap)
+		portfolioRepo.On("GetPricingData", mock.Anything, mock.AnythingOfType("time.Time"), true).
+			Return(map[string][]models.AssetPricePoint{}, nil).Once()
+
+		// 2nd GetPricingData: fallback with fallbackSince, returns Friday SPY prices
+		portfolioRepo.On("GetPricingData", mock.Anything, mock.AnythingOfType("time.Time"), true).
+			Return(map[string][]models.AssetPricePoint{
+				"SPY": {{Timestamp: fridayTS, Price: 450.0}},
+			}, nil).Once()
+
+		// 2nd GetHistoricalRounds: effectiveSince=Friday, returns round with SPY + VOO
+		portfolioRepo.On("GetHistoricalRounds", uint(1), mock.AnythingOfType("time.Time")).
+			Return([]models.InvestmentRound{extendedRound}, nil).Once()
+
+		// 3rd GetPricingData: delta fetch for VOO (new ticker discovered after round re-fetch)
+		portfolioRepo.On("GetPricingData", mock.Anything, mock.AnythingOfType("time.Time"), true).
+			Return(map[string][]models.AssetPricePoint{
+				"VOO": {{Timestamp: fridayTS, Price: 300.0}},
+			}, nil).Once()
+
+		portfolioRepo.On("GetInvestTransactions", uint(1)).
+			Return([]models.Transaction{
+				{Type: "INVEST", Amount: 750.0},
+			}, nil).Once()
+
+		// GetPricesBeforeWindow now receives updated tickers slice (SPY + VOO)
+		portfolioRepo.On("GetPricesBeforeWindow", mock.Anything, mock.AnythingOfType("time.Time"), true).
+			Return(map[string]float64{"SPY": 400.0, "VOO": 290.0}, nil).Once()
+
+		resp, err := svc.GetPortfolioHistory(1, "1D")
+		assert.NoError(t, err)
+		assert.NotEmpty(t, resp.Data, "expected at least one data point from Friday fallback")
+
+		lastPoint := resp.Data[len(resp.Data)-1]
+
+		// BUG: VOO (1 share * purchase price 300) is silently ignored because tickers
+		// was never re-extracted after rounds were re-fetched with effectiveSince.
+		// This assertion FAILS: actual is 450 (SPY only), expected is 750 (SPY + VOO).
+		assert.Equal(t, 750.0, lastPoint.PortfolioValue,
+			"portfolioValue should include VOO holding from re-fetched round, but tickers "+
+				"slice is stale so VOO is never priced and silently contributes 0")
+
+		portfolioRepo.AssertExpectations(t)
+	})
+
 	t.Run("GetPortfolioHistory_withUSDRoundAndMarketTimestamps_buildsTimeSeries", func(t *testing.T) {
 		portfolioRepo := new(repomocks.MockPortfolioRepository)
 		userRepo := new(repomocks.MockUserRepository)
