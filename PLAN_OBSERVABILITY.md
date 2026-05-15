@@ -819,35 +819,46 @@ Set the **data source** to your Grafana Cloud Prometheus, **folder** to `InvestP
 
 #### Pod CrashLooping
 ```promql
-rate(kube_pod_container_status_restarts_total{namespace="investpilot"}[5m]) > 0
+rate(kube_pod_container_status_restarts_total{namespace="investpilot", pod!~"^cron.*"}[5m]) > 0
 ```
-Pending: **2m** · Severity: `critical`
+Pending: **2m** · Severity: `critical` · NoData: `NoData`
 Summary: `Pod {{ $labels.pod }} is crash-looping`
+
+> `pod!~"^cron.*"` excludes completed CronJob pods — they restart by design and would produce false positives.
 
 ---
 
 #### Pod Not Ready
 ```promql
-kube_pod_status_ready{namespace="investpilot", condition="true"} == 0
+kube_pod_status_ready{namespace="investpilot", condition="true", pod!~"^cron.*"} < 1
 ```
-Pending: **5m** · Severity: `warning`
+Pending: **5m** · Severity: `warning` · NoData: `NoData`
+
+> Same cron pod exclusion. Threshold `< 1` instead of `== 0` — equivalent for a 0/1 metric but more idiomatic in Grafana's threshold expressions.
 
 ---
 
 #### Deployment Replicas Mismatch
 ```promql
 kube_deployment_spec_replicas{namespace="investpilot"}
-  != kube_deployment_status_replicas_available{namespace="investpilot"}
+  - kube_deployment_status_replicas_available{namespace="investpilot"}
+> 0
 ```
-Pending: **5m** · Severity: `warning`
+Pending: **5m** · Severity: `warning` · NoData: `NoData`
+
+> Subtraction + `> 0` instead of `!=` — avoids label-matching issues when the two metrics have slightly different label sets.
 
 ---
 
 #### CronJob Failed
 ```promql
-(kube_job_status_failed{namespace="investpilot"} > 0) * on(job_name)(time() - kube_job_status_start_time{namespace="investpilot"} < 3600)
+kube_job_status_failed{namespace="investpilot"}
+* on(job_name) group_left()
+(time() - kube_job_status_start_time{namespace="investpilot"} < 3600)
 ```
-Pending: **1m** · Severity: `critical`
+Pending: **1m** · Severity: `critical` · NoData: `NoData`
+
+> `group_left()` required because `kube_job_status_failed` and `kube_job_status_start_time` have different label cardinalities — without it the join silently drops series.
 
 ---
 
@@ -898,8 +909,10 @@ rate(investpilot_decisional_commands_received_total{status="error"}[5m])
 rate(investpilot_decisional_commands_received_total[5m])
 > 0.1
 ```
-Pending: **5m** · Severity: `warning`
+Pending: **5m** · Severity: `warning` · NoData: `OK` · Time range: `3h`
 Summary: `Command error rate >10% on {{ $labels.command }}`
+
+> `noDataState: OK` — no data means no commands are flowing, not that errors are occurring. Firing on NoData here would be a false positive during quiet periods. Time range extended to 3h so the rate query has enough history when traffic is sparse.
 
 ---
 
@@ -907,8 +920,10 @@ Summary: `Command error rate >10% on {{ $labels.command }}`
 ```promql
 increase(investpilot_operational_commands_published_total{status="error"}[5m]) > 0
 ```
-Pending: **0m** · Severity: `critical`
+Pending: **0m** · Severity: `critical` · NoData: `OK`
 Summary: `Operational node failing to publish {{ $labels.command }} to RabbitMQ`
+
+> `noDataState: OK` — no data means no publish attempts, not a failure.
 
 ---
 
@@ -919,8 +934,10 @@ rate(investpilot_operational_http_requests_total{status=~"5.."}[5m])
 rate(investpilot_operational_http_requests_total[5m])
 > 0.05
 ```
-Pending: **2m** · Severity: `critical`
+Pending: **2m** · Severity: `critical` · NoData: `OK`
 Summary: `Go API 5xx error rate >5% on {{ $labels.method }} {{ $labels.path }}`
+
+> `noDataState: OK` — no data means no HTTP traffic, not errors.
 
 ---
 
@@ -944,7 +961,7 @@ Summary: `Node {{ $labels.node }} critically low on memory — OOM risk`
 
 #### Node High CPU (>85% for 10m)
 ```promql
-100 - (avg by(node)(rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 85
+100 - (avg by(instance)(rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 85
 ```
 Pending: **10m** · Severity: `warning`
 
