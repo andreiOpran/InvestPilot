@@ -532,9 +532,6 @@ func (s *portfolioService) GetPortfolioHistory(userID uint, timeRange string) (m
 			}
 			timestampSet[ts] = struct{}{}
 		}
-
-		// always pin now for USD-only so the current cash balance is always visible
-		timestampSet[now] = struct{}{}
 	}
 
 	var allTimestamps []time.Time
