@@ -1,0 +1,12 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: decisional-isolation
+  namespace: investpilot
+spec:
+  podSelector:
+    matchLabels:
+      app: decisional-node
+  policyTypes:
+    - Ingress
+  ingress: []  # deny all inbound

@@ -978,6 +978,8 @@ kubectl autoscale deployment decisional-node \
 ```
 - [ ] Configure HPA on Decisional node deployment
 
+> **Decision: skipped.** Decisional node is I/O-bound (RabbitMQ + yfinance) → CPU metric never fires. Cluster at 80% load → scale-up risks OOM on worker-2. CPU-based HPA is wrong tool for queue consumers (KEDA queue-depth scaling would be correct but out of scope).
+
 ### Cloudflare firewall rules
 
 - [x] Rate limit `/api/v1/auth/*` — max 10 requests/min per IP (prevents brute force)
@@ -1002,8 +1004,8 @@ spec:
     - Ingress
   ingress: []  # deny all inbound
 ```
-- [ ] Apply NetworkPolicy for Decisional node pod
-- [ ] Verify Operational node pods can still reach Supabase + CloudAMQP (outbound not affected)
+- [x] Apply NetworkPolicy for Decisional node pod
+- [x] Verify Operational node pods can still reach Supabase + CloudAMQP (outbound not affected)
 
 ### Supabase backups
 
