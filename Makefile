@@ -1,4 +1,6 @@
-.PHONY: help test-operational test-decisional test-all coverage coverage-decisional check clean build-local frontend frontend-dev frontend-kill lint lint-operational lint-decisional lint-frontend up down rebuild restart-operational restart-decisional logs logs-operational logs-decisional shell-operational shell-decisional adminer rabbitmq ps prune
+.PHONY: help test-operational test-decisional test-all coverage coverage-decisional check clean build-local frontend frontend-dev frontend-kill lint lint-operational lint-decisional lint-frontend up down rebuild restart-operational restart-decisional logs logs-operational logs-decisional shell-operational shell-decisional adminer rabbitmq ps prune k8s-status k8s-pods k8s-logs-operational k8s-logs-decisional k8s-logs-frontend k8s-restart-operational k8s-restart-decisional k8s-restart-frontend k8s-restart-all k8s-apply k8s-describe k8s-secrets k8s-apply-secret-go k8s-apply-secret-python k8s-apply-secret-frontend k8s-apply-secrets
+
+NS := investpilot
 
 .DEFAULT_GOAL := help
 
@@ -40,6 +42,23 @@ help:
 	@echo "  make rabbitmq            - open RabbitMQ management UI in browser (port 15672)"
 	@echo "  make ps                  - show status of all containers"
 	@echo "  make prune               - remove containers + local images (keeps DB/RabbitMQ volumes)"
+	@echo "\n-> Kubernetes (namespace: investpilot)"
+	@echo "  make k8s-status                - show deployments + services + ingress"
+	@echo "  make k8s-pods                  - list all pods with status"
+	@echo "  make k8s-logs-operational      - tail operational-node pod logs"
+	@echo "  make k8s-logs-decisional       - tail decisional-node pod logs"
+	@echo "  make k8s-logs-frontend         - tail nginx-frontend pod logs"
+	@echo "  make k8s-restart-operational   - rollout restart operational-node"
+	@echo "  make k8s-restart-decisional    - rollout restart decisional-node"
+	@echo "  make k8s-restart-frontend      - rollout restart nginx-frontend"
+	@echo "  make k8s-restart-all           - rollout restart all deployments"
+	@echo "  make k8s-apply                 - apply all manifests in k8s/"
+	@echo "  make k8s-describe              - describe all pods (events + state)"
+	@echo "  make k8s-secrets               - list all secrets in namespace"
+	@echo "  make k8s-apply-secret-go       - apply go-secrets.yaml (copy from go-secrets.example)"
+	@echo "  make k8s-apply-secret-python   - apply python-secrets.yaml (copy from python-secrets.example)"
+	@echo "  make k8s-apply-secret-frontend - apply frontend-secrets.yaml (copy from frontend-secrets.example)"
+	@echo "  make k8s-apply-secrets         - apply all secret manifests"
 
 # TESTING & LOCAL
 test-operational:
@@ -154,3 +173,51 @@ adminer:
 
 rabbitmq:
 	xdg-open http://localhost:15672 > /dev/null 2>&1 &
+
+# KUBERNETES
+k8s-status:
+	kubectl get deployments,services,ingress -n $(NS)
+
+k8s-pods:
+	kubectl get pods -n $(NS) -o wide
+
+k8s-logs-operational:
+	kubectl logs -n $(NS) -l app=operational-node --tail=100 -f
+
+k8s-logs-decisional:
+	kubectl logs -n $(NS) -l app=decisional-node --tail=100 -f
+
+k8s-logs-frontend:
+	kubectl logs -n $(NS) -l app=nginx-frontend --tail=100 -f
+
+k8s-restart-operational:
+	kubectl rollout restart deployment/operational-node -n $(NS)
+
+k8s-restart-decisional:
+	kubectl rollout restart deployment/decisional-node -n $(NS)
+
+k8s-restart-frontend:
+	kubectl rollout restart deployment/nginx-frontend -n $(NS)
+
+k8s-restart-all: k8s-restart-operational k8s-restart-decisional k8s-restart-frontend
+
+k8s-apply:
+	kubectl apply -f k8s/
+
+k8s-describe:
+	kubectl describe pods -n $(NS)
+
+k8s-secrets:
+	kubectl get secrets -n $(NS)
+
+k8s-apply-secret-go:
+	kubectl apply -f k8s/go-secrets.yaml
+
+k8s-apply-secret-python:
+	kubectl apply -f k8s/python-secrets.yaml
+
+k8s-apply-secret-frontend:
+	kubectl apply -f k8s/frontend-secrets.yaml
+
+k8s-apply-secrets: k8s-apply-secret-go k8s-apply-secret-python k8s-apply-secret-frontend
+
