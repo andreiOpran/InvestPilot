@@ -7,9 +7,9 @@ on:
     branches: [main]
 
 jobs:
-  # Build & push all three Docker images to ghcr.io
+  # Build and push all three Docker images to ghcr.io
   build:
-    name: Build & Push Images
+    name: Build and Push Images
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
 
