@@ -1,4 +1,4 @@
-.PHONY: help test-operational test-decisional test-all coverage coverage-decisional check clean build-local frontend frontend-dev frontend-kill lint lint-operational lint-decisional lint-frontend up down rebuild restart-operational restart-decisional logs logs-operational logs-decisional shell-operational shell-decisional adminer rabbitmq ps prune k8s-status k8s-pods k8s-logs-operational k8s-logs-decisional k8s-logs-frontend k8s-restart-operational k8s-restart-decisional k8s-restart-frontend k8s-restart-all k8s-apply k8s-describe k8s-secrets k8s-apply-secret-go k8s-apply-secret-python k8s-apply-secret-frontend k8s-apply-secrets
+make coverage.PHONY: help test-operational test-decisional test-all coverage coverage-decisional check clean build-local frontend frontend-dev frontend-kill lint lint-operational lint-decisional lint-frontend up down rebuild restart-operational restart-decisional logs logs-operational logs-decisional shell-operational shell-decisional adminer rabbitmq ps prune k8s-status k8s-pods k8s-logs-operational k8s-logs-decisional k8s-logs-frontend k8s-restart-operational k8s-restart-decisional k8s-restart-frontend k8s-restart-all k8s-apply k8s-describe k8s-secrets k8s-apply-secret-go k8s-apply-secret-python k8s-apply-secret-frontend k8s-apply-secrets
 
 NS := investpilot
 
@@ -10,14 +10,14 @@ PACKAGES := ./internal/handlers/... ./internal/services/... ./internal/repositor
 help:
 	@echo "Available commands:"
 	@echo "\n-> Testing & Local"
-	@echo "  make test-operational    - run operational-node unit tests"
-	@echo "  make test-decisional     - run decisional-node unit tests"
-	@echo "  make test-all            - run all tests (operational + decisional)"
-	@echo "  make coverage            - run operational-node tests and generate html coverage report"
-	@echo "  make coverage-decisional - run decisional-node tests with coverage summary"
-	@echo "  make check               - run test-all + lint (pre-push gate)"
-	@echo "  make build-local         - quickly compile the operational-node binary locally"
-	@echo "  make clean               - remove temporary files"
+	@echo "  make test-operational     - run operational-node unit tests"
+	@echo "  make test-decisional      - run decisional-node unit tests"
+	@echo "  make test-all             - run all tests (operational + decisional)"
+	@echo "  make coverage-operational - run operational-node tests and generate html coverage report"
+	@echo "  make coverage-decisional  - run decisional-node tests with coverage summary"
+	@echo "  make check                - run test-all + lint (pre-push gate)"
+	@echo "  make build-local          - quickly compile the operational-node binary locally"
+	@echo "  make clean                - remove temporary files"
 	@echo "\n-> Linting"
 	@echo "  make lint                - lint all services (operational vet + decisional ruff + eslint)"
 	@echo "  make lint-operational    - vet operational-node"
@@ -71,7 +71,7 @@ test-decisional:
 
 test-all: test-operational test-decisional
 
-coverage:
+coverage-operational:
 	@echo "Calculating coverage..."
 	cd operational-node && go test -coverprofile=coverage.out $(PACKAGES)
 	@echo "Coverage summary:"
