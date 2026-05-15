@@ -983,41 +983,76 @@ Pending: **10m** · Severity: `warning`
 
 ### Custom InvestPilot dashboard
 
-Create a new dashboard named **"InvestPilot — Application"** with these panels:
+Dashboard title: **"InvestPilot - Application"** · default time range: last 6h · timezone: browser
 
-#### Panel 1 — Commands Published by Operational Node
+#### Dashboard variable — `$path`
+
+Multi-select dropdown populated from:
+```promql
+label_values(investpilot_operational_http_requests_total, path)
+```
+Used in the API panels to filter by route. Refresh: on time range change. Includes "All" option.
+
+---
+
+Panels are organized into five collapsible rows. The **Commands** row starts collapsed.
+
+---
+
+### Row 1 — Commands (collapsed by default)
+
+#### Commands Published (ops/sec)
 ```promql
 sum by (command, status) (
   rate(investpilot_operational_commands_published_total[5m])
 )
 ```
-Visualization: **Bar chart** · stack by `status` · Title: "Commands Published (ops/sec)"
+Visualization: **Bar chart** · stacked · legend: `{{command}} — {{status}}` · unit = ops
 
-#### Panel 2 — Commands Received by Decisional Node
+#### Commands Received by Decisional Node
 ```promql
 sum by (command, status) (
   rate(investpilot_decisional_commands_received_total[5m])
 )
 ```
-Visualization: **Bar chart** · same style
+Visualization: **Bar chart** · stacked · legend: `{{command}} — {{status}}` · unit = ops
 
-#### Panel 3 — Command Error Rate %
+#### Rebalance Batch User Count Distribution
 ```promql
-100 * (
-  sum(rate(investpilot_decisional_commands_received_total{status="error"}[5m]))
+# Query A — P50 users per batch run
+histogram_quantile(0.50, rate(investpilot_decisional_rebalance_batch_users_bucket[1h]))
+
+# Query B — P95 users per batch run
+histogram_quantile(0.95, rate(investpilot_decisional_rebalance_batch_users_bucket[1h]))
+
+# Query C — batch run rate
+rate(investpilot_decisional_rebalance_batch_users_count[1h])
+```
+Visualization: **Time series** · A/B as lines (left axis, unit = short, "Users per batch") · C as bars (right axis, unit = ops, "Runs/sec", fillOpacity=40) · 1h window: batch runs monthly, shorter windows return no data between runs
+
+#### Command Error Rate %
+```promql
+(
+  100 * sum(rate(investpilot_decisional_commands_received_total{status="error"}[5m]))
   /
   sum(rate(investpilot_decisional_commands_received_total[5m]))
-)
+) or vector(0)
 ```
-Visualization: **Gauge** · thresholds: 0=green, 5=yellow, 10=red
+Visualization: **Gauge** · instant query · thresholds: 0=green, 5=yellow, 10=red · unit = percent · sparkline enabled
 
-#### Panel 4 — Go Rebalance Stale Aborts (last 24h)
+> `or vector(0)` prevents the gauge from going blank when no errors exist (returns 0 instead of NoData).
+
+#### Rebalance Stale Aborts (last 24h)
 ```promql
 sum(increase(investpilot_operational_rebalance_stale_data_aborts_total[24h]))
 ```
-Visualization: **Stat** · same style
+Visualization: **Stat** · instant query · thresholds: 0=green, 1=yellow, 5=red · unit = short
 
-#### Panel 5 — Command Duration P99
+---
+
+### Row 2 — Durations & Rebalance
+
+#### Command Duration P99
 ```promql
 histogram_quantile(0.99,
   sum by (command, le) (
@@ -1025,9 +1060,27 @@ histogram_quantile(0.99,
   )
 )
 ```
-Visualization: **Time series** · one line per `command`
+Visualization: **Time series** · one line per `command` · unit = s
 
-#### Panel 6 — Forecast Duration P50 / P95
+#### Pipeline Duration P50 / P95
+```promql
+# Query A — P50
+histogram_quantile(0.50,
+  sum by (pipeline, le) (
+    rate(investpilot_decisional_pipeline_duration_seconds_bucket[5m])
+  )
+)
+
+# Query B — P95
+histogram_quantile(0.95,
+  sum by (pipeline, le) (
+    rate(investpilot_decisional_pipeline_duration_seconds_bucket[5m])
+  )
+)
+```
+Visualization: **Time series** · legend: `P50 {{pipeline}}` / `P95 {{pipeline}}` · unit = s
+
+#### Forecast Duration P50 / P95
 ```promql
 # Query A — P50
 histogram_quantile(0.50, rate(investpilot_decisional_forecast_duration_seconds_bucket[5m]))
@@ -1035,115 +1088,121 @@ histogram_quantile(0.50, rate(investpilot_decisional_forecast_duration_seconds_b
 # Query B — P95
 histogram_quantile(0.95, rate(investpilot_decisional_forecast_duration_seconds_bucket[5m]))
 ```
+Visualization: **Time series** · unit = s
 
-#### Panel 7 — Assets Skipped in Rebalance
+#### Assets Skipped in Rebalance
 ```promql
 rate(investpilot_decisional_rebalance_assets_skipped_total[5m])
 ```
+Visualization: **Time series** · legend: `{{pod}}`
 
-#### Panel 8 — Go API Request Rate & Error Rate
+---
+
+### Row 3 — API
+
+#### Go API Request Rate & Error Rate
 ```promql
-# Query A — request rate by path
+# Query A — request rate (rendered as bars)
 sum by (method, path, status) (
-  rate(investpilot_operational_http_requests_total[5m])
+  rate(investpilot_operational_http_requests_total{path=~"$path"}[5m])
 )
 
-# Query B — P95 latency per path
+# Query B — P95 latency per path (rendered as lines)
 histogram_quantile(0.95,
   sum by (path, le) (
-    rate(investpilot_operational_http_request_duration_seconds_bucket[5m])
+    rate(investpilot_operational_http_request_duration_seconds_bucket{path=~"$path"}[5m])
   )
 )
 ```
-Visualization: **Time series** · Query A as bar chart overlay, Query B as lines
+Visualization: **Time series** · Query A (legend `{{method}} {{path}} {{status}}`): bars, fillOpacity=60, unit=reqps · Query B (legend `P95 {{path}}`): lines, unit=s · both controlled via field overrides matching series name prefix
 
-#### Panel 9 — Pipeline Duration P50 / P95 — daily / intraday / rebalance_batch
-```promql
-# Query A — P50
-histogram_quantile(0.50,
-  sum by (pipeline, le) (
-    rate(investpilot_decisional_pipeline_duration_seconds_bucket[5m])
-  )
-)
-
-# Query B — P95
-histogram_quantile(0.95,
-  sum by (pipeline, le) (
-    rate(investpilot_decisional_pipeline_duration_seconds_bucket[5m])
-  )
-)
-```
-Visualization: **Time series** · one line per `pipeline` label · unit = seconds
-
-#### Panel 10 — Pod Restarts
-```promql
-sum by (pod) (
-  kube_pod_container_status_restarts_total{namespace="investpilot"}
-)
-```
-Visualization: **Table** · sort descending
-
-
-#### Panel 11 — CronJob Last Success
-```promql
-kube_cronjob_status_last_successful_time{namespace="investpilot"}
-```
-Visualization: **Table** · field override: unit = `dateTimeFromNow`
-
-#### Panel 12 — Node CPU Usage %
-```promql
-100 - (avg by(node) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)
-```
-Visualization: **Time series** · one line per `node` · unit = percent (0–100) · thresholds: 85=yellow, 95=red
-
-#### Panel 13 — Node Memory Usage %
-```promql
-100 * (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes))
-```
-Visualization: **Time series** · one line per `node` · unit = percent (0–100) · thresholds: 85=yellow, 95=red
-
-#### Panel 14 — Rebalance Batch User Count Distribution
-```promql
-# Query A — P50 users per batch run
-histogram_quantile(0.50,
-  rate(investpilot_decisional_rebalance_batch_users_bucket[1h])
-)
-
-# Query B — P95 users per batch run
-histogram_quantile(0.95,
-  rate(investpilot_decisional_rebalance_batch_users_bucket[1h])
-)
-
-# Query C — total batch runs (rate)
-rate(investpilot_decisional_rebalance_batch_users_count[1h])
-```
-Visualization: **Time series** · Queries A/B as lines (unit = users), Query C as bar overlay (unit = runs/sec) · use 1h window (batch rebalance runs monthly, rate over shorter windows returns no data between runs)
-
-#### Panel 15 — Go API Latency — P50 / P95 / P99 per Path
+#### Go API Latency — P50 / P95 / P99 per Path
 ```promql
 # Query A — P50
 histogram_quantile(0.50,
   sum by (path, le) (
-    rate(investpilot_operational_http_request_duration_seconds_bucket[5m])
+    rate(investpilot_operational_http_request_duration_seconds_bucket{path=~"$path"}[5m])
   )
 )
 
 # Query B — P95
 histogram_quantile(0.95,
   sum by (path, le) (
-    rate(investpilot_operational_http_request_duration_seconds_bucket[5m])
+    rate(investpilot_operational_http_request_duration_seconds_bucket{path=~"$path"}[5m])
   )
 )
 
 # Query C — P99
 histogram_quantile(0.99,
   sum by (path, le) (
-    rate(investpilot_operational_http_request_duration_seconds_bucket[5m])
+    rate(investpilot_operational_http_request_duration_seconds_bucket{path=~"$path"}[5m])
   )
 )
 ```
-Visualization: **Time series** · one line per `path` per query · unit = seconds · thresholds: 0.5s=yellow, 1s=red · legend format: `{{path}} P50/P95/P99`
-> Panel 8 Query B shows P95 as an overlay on traffic — this panel isolates latency per percentile for SLA tracking.
+Visualization: **Time series** · legend: `{{path}} P50/P95/P99` · unit = s · thresholds: 0.5s=yellow, 1s=red · legend table with Last/Max calcs
+
+> This panel isolates latency by percentile for SLA tracking; the API row's first panel overlays P95 on top of traffic volume.
+
+---
+
+### Row 4 — Infrastructure
+
+#### CronJob Last Success
+```promql
+kube_cronjob_status_last_successful_time{namespace="investpilot"} * 1000
+```
+Visualization: **Table** · instant query · transformations: `labelsToFields` → `merge` → `organize` (hide Time/cluster/instance/job/namespace; rename `cronjob`→"CronJob", `Value`→"Last Success") · unit = `dateTimeFromNow` · sorted by CronJob asc
+
+#### CronJob Last Failure
+```promql
+max by(owner_name) (
+  (kube_job_status_start_time{namespace="investpilot"}
+   * on(job_name) group_left(owner_name)
+   kube_job_owner{namespace="investpilot", owner_kind="CronJob"})
+  and on(job_name)
+  kube_job_failed{namespace="investpilot", condition="true"}
+) * 1000
+```
+Visualization: **Table** · instant query · transformations: `labelsToFields` → `merge` → `organize` (hide Time; rename `owner_name`→"CronJob", `Value`→"Last Failure") · "Last Failure" column: unit = `dateTimeFromNow`, color = fixed red · sorted by Last Failure desc · only CronJobs with at least one failed run appear
+
+#### CronJob Next Schedule
+```promql
+kube_cronjob_next_schedule_time{namespace="investpilot"} * 1000
+```
+Visualization: **Table** · instant query · same transformations pattern as Last Success · columns: CronJob / Next Schedule (unit = `dateTimeFromNow`) · sorted by CronJob asc
+
+#### Pod Restarts
+```promql
+# Query A (hidden) — restart count
+sum by(pod) (kube_pod_container_status_restarts_total{namespace="investpilot", pod!~"cron-.*"})
+
+# Query B (hidden) — last terminated timestamp (ms)
+max by(pod) (kube_pod_container_status_last_terminated_timestamp{namespace="investpilot", pod!~"cron-.*"}) * 1000
+
+# Query C (visible) — SQL join
+SELECT A.pod AS Pod, A.__value__ AS Restarts, B.__value__ AS "Last Restart"
+FROM A LEFT JOIN B ON A.pod = B.pod
+ORDER BY A.__value__ DESC LIMIT 100
+```
+Visualization: **Table** · Queries A and B are hidden; C drives the table · columns: Pod (string, width=313), Restarts (width=89), Last Restart (dateTimeFromNow, width=140) · sorted by Restarts desc · excludes cron pods
+
+---
+
+### Row 5 — Node Resources
+
+#### Node CPU Usage %
+```promql
+100 - (avg by(node) (rate(node_cpu_seconds_total{mode="idle"}[$__rate_interval])) * 100)
+```
+Visualization: **Time series** · legend: `{{node}}` · unit = percent · min=0, max=100 · thresholds: 85=yellow, 95=red
+
+> Uses `$__rate_interval` (Grafana auto-scaling interval) instead of a fixed window for correct rate calculation at any zoom level.
+
+#### Node Memory Usage %
+```promql
+100 * (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes))
+```
+Visualization: **Time series** · legend: `{{node}}` · unit = percent · min=0, max=100 · thresholds: 85=yellow, 95=red
 
 ---
 
