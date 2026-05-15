@@ -51,7 +51,8 @@ func SetupRoutes(r *gin.Engine) {
 	dataPipelineHandler := handlers.NewDataPipelineHandler(dataPipelineService)
 	cronTriggerHandler := handlers.NewCronTriggerHandler(rebalanceService)
 
-	// Internal endpoints triggered by Kubernetes CronJobs or ENABLE_CRON=false local dev curl
+	// internal endpoints triggered by Kubernetes CronJobs
+	// or ENABLE_CRON=false paired with local dev curl
 	internal := r.Group("/internal")
 	internal.Use(middleware.InternalAuth())
 	{
