@@ -5,8 +5,8 @@
     "name": "andqqlt",
     "namespace": "stacks-1639217",
     "uid": "8d0c5180-ebdb-445c-a365-fce7523188fb",
-    "resourceVersion": "2055312977862591438",
-    "generation": 16,
+    "resourceVersion": "2055364630036873637",
+    "generation": 17,
     "creationTimestamp": "2026-05-15T13:03:45Z",
     "labels": {
       "grafana.app/deprecatedInternalID": "1631495138770944"
@@ -16,7 +16,7 @@
       "grafana.app/folder": "fqnxfp",
       "grafana.app/saved-from-ui": "Grafana Cloud",
       "grafana.app/updatedBy": "user:dflysgdzy0g74e",
-      "grafana.app/updatedTimestamp": "2026-05-15T15:42:54Z",
+      "grafana.app/updatedTimestamp": "2026-05-15T19:08:09Z",
       "grafana.app/folderTitle": "InvestPilot",
       "grafana.app/folderUrl": "/dashboards/f/fqnxfp/investpilot"
     }
@@ -1233,7 +1233,7 @@
                       },
                       "spec": {
                         "app": "grafana-assistant-app",
-                        "expr": "max by(pod) (kube_pod_container_status_last_terminated_timestamp{namespace=\"investpilot\", pod!~\"cron-.*\"}) * 1000",
+                        "expr": "(max by(pod) (kube_pod_container_status_last_terminated_timestamp{namespace=\"investpilot\", pod!~\"cron-.*\"}) * 1000) OR on(pod) (kube_pod_container_status_restarts_total{namespace=\"investpilot\", pod!~\"cron-.*\"} * 0)",
                         "instant": true,
                         "legendFormat": "",
                         "queryType": "instant",
@@ -1256,7 +1256,7 @@
                       },
                       "spec": {
                         "app": "grafana-assistant-app",
-                        "expression": "SELECT A.pod AS Pod, A.__value__ AS Restarts, B.__value__ AS \"Last Restart\" FROM A LEFT JOIN B ON A.pod = B.pod ORDER BY A.__value__ DESC LIMIT 100",
+                        "expression": "SELECT A.pod AS Pod, A.__value__ AS Restarts, NULLIF(B.__value__, 0) AS \"Last Restart\" FROM A LEFT JOIN B ON A.pod = B.pod ORDER BY A.__value__ DESC LIMIT 100",
                         "type": "sql"
                       }
                     },
@@ -1343,6 +1343,20 @@
                       {
                         "id": "custom.width",
                         "value": 140
+                      },
+                      {
+                        "id": "mappings",
+                        "value": [
+                          {
+                            "options": {
+                              "match": "null",
+                              "result": {
+                                "text": "Never"
+                              }
+                            },
+                            "type": "special"
+                          }
+                        ]
                       }
                     ]
                   },
@@ -1387,53 +1401,60 @@
                       },
                       "spec": {
                         "app": "grafana-assistant-app",
-                        "expr": "kube_cronjob_status_last_successful_time{namespace=\"investpilot\"} * 1000",
+                        "expr": "max by(cronjob) (kube_cronjob_status_last_successful_time{namespace=\"investpilot\"}) * 1000",
                         "instant": true,
-                        "legendFormat": "",
                         "queryType": "instant",
                         "range": false
                       }
                     },
                     "refId": "A",
+                    "hidden": true
+                  }
+                },
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "prometheus",
+                      "version": "v0",
+                      "datasource": {
+                        "name": "grafanacloud-prom"
+                      },
+                      "spec": {
+                        "app": "grafana-assistant-app",
+                        "expr": "max by(cronjob) (kube_cronjob_info{namespace=\"investpilot\"})",
+                        "instant": true,
+                        "queryType": "instant",
+                        "range": false
+                      }
+                    },
+                    "refId": "B",
+                    "hidden": true
+                  }
+                },
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "__expr__",
+                      "version": "v0",
+                      "datasource": {
+                        "name": "__expr__"
+                      },
+                      "spec": {
+                        "app": "grafana-assistant-app",
+                        "expression": "SELECT B.cronjob AS CronJob, A.__value__ AS \"Last Success\" FROM B LEFT JOIN A ON B.cronjob = A.cronjob ORDER BY COALESCE(A.__value__, 0) DESC LIMIT 100",
+                        "type": "sql"
+                      }
+                    },
+                    "refId": "C",
                     "hidden": false
                   }
                 }
               ],
-              "transformations": [
-                {
-                  "kind": "Transformation",
-                  "group": "labelsToFields",
-                  "spec": {
-                    "options": {}
-                  }
-                },
-                {
-                  "kind": "Transformation",
-                  "group": "merge",
-                  "spec": {
-                    "options": {}
-                  }
-                },
-                {
-                  "kind": "Transformation",
-                  "group": "organize",
-                  "spec": {
-                    "options": {
-                      "excludeByName": {
-                        "Time": true,
-                        "cluster": true,
-                        "instance": true,
-                        "job": true,
-                        "namespace": true
-                      },
-                      "renameByName": {
-                        "Value": "Last Success",
-                        "cronjob": "CronJob"
-                      }
-                    }
-                  }
-                }
-              ],
+              "transformations": [],
               "queryOptions": {}
             }
           },
@@ -1454,7 +1475,7 @@
               },
               "fieldConfig": {
                 "defaults": {
-                  "unit": "dateTimeFromNow",
+                  "unit": "short",
                   "thresholds": {
                     "mode": "absolute",
                     "steps": [
@@ -1506,6 +1527,24 @@
                       {
                         "id": "custom.width",
                         "value": 145
+                      },
+                      {
+                        "id": "unit",
+                        "value": "dateTimeFromNow"
+                      },
+                      {
+                        "id": "mappings",
+                        "value": [
+                          {
+                            "options": {
+                              "match": "null",
+                              "result": {
+                                "text": "Never"
+                              }
+                            },
+                            "type": "special"
+                          }
+                        ]
                       }
                     ]
                   }
@@ -1832,6 +1871,10 @@
                         "job": true,
                         "namespace": true
                       },
+                      "indexByName": {
+                        "Value": 1,
+                        "cronjob": 0
+                      },
                       "renameByName": {
                         "Value": "Next Schedule",
                         "cronjob": "CronJob"
@@ -1945,47 +1988,58 @@
                         "app": "grafana-assistant-app",
                         "expr": "max by(owner_name) ((kube_job_status_start_time{namespace=\"investpilot\"} * on(job_name) group_left(owner_name) kube_job_owner{namespace=\"investpilot\", owner_kind=\"CronJob\"}) and on(job_name) kube_job_failed{namespace=\"investpilot\", condition=\"true\"}) * 1000",
                         "instant": true,
-                        "legendFormat": "",
                         "queryType": "instant",
                         "range": false
                       }
                     },
                     "refId": "A",
+                    "hidden": true
+                  }
+                },
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "prometheus",
+                      "version": "v0",
+                      "datasource": {
+                        "name": "grafanacloud-prom"
+                      },
+                      "spec": {
+                        "app": "grafana-assistant-app",
+                        "expr": "max by(cronjob) (kube_cronjob_info{namespace=\"investpilot\"})",
+                        "instant": true,
+                        "queryType": "instant",
+                        "range": false
+                      }
+                    },
+                    "refId": "B",
+                    "hidden": true
+                  }
+                },
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "__expr__",
+                      "version": "v0",
+                      "datasource": {
+                        "name": "__expr__"
+                      },
+                      "spec": {
+                        "app": "grafana-assistant-app",
+                        "expression": "SELECT B.cronjob AS CronJob, A.__value__ AS \"Last Failure\" FROM B LEFT JOIN A ON B.cronjob = A.owner_name ORDER BY COALESCE(A.__value__, 0) DESC LIMIT 100",
+                        "type": "sql"
+                      }
+                    },
+                    "refId": "C",
                     "hidden": false
                   }
                 }
               ],
-              "transformations": [
-                {
-                  "kind": "Transformation",
-                  "group": "labelsToFields",
-                  "spec": {
-                    "options": {}
-                  }
-                },
-                {
-                  "kind": "Transformation",
-                  "group": "merge",
-                  "spec": {
-                    "options": {}
-                  }
-                },
-                {
-                  "kind": "Transformation",
-                  "group": "organize",
-                  "spec": {
-                    "options": {
-                      "excludeByName": {
-                        "Time": true
-                      },
-                      "renameByName": {
-                        "Value": "Last Failure",
-                        "owner_name": "CronJob"
-                      }
-                    }
-                  }
-                }
-              ],
+              "transformations": [],
               "queryOptions": {}
             }
           },
@@ -1999,14 +2053,14 @@
                 "showHeader": true,
                 "sortBy": [
                   {
-                    "desc": true,
-                    "displayName": "Last Failure"
+                    "desc": false,
+                    "displayName": "CronJob"
                   }
                 ]
               },
               "fieldConfig": {
                 "defaults": {
-                  "unit": "dateTimeFromNow",
+                  "unit": "short",
                   "thresholds": {
                     "mode": "absolute",
                     "steps": [
@@ -2057,21 +2111,31 @@
                       {
                         "id": "custom.width",
                         "value": 160
-                      }
-                    ]
-                  },
-                  {
-                    "matcher": {
-                      "id": "byName",
-                      "options": "Last Failure"
-                    },
-                    "properties": [
+                      },
+                      {
+                        "id": "unit",
+                        "value": "dateTimeFromNow"
+                      },
                       {
                         "id": "color",
                         "value": {
                           "fixedColor": "red",
                           "mode": "fixed"
                         }
+                      },
+                      {
+                        "id": "mappings",
+                        "value": [
+                          {
+                            "options": {
+                              "match": "null",
+                              "result": {
+                                "text": "Never"
+                              }
+                            },
+                            "type": "special"
+                          }
+                        ]
                       }
                     ]
                   }
