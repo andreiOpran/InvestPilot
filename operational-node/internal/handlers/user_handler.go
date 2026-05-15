@@ -6,8 +6,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/andreiOpran/licenta/operational-node/internal/config"
-	"github.com/andreiOpran/licenta/operational-node/internal/mailer"
 	"github.com/andreiOpran/licenta/operational-node/internal/models"
 	"github.com/andreiOpran/licenta/operational-node/internal/services"
 )
@@ -20,17 +18,6 @@ func NewUserHandler(userService services.UserService) *UserHandler {
 	return &UserHandler{
 		userService: userService,
 	}
-}
-
-// TestEmailHandler triggers a test email send
-func TestEmailHandler(c *gin.Context) {
-	testEmail := config.Env.SMTPTestDestination
-	err := mailer.Client.SendEmail(testEmail, "Test", "Test for SMTP")
-	if err != nil {
-		c.JSON(500, gin.H{"error": err.Error()})
-		return
-	}
-	c.JSON(200, gin.H{"message": "Test email sent successfully"})
 }
 
 // GetUserHandler returns basic profile and wallet balance

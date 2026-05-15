@@ -33,6 +33,18 @@ spec:
           image: ghcr.io/andreiopran/investpilot-operational-node:latest
           ports:
             - containerPort: 8081
+          livenessProbe:
+            httpGet:
+              path: /api/v1/health
+              port: 8081
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          readinessProbe:
+            httpGet:
+              path: /api/v1/health
+              port: 8081
+            initialDelaySeconds: 5
+            periodSeconds: 10
           envFrom:
             # secrets injected as env vars
             - secretRef:
