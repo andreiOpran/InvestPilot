@@ -101,7 +101,7 @@ agent:
       }
 
       // == node-exporter (CPU/RAM/disk per VPS) =============================
-      // Discover pods directly — scraping via ClusterIP causes kube-proxy to
+      // Discover pods directly - scraping via ClusterIP causes kube-proxy to
       // round-robin across DaemonSet pods, making counters jump backward and
       // rate() return large negative values.
 

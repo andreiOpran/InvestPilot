@@ -42,7 +42,7 @@ apiClient.interceptors.response.use(
     }
 
     if (error.response?.status === 401 && !originalRequest._retry) {
-      // Auth endpoints return 401 for wrong credentials — never trigger a token refresh for them.
+      // Auth endpoints return 401 for wrong credentials - never trigger a token refresh for them.
       const url: string = originalRequest.url ?? '';
       if (url.includes('/refresh-token') || url.includes('/login') || url.includes('/verify-2fa')) {
         return Promise.reject(error);

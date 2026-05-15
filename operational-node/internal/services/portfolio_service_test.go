@@ -311,11 +311,11 @@ func TestGetPortfolioHistory(t *testing.T) {
 
 		portfolioRepo.On("GetHistoricalRounds", uint(1), mock.AnythingOfType("time.Time")).Return([]models.InvestmentRound{}, nil).Once()
 		portfolioRepo.On("GetPricingData", mock.Anything, mock.AnythingOfType("time.Time"), true).Return(map[string][]models.AssetPricePoint{}, nil).Once()
-		// empty intraday → triggers fallback GetPricingData call
+		// empty intraday -> triggers fallback GetPricingData call
 		portfolioRepo.On("GetPricingData", mock.Anything, mock.AnythingOfType("time.Time"), true).Return(map[string][]models.AssetPricePoint{}, nil).Maybe()
 		portfolioRepo.On("GetInvestTransactions", uint(1)).Return([]models.Transaction{}, nil).Once()
 		portfolioRepo.On("GetMarketTimestamps", mock.AnythingOfType("time.Time"), true).Return([]time.Time{}, nil).Once()
-		// empty intraday market timestamps → triggers fallback
+		// empty intraday market timestamps -> triggers fallback
 		portfolioRepo.On("GetMarketTimestamps", mock.AnythingOfType("time.Time"), true).Return([]time.Time{}, nil).Maybe()
 		portfolioRepo.On("GetPricesBeforeWindow", mock.Anything, mock.AnythingOfType("time.Time"), true).Return(map[string]float64{}, nil).Once()
 
@@ -495,9 +495,9 @@ func TestGetPortfolioHistory(t *testing.T) {
 
 		// first round fetch
 		portfolioRepo.On("GetHistoricalRounds", uint(1), mock.AnythingOfType("time.Time")).Return([]models.InvestmentRound{round}, nil).Once()
-		// first GetPricingData → empty (simulates intraday weekend/holiday gap)
+		// first GetPricingData -> empty (simulates intraday weekend/holiday gap)
 		portfolioRepo.On("GetPricingData", mock.Anything, mock.AnythingOfType("time.Time"), true).Return(map[string][]models.AssetPricePoint{}, nil).Once()
-		// fallback GetPricingData → returns data for latestDay
+		// fallback GetPricingData -> returns data for latestDay
 		portfolioRepo.On("GetPricingData", mock.Anything, mock.AnythingOfType("time.Time"), true).Return(
 			map[string][]models.AssetPricePoint{
 				"SPY": {{Timestamp: ts1, Price: 410.0}},
@@ -518,13 +518,13 @@ func TestGetPortfolioHistory(t *testing.T) {
 		userRepo := new(repomocks.MockUserRepository)
 		svc := NewPortfolioService(portfolioRepo, userRepo)
 
-		// USD-only round → tickers empty → calls GetMarketTimestamps with isIntraday=true
+		// USD-only round -> tickers empty -> calls GetMarketTimestamps with isIntraday=true
 		round := models.InvestmentRound{
 			UserID:   1,
 			IsActive: true,
 			Holdings: []models.Holding{{Ticker: "USD", Shares: 200.0}},
 		}
-		// first GetMarketTimestamps (intraday=true) returns empty → triggers fallback
+		// first GetMarketTimestamps (intraday=true) returns empty -> triggers fallback
 		portfolioRepo.On("GetHistoricalRounds", uint(1), mock.AnythingOfType("time.Time")).Return([]models.InvestmentRound{round}, nil).Maybe()
 		portfolioRepo.On("GetPricingData", mock.Anything, mock.AnythingOfType("time.Time"), true).Return(map[string][]models.AssetPricePoint{}, nil).Maybe()
 		portfolioRepo.On("GetInvestTransactions", uint(1)).Return([]models.Transaction{}, nil).Once()

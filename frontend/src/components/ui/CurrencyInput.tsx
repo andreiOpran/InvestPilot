@@ -96,7 +96,7 @@ export function CurrencyInput({
 
     const display = toDisplay(newClean);
 
-    // Map cursor from clean-string position → display position
+    // Map cursor from clean-string position -> display position
     let displayCursor = 0;
     let cleanIdx = 0;
     for (let i = 0; i <= display.length; i++) {

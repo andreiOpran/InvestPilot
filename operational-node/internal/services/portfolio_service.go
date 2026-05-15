@@ -209,7 +209,7 @@ func (s *portfolioService) Sell(userID uint, amount float64) error {
 			})
 		}
 	} else {
-		// USD covered the full sell — copy ETF holdings unchanged
+		// USD covered the full sell - copy ETF holdings unchanged
 		for _, h := range activeRound.Holdings {
 			if h.Ticker == "USD" {
 				continue

@@ -7,7 +7,7 @@ function intlUSD(value: number, opts: Intl.NumberFormatOptions = {}): string {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", ...opts }).format(value);
 }
 
-/** Compact: ≥10 K → compact notation; otherwise 2-decimal full. */
+/** Compact: ≥10 K -> compact notation; otherwise 2-decimal full. */
 export function formatUSD(value: number): string {
   const abs = Math.abs(value);
   let str: string;

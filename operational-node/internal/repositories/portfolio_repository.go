@@ -276,7 +276,7 @@ func (r *portfolioRepository) ExecuteSellTransaction(
 			return err
 		}
 
-		// newRound is nil on full liquidation — skip creation
+		// newRound is nil on full liquidation - skip creation
 		if newRound != nil {
 			if err := tx.Create(newRound).Error; err != nil {
 				return err

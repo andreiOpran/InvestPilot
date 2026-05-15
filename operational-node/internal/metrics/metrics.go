@@ -8,8 +8,8 @@ import (
 var (
 	// CommandsPublished tracks every RabbitMQ message the operational node sends
 	// Labels:
-	//   command — CMD_SYNC_DAILY, CMD_GENERATE, CMD_REBALANCE_USER, CMD_FORECAST
-	//   status  — "success" or "error"
+	//   command - CMD_SYNC_DAILY, CMD_GENERATE, CMD_REBALANCE_USER, CMD_FORECAST
+	//   status  - "success" or "error"
 	CommandsPublished = promauto.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "investpilot",

@@ -422,7 +422,7 @@ groups:
           noDataState: NoData
           execErrState: Error
           annotations:
-            summary: Go node aborted rebalance — stale market data detected before publishing
+            summary: Go node aborted rebalance - stale market data detected before publishing
           labels:
             severity: critical
           isPaused: false

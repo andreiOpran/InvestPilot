@@ -42,7 +42,7 @@ func main() {
 		jobs.StartTokenCleanupJob()
 		log.Println("[SYSTEM] Embedded cron jobs started (ENABLE_CRON=true)")
 	} else {
-		log.Println("[SYSTEM] Cron jobs disabled — scheduling handled by Kubernetes CronJobs")
+		log.Println("[SYSTEM] Cron jobs disabled - scheduling handled by Kubernetes CronJobs")
 	}
 
 	if config.Env.GinMode == "release" {

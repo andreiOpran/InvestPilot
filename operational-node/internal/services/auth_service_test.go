@@ -397,7 +397,7 @@ func TestAuthenticateUser_lockoutThreshold2_returnsError(t *testing.T) {
 	hashed, _ := bcrypt.GenerateFromPassword([]byte("ValidPass1!"), 4)
 	user := &models.User{Email: "locked2@test.com", Password: string(hashed), IsEmailVerified: true}
 	mockRepo.On("FindUserByEmail", "locked2@test.com").Return(user, nil).Once()
-	// threshold2=5 fails, duration2=3min, lastAttemptTime=now → still locked
+	// threshold2=5 fails, duration2=3min, lastAttemptTime=now -> still locked
 	mockRepo.On("GetConsecutiveFailedAttempts", user.ID).Return(5, time.Now(), nil).Once()
 
 	_, err := service.AuthenticateUser("locked2@test.com", "ValidPass1!", "127.0.0.1", "agent")
@@ -412,7 +412,7 @@ func TestAuthenticateUser_lockoutThreshold3_returnsError(t *testing.T) {
 	hashed, _ := bcrypt.GenerateFromPassword([]byte("ValidPass1!"), 4)
 	user := &models.User{Email: "locked3@test.com", Password: string(hashed), IsEmailVerified: true}
 	mockRepo.On("FindUserByEmail", "locked3@test.com").Return(user, nil).Once()
-	// threshold3=6 fails, duration3=15min, lastAttemptTime=now → still locked
+	// threshold3=6 fails, duration3=15min, lastAttemptTime=now -> still locked
 	mockRepo.On("GetConsecutiveFailedAttempts", user.ID).Return(6, time.Now(), nil).Once()
 
 	_, err := service.AuthenticateUser("locked3@test.com", "ValidPass1!", "127.0.0.1", "agent")

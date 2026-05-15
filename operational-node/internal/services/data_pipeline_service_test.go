@@ -11,7 +11,7 @@ import (
 func TestRunDailyPipeline_nilPublisher_returnsNil(t *testing.T) {
 	svc := NewDataPipelineService()
 
-	// Publisher is nil → service returns nil immediately (no RabbitMQ required)
+	// publisher is nil -> service returns nil immediately (no RabbitMQ required)
 	prev := clients.Publisher
 	clients.Publisher = nil
 	defer func() { clients.Publisher = prev }()
