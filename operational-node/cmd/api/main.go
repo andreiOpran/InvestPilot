@@ -23,16 +23,16 @@ import (
 )
 
 func main() {
+	config.LoadConfig()
+	database.InitDB()
+	mailer.InitEmailer()
+	clients.InitRabbitMQ()
+
 	rebalanceRepo := repositories.NewRebalanceRepository(database.DB)
 	userRepo := repositories.NewUserRepository(database.DB)
 
 	dataPipelineService := services.NewDataPipelineService()
 	rebalanceService := services.NewRebalanceService(rebalanceRepo, userRepo)
-
-	config.LoadConfig()
-	database.InitDB()
-	mailer.InitEmailer()
-	clients.InitRabbitMQ()
 
 	// the cron jobs are handled by local operational node cron job,
 	// or by K8s CronJobs in deployment
