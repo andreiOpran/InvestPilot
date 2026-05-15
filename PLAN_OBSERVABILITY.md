@@ -245,12 +245,40 @@ agent:
 
       // == node-exporter (node CPU/RAM/disk/network) ========================
       // ~300 metrics per node. Safe to scrape — no cAdvisor container data.
-      // Service name format: <release-name>-prometheus-node-exporter
+      // Must scrape pods directly — scraping via ClusterIP causes kube-proxy
+      // to round-robin across the DaemonSet pods, making counters jump backward
+      // between scrapes and rate() return large negative values.
+
+      discovery.kubernetes "node_exporter_pods" {
+        role = "pod"
+        namespaces {
+          names = ["monitoring"]
+        }
+      }
+
+      discovery.relabel "node_exporter_pods" {
+        targets = discovery.kubernetes.node_exporter_pods.targets
+
+        rule {
+          source_labels = ["__meta_kubernetes_pod_label_app_kubernetes_io_name"]
+          action        = "keep"
+          regex         = "prometheus-node-exporter"
+        }
+        rule {
+          source_labels = ["__address__"]
+          action        = "replace"
+          regex         = "([^:]+).*"
+          replacement   = "$1:9100"
+          target_label  = "__address__"
+        }
+        rule {
+          source_labels = ["__meta_kubernetes_pod_node_name"]
+          target_label  = "node"
+        }
+      }
 
       prometheus.scrape "node_exporter" {
-        targets = [{
-          __address__ = "node-exporter-prometheus-node-exporter.monitoring.svc.cluster.local:9100",
-        }]
+        targets         = discovery.relabel.node_exporter_pods.output
         forward_to      = [prometheus.remote_write.grafana_cloud.receiver]
         scrape_interval = "60s"
       }
@@ -346,7 +374,7 @@ node_cpu_seconds_total
 up{cluster="investpilot-k3s"}
 ```
 
-> **Tip:** If `node_memory_MemAvailable_bytes` returns no data, check the node-exporter service name matches exactly what's in the agent config. Run `kubectl get svc -n monitoring` and verify the name before the `.monitoring.svc.cluster.local:9100` part.
+> **Tip:** If `node_memory_MemAvailable_bytes` returns no data, verify the pod label selector matches. Run `kubectl get pods -n monitoring --show-labels` and confirm the pods have `app.kubernetes.io/name=prometheus-node-exporter`. Check agent logs with `kubectl logs -n monitoring -l app.kubernetes.io/name=grafana-agent --tail=30` for scrape errors.
 
 - [x] All pods Running with stable restart count
 - [x] `kube_pod_info` returns data in Grafana Cloud
@@ -809,7 +837,7 @@ Pending: **5m** · Severity: `warning`
 #### Deployment Replicas Mismatch
 ```promql
 kube_deployment_spec_replicas{namespace="investpilot"}
-  != kube_deployment_status_available_replicas{namespace="investpilot"}
+  != kube_deployment_status_replicas_available{namespace="investpilot"}
 ```
 Pending: **5m** · Severity: `warning`
 
@@ -817,7 +845,7 @@ Pending: **5m** · Severity: `warning`
 
 #### CronJob Failed
 ```promql
-kube_job_status_failed{namespace="investpilot"} > 0
+(kube_job_status_failed{namespace="investpilot"} > 0) * on(job_name)(time() - kube_job_status_start_time{namespace="investpilot"} < 3600)
 ```
 Pending: **1m** · Severity: `critical`
 
@@ -901,7 +929,7 @@ Summary: `Go API 5xx error rate >5% on {{ $labels.method }} {{ $labels.path }}`
 node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes < 0.15
 ```
 Pending: **5m** · Severity: `warning`
-Summary: `Node {{ $labels.instance }} has <15% free memory`
+Summary: `Node {{ $labels.node }} has <15% free memory`
 
 ---
 
@@ -910,13 +938,13 @@ Summary: `Node {{ $labels.instance }} has <15% free memory`
 node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes < 0.05
 ```
 Pending: **2m** · Severity: `critical`
-Summary: `Node {{ $labels.instance }} critically low on memory — OOM risk`
+Summary: `Node {{ $labels.node }} critically low on memory — OOM risk`
 
 ---
 
 #### Node High CPU (>85% for 10m)
 ```promql
-100 - (avg by(instance)(rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 85
+100 - (avg by(node)(rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 85
 ```
 Pending: **10m** · Severity: `warning`
 
@@ -1156,3 +1184,4 @@ kubectl logs -n monitoring -l app.kubernetes.io/name=grafana-agent --tail=20
 > - **WAL moved to disk** — `storagePath: /var/lib/grafana-agent` + explicit emptyDir volume takes WAL out of the container memory budget. Prevents crash-loop WAL accumulation.
 > - **`max_shards = 2`** — caps parallel remote_write sender goroutines. Default of 50 wastes memory on a small cluster sending a few hundred metrics every 60s.
 > - **60s scrape interval** — halves metric volume vs the default 30s. Sufficient resolution for thesis-level observability.
+> - **node-exporter scraped via pod discovery, not ClusterIP** — scraping the DaemonSet through a ClusterIP service causes kube-proxy to round-robin across pods; each scrape hits a different node, counter values jump backward, and `rate()` returns large negative values (observed: −1 494 101). Fix: `discovery.kubernetes` with `role=pod` + label filter `app.kubernetes.io/name=prometheus-node-exporter`, then force port 9100. The `node` label (from `__meta_kubernetes_pod_node_name`) replaces `instance` in all node-level alert summaries and dashboard queries.

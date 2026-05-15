@@ -101,11 +101,42 @@ agent:
       }
 
       // == node-exporter (CPU/RAM/disk per VPS) =============================
+      // Discover pods directly — scraping via ClusterIP causes kube-proxy to
+      // round-robin across DaemonSet pods, making counters jump backward and
+      // rate() return large negative values.
+
+      discovery.kubernetes "node_exporter_pods" {
+        role = "pod"
+        namespaces {
+          names = ["monitoring"]
+        }
+      }
+
+      discovery.relabel "node_exporter_pods" {
+        targets = discovery.kubernetes.node_exporter_pods.targets
+
+        rule {
+          source_labels = ["__meta_kubernetes_pod_label_app_kubernetes_io_name"]
+          action        = "keep"
+          regex         = "prometheus-node-exporter"
+        }
+        // Force port 9100 (pod may expose no named port in metadata)
+        rule {
+          source_labels = ["__address__"]
+          action        = "replace"
+          regex         = "([^:]+).*"
+          replacement   = "$1:9100"
+          target_label  = "__address__"
+        }
+        // Attach node name so dashboards can filter by node
+        rule {
+          source_labels = ["__meta_kubernetes_pod_node_name"]
+          target_label  = "node"
+        }
+      }
 
       prometheus.scrape "node_exporter" {
-        targets = [{
-          __address__ = "node-exporter-prometheus-node-exporter.monitoring.svc.cluster.local:9100",
-        }]
+        targets         = discovery.relabel.node_exporter_pods.output
         forward_to      = [prometheus.remote_write.grafana_cloud.receiver]
         scrape_interval = "60s"
       }
