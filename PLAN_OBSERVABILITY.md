@@ -1073,6 +1073,61 @@ kube_cronjob_status_last_successful_time{namespace="investpilot"}
 ```
 Visualization: **Table** · field override: unit = `dateTimeFromNow`
 
+#### Panel 12 — Node CPU Usage %
+```promql
+100 - (avg by(node) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)
+```
+Visualization: **Time series** · one line per `node` · unit = percent (0–100) · thresholds: 85=yellow, 95=red
+
+#### Panel 13 — Node Memory Usage %
+```promql
+100 * (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes))
+```
+Visualization: **Time series** · one line per `node` · unit = percent (0–100) · thresholds: 85=yellow, 95=red
+
+#### Panel 14 — Rebalance Batch User Count Distribution
+```promql
+# Query A — P50 users per batch run
+histogram_quantile(0.50,
+  rate(investpilot_decisional_rebalance_batch_users_bucket[1h])
+)
+
+# Query B — P95 users per batch run
+histogram_quantile(0.95,
+  rate(investpilot_decisional_rebalance_batch_users_bucket[1h])
+)
+
+# Query C — total batch runs (rate)
+rate(investpilot_decisional_rebalance_batch_users_count[1h])
+```
+Visualization: **Time series** · Queries A/B as lines (unit = users), Query C as bar overlay (unit = runs/sec) · use 1h window (batch rebalance runs monthly, rate over shorter windows returns no data between runs)
+
+#### Panel 15 — Go API Latency — P50 / P95 / P99 per Path
+```promql
+# Query A — P50
+histogram_quantile(0.50,
+  sum by (path, le) (
+    rate(investpilot_operational_http_request_duration_seconds_bucket[5m])
+  )
+)
+
+# Query B — P95
+histogram_quantile(0.95,
+  sum by (path, le) (
+    rate(investpilot_operational_http_request_duration_seconds_bucket[5m])
+  )
+)
+
+# Query C — P99
+histogram_quantile(0.99,
+  sum by (path, le) (
+    rate(investpilot_operational_http_request_duration_seconds_bucket[5m])
+  )
+)
+```
+Visualization: **Time series** · one line per `path` per query · unit = seconds · thresholds: 0.5s=yellow, 1s=red · legend format: `{{path}} P50/P95/P99`
+> Panel 8 Query B shows P95 as an overlay on traffic — this panel isolates latency per percentile for SLA tracking.
+
 ---
 
 ## Stage 11.7 — Apply Everything & Verify
