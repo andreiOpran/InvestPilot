@@ -775,7 +775,7 @@ kubectl apply -f k8s/ -n investpilot
   ```
 - [x] Check services: `kubectl get svc -n investpilot`
 - [x] Check ingress: `kubectl get ingress -n investpilot`
-- [ ] If a pod fails: `kubectl logs <pod-name> -n investpilot` and `kubectl describe pod <pod-name> -n investpilot`
+- [x] If a pod fails: `kubectl logs <pod-name> -n investpilot` and `kubectl describe pod <pod-name> -n investpilot`
 
 ---
 
@@ -947,6 +947,8 @@ resources:
 ```
 - [ ] Add resource requests/limits to all 3 Deployments
 
+> Skipped, because it works fine without limits until now.
+
 ### Health probes — K8s restarts unhealthy pods automatically
 
 Add to Operational node Deployment (requires a `/health` endpoint):
@@ -978,14 +980,14 @@ kubectl autoscale deployment decisional-node \
 ```
 - [ ] Configure HPA on Decisional node deployment
 
-> **Decision: skipped.** Decisional node is I/O-bound (RabbitMQ + yfinance) → CPU metric never fires. Cluster at 80% load → scale-up risks OOM on worker-2. CPU-based HPA is wrong tool for queue consumers (KEDA queue-depth scaling would be correct but out of scope).
+> Skipped: Decisional node is I/O-bound (RabbitMQ + yfinance) → CPU metric never fires. Cluster at 80% load → scale-up risks OOM on worker-2. CPU-based HPA is wrong tool for queue consumers (KEDA queue-depth scaling would be correct but out of scope).
 
 ### Cloudflare firewall rules
 
 - [x] Rate limit `/api/v1/auth/*` — max 10 requests/min per IP (prevents brute force)
 - [x] Block non-GET requests to `/` and static asset paths (JS/CSS should never receive POST)
 
-> This is skipped because it contains paid features. However, we have rate limiting by default on the operational node.
+> Skipped because it contains paid features. However, we have rate limiting by default on the operational node.
 
 ### Kubernetes NetworkPolicy — isolate Decisional node pod
 
@@ -1012,7 +1014,7 @@ spec:
 - [x] Verify automated backups enabled: Supabase dashboard → Settings → Backups
   - Free tier: daily backups, 7-day retention (enabled by default)
 
-> N/A, free plan does not include this.
+> Skipped, N/A, free plan does not include this.
 
 ### Supabase RLS — deny PostgREST access to all tables
 
