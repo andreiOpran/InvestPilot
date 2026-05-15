@@ -96,6 +96,9 @@ clean:
 	cd operational-node && rm -rf tmp/
 	find decisional-node -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null; true
 	find decisional-node -type d -name .pytest_cache -exec rm -rf {} + 2>/dev/null; true
+	rm -f decisional-node/.coverage
+	rm -rf decisional-node/.ruff_cache
+	rm -f frontend/vite.log
 
 # LINTING
 lint-operational:

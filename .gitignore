@@ -8,3 +8,4 @@ __pycache__/
 .pytest_cache/
 decisional-node/debug_output*/
 *-secrets.yaml
+.coverage
