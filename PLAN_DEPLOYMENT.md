@@ -49,7 +49,7 @@ Cloudflare sits in front of your VPS and handles TLS for browsers. Your VPS only
   - Copy the **Session mode** URL — it uses port **5432**
   - Format: `postgresql://postgres.[project-ref]:[password]@aws-0-[region].pooler.supabase.com:5432/postgres`
   - **Do NOT use Transaction mode (port 6543)** — it breaks GORM because GORM uses prepared statements which require session-level state
-- [ ] Settings → Network → Restrict access:
+- [x] Settings → Network → Restrict access:
   - For thesis: allow `0.0.0.0/0` (open to all, still password-protected)
   - For production: add only your 3 VPS public IPs
 
@@ -78,11 +78,11 @@ The CI/CD pipeline builds Docker images and pushes them to ghcr.io. K8s nodes pu
 
 ### Node layout
 
-| Node | Hostname | Role | Recommended DO Size |
+| Node | Hostname | Role | Actual DO Size |
 |------|----------|------|---------------------|
-| vps-1 | `k3s-master` | K3s control-plane + runs Traefik | s-2vcpu-4gb ($24/mo) |
-| vps-2 | `k3s-worker-1` | K3s worker — runs Go + Nginx pods | s-2vcpu-4gb ($24/mo) |
-| vps-3 | `k3s-worker-2` | K3s worker — runs Python consumer pods | s-2vcpu-2gb ($18/mo) |
+| vps-1 | `k3s-master` | K3s control-plane + runs Traefik | s-1vcpu-2gb ($12/mo) |
+| vps-2 | `k3s-worker-1` | K3s worker — runs Go + Nginx pods | s-1vcpu-1gb ($6/mo) |
+| vps-3 | `k3s-worker-2` | K3s worker — runs Python consumer pods | s-1vcpu-1gb ($6/mo) |
 
 All 3 in the **same DO datacenter region** (e.g., Frankfurt `fra1`) — this gives them a private network interface for inter-node communication so K3s traffic doesn't go over public internet.
 
@@ -818,8 +818,8 @@ cat ~/.kube/config | base64 -w 0
 # Copy the output
 ```
 
-- [ ] Add `KUBECONFIG_B64` to GitHub Actions secrets (repo → Settings → Secrets → Actions)
-- [ ] Add `GHCR_TOKEN` to GitHub Actions secrets
+- [x] Add `KUBECONFIG_B64` to GitHub Actions secrets (repo → Settings → Secrets → Actions)
+- [x] Add `GHCR_TOKEN` to GitHub Actions secrets
 
 ### 8.3 Create workflow — `.github/workflows/deploy.yml`
 
@@ -827,34 +827,57 @@ cat ~/.kube/config | base64 -w 0
 name: Build and Deploy
 
 on:
-  push:
+  workflow_run:
+    workflows: ["Continuous Integration"]
+    types: [completed]
     branches: [main]
 
 jobs:
-  deploy:
+  # Build and push all three Docker images to ghcr.io
+  build:
+    name: Build and Push Images
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Set lowercase owner
+        run: echo "OWNER=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+
       - name: Login to ghcr.io
         run: echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
       - name: Build and push Operational node image
         run: |
-          docker build -t ghcr.io/${{ github.repository_owner }}/investpilot-operational-node:${{ github.sha }} ./operational-node
-          docker push ghcr.io/${{ github.repository_owner }}/investpilot-operational-node:${{ github.sha }}
+          docker build -t ghcr.io/${{ env.OWNER }}/investpilot-operational-node:${{ github.sha }} ./operational-node
+          docker push ghcr.io/${{ env.OWNER }}/investpilot-operational-node:${{ github.sha }}
 
       - name: Build and push Decisional node image
         run: |
-          docker build -t ghcr.io/${{ github.repository_owner }}/investpilot-decisional-node:${{ github.sha }} ./decisional-node
-          docker push ghcr.io/${{ github.repository_owner }}/investpilot-decisional-node:${{ github.sha }}
+          docker build -t ghcr.io/${{ env.OWNER }}/investpilot-decisional-node:${{ github.sha }} ./decisional-node
+          docker push ghcr.io/${{ env.OWNER }}/investpilot-decisional-node:${{ github.sha }}
 
       - name: Build and push Nginx frontend image
+        env:
+          VITE_TURNSTILE_SITE_KEY: ${{ secrets.VITE_TURNSTILE_SITE_KEY }}
+          VITE_STRIPE_PUBLISHABLE_KEY: ${{ secrets.VITE_STRIPE_PUBLISHABLE_KEY }}
         run: |
-          docker build -t ghcr.io/${{ github.repository_owner }}/investpilot-nginx-frontend:${{ github.sha }} ./frontend
-          docker push ghcr.io/${{ github.repository_owner }}/investpilot-nginx-frontend:${{ github.sha }}
+          echo "VITE_TURNSTILE_SITE_KEY=${VITE_TURNSTILE_SITE_KEY}" > frontend/.env.production
+          echo "VITE_STRIPE_PUBLISHABLE_KEY=${VITE_STRIPE_PUBLISHABLE_KEY}" >> frontend/.env.production
+          docker build -t ghcr.io/${{ env.OWNER }}/investpilot-nginx-frontend:${{ github.sha }} ./frontend
+          docker push ghcr.io/${{ env.OWNER }}/investpilot-nginx-frontend:${{ github.sha }}
+
+  # Roll out new image tags to the Kubernetes cluster
+  deploy:
+    name: Deploy to Kubernetes
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Set lowercase owner
+        run: echo "OWNER=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
 
       - name: Set up kubectl
         run: |
@@ -863,14 +886,21 @@ jobs:
 
       - name: Update image tags in cluster
         run: |
-          kubectl set image deployment/operational-node operational-node=ghcr.io/${{ github.repository_owner }}/investpilot-operational-node:${{ github.sha }} -n investpilot
-          kubectl set image deployment/decisional-node decisional-node=ghcr.io/${{ github.repository_owner }}/investpilot-decisional-node:${{ github.sha }} -n investpilot
-          kubectl set image deployment/nginx-frontend nginx-frontend=ghcr.io/${{ github.repository_owner }}/investpilot-nginx-frontend:${{ github.sha }} -n investpilot
+          kubectl set image deployment/operational-node \
+            operational-node=ghcr.io/${{ env.OWNER }}/investpilot-operational-node:${{ github.sha }} \
+            -n investpilot
+          kubectl set image deployment/decisional-node \
+            decisional-node=ghcr.io/${{ env.OWNER }}/investpilot-decisional-node:${{ github.sha }} \
+            -n investpilot
+          kubectl set image deployment/nginx-frontend \
+            nginx-frontend=ghcr.io/${{ env.OWNER }}/investpilot-nginx-frontend:${{ github.sha }} \
+            -n investpilot
 
       - name: Wait for rollout
         run: |
           kubectl rollout status deployment/operational-node -n investpilot --timeout=120s
           kubectl rollout status deployment/nginx-frontend -n investpilot --timeout=120s
+
 ```
 
 Note: uses commit SHA as image tag (not `latest`) — each deploy is traceable and rollback is possible with `kubectl rollout undo`.
@@ -886,16 +916,16 @@ Note: uses commit SHA as image tag (not `latest`) — each deploy is traceable a
 
 Run these after full deployment to verify all system paths work end-to-end.
 
-- [ ] **Auth flow**: Register new user → verify email arrives → log in → JWT issued (Operational node)
-- [ ] **Onboarding**: Complete risk profile questionnaire → model portfolio assigned
-- [ ] **Portfolio generation**: Operational node publishes `CMD_GENERATE` → CloudAMQP receives it → Decisional node consumes → writes holdings to Supabase → Operational node returns portfolio data to frontend
-- [ ] **Forecast**: Request forecast → Operational node creates pending `ForecastResult` row → publishes `CMD_FORECAST` → Decisional node computes → writes result → frontend polling returns completed result
-- [ ] **Rebalancing**: Trigger manual rebalance (or wait for cron) → Operational node publishes `CMD_REBALANCE_USER` → Decisional node computes weight deltas → Operational node writes new holdings
-- [ ] **Stripe payment**: Complete a deposit flow → Stripe webhook received by Operational node → wallet updated
-- [ ] **DB writes visible**: Supabase dashboard → Table Editor → check `users`, `holdings`, `forecast_results` tables have data
-- [ ] **RabbitMQ traffic**: CloudAMQP dashboard → show message rates during above tests
-- [ ] **TLS valid**: Browser padlock shows Cloudflare certificate, no mixed-content warnings
-- [ ] **Cloudflare proxy active**: `curl -I https://yourdomain.com` response headers include `cf-ray` header
+- [x] **Auth flow**: Register new user → verify email arrives → log in → JWT issued (Operational node)
+- [x] **Onboarding**: Complete risk profile questionnaire → model portfolio assigned
+- [x] **Portfolio generation**: Operational node publishes `CMD_GENERATE` → CloudAMQP receives it → Decisional node consumes → writes holdings to Supabase → Operational node returns portfolio data to frontend
+- [x] **Forecast**: Request forecast → Operational node creates pending `ForecastResult` row → publishes `CMD_FORECAST` → Decisional node computes → writes result → frontend polling returns completed result
+- [x] **Rebalancing**: Trigger manual rebalance (or wait for cron) → Operational node publishes `CMD_REBALANCE_USER` → Decisional node computes weight deltas → Operational node writes new holdings
+- [x] **Stripe payment**: Complete a deposit flow → Stripe webhook received by Operational node → wallet updated
+- [x] **DB writes visible**: Supabase dashboard → Table Editor → check `users`, `holdings`, `forecast_results` tables have data
+- [x] **RabbitMQ traffic**: CloudAMQP dashboard → show message rates during above tests
+- [x] **TLS valid**: Browser padlock shows Cloudflare certificate, no mixed-content warnings
+- [x] **Cloudflare proxy active**: `curl -I https://yourdomain.com` response headers include `cf-ray` header
 
 ---
 
@@ -934,8 +964,8 @@ readinessProbe:
   initialDelaySeconds: 5
   periodSeconds: 10
 ```
-- [ ] Add liveness + readiness probes to Operational node Deployment
-- [ ] Verify probe status: `kubectl describe pod <operational-node-xxx> -n investpilot`
+- [x] Add liveness + readiness probes to Operational node Deployment
+- [x] Verify probe status: `kubectl describe pod <operational-node-xxx> -n investpilot`
 
 ### Horizontal Pod Autoscaler — scale Decisional node consumers under load
 
@@ -950,8 +980,10 @@ kubectl autoscale deployment decisional-node \
 
 ### Cloudflare firewall rules
 
-- [ ] Rate limit `/api/v1/auth/*` — max 10 requests/min per IP (prevents brute force)
-- [ ] Block non-GET requests to `/` and static asset paths (JS/CSS should never receive POST)
+- [x] Rate limit `/api/v1/auth/*` — max 10 requests/min per IP (prevents brute force)
+- [x] Block non-GET requests to `/` and static asset paths (JS/CSS should never receive POST)
+
+> This is skipped because it contains paid features. However, we have rate limiting by default on the operational node.
 
 ### Kubernetes NetworkPolicy — isolate Decisional node pod
 
@@ -975,8 +1007,38 @@ spec:
 
 ### Supabase backups
 
-- [ ] Verify automated backups enabled: Supabase dashboard → Settings → Backups
+- [x] Verify automated backups enabled: Supabase dashboard → Settings → Backups
   - Free tier: daily backups, 7-day retention (enabled by default)
+
+> N/A, free plan does not include this.
+
+### Supabase RLS — deny PostgREST access to all tables
+
+PostgREST (Supabase's auto-generated REST API) is never used in this architecture — only the Go backend talks to the DB via direct connection. Enable RLS with no policies on every table: PostgREST returns zero rows to any anonymous or authenticated Supabase client (deny-all by default), while your Go superuser connection bypasses RLS entirely and is unaffected.
+
+Run in **Supabase SQL Editor**:
+
+```sql
+-- Enable RLS on all tables
+ALTER TABLE login_attempts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE sessions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE action_tokens ENABLE ROW LEVEL SECURITY;
+ALTER TABLE wallets ENABLE ROW LEVEL SECURITY;
+ALTER TABLE fundings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE transactions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE investment_rounds ENABLE ROW LEVEL SECURITY;
+ALTER TABLE holdings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE daily_market_data ENABLE ROW LEVEL SECURITY;
+ALTER TABLE intraday_market_data ENABLE ROW LEVEL SECURITY;
+ALTER TABLE model_portfolios ENABLE ROW LEVEL SECURITY;
+ALTER TABLE forecast_results ENABLE ROW LEVEL SECURITY;
+
+-- No policies = deny all via PostgREST (Go superuser still bypasses RLS)
+```
+
+- [x] Run RLS SQL block in Supabase SQL Editor
+- [x] Verify: open Supabase Table Editor → any table → confirm "RLS enabled" badge is shown
 
 ---
 
@@ -984,11 +1046,11 @@ spec:
 
 | Item | Provider | Cost/mo |
 |------|----------|---------|
-| vps-1 (k3s-master, 2vCPU/4GB) | DigitalOcean | $24 |
-| vps-2 (k3s-worker-1, 2vCPU/4GB) | DigitalOcean | $24 |
-| vps-3 (k3s-worker-2, 2vCPU/2GB) | DigitalOcean | $18 |
+| vps-1 (k3s-master, 1vCPU/2GB) | DigitalOcean | $12 |
+| vps-2 (k3s-worker-1, 1vCPU/1GB) | DigitalOcean | $6 |
+| vps-3 (k3s-worker-2, 1vCPU/1GB) | DigitalOcean | $6 |
 | PostgreSQL | Supabase free tier | $0 |
 | RabbitMQ | CloudAMQP free tier | $0 |
 | SSL + DNS + CDN + DDoS | Cloudflare free tier | $0 |
 | Container registry | ghcr.io (GitHub) | $0 |
-| **Total** | | **~$66/mo** |
+| **Total** | | **~$24/mo** |
