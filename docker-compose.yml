@@ -43,18 +43,6 @@ services:
     networks:
       - vpc-network
 
-  # # frontend
-  # frontend:
-  #   build:
-  #     context: .
-  #     dockerfile: ./frontend/Dockerfile.dev
-  #   ports:
-  #     - "3000:80"
-  #   networks:
-  #     - vpc-network
-  #   depends_on:
-  #     - operational-node
-
   adminer:
     image: adminer
     ports:
