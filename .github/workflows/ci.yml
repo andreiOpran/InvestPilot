@@ -8,7 +8,7 @@ on:
 
 jobs:
   # Operational Node: unit tests, vet, lint 
-  go:
+  operational-node:
     name: Operational Node - Test, Vet & Lint
     runs-on: ubuntu-latest
     defaults:
@@ -54,12 +54,6 @@ jobs:
           retention-days: 7
 
   #  Decisional node: lint, syntax check, dependency audit 
-  #
-  # No pytest tests exist yet for this service. The job still provides real
-  # value: ruff catches style/logic issues, py_compile catches syntax errors
-  # in every file, and pip-audit flags CVEs in the pinned requirements.
-  # Add `pytest decisional-node/` here once test files are written.
-  # 
   decisional-node:
     name: Decisional Node - Lint, Syntax & Audit
     runs-on: ubuntu-latest
@@ -83,7 +77,7 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Install tooling
-        run: pip install ruff pip-audit
+        run: pip install ruff pip-audit pytest
 
       # ruff replaces flake8 + isort + pyupgrade - catches unused imports,
       # undefined names, bad style, common bugs
@@ -101,6 +95,9 @@ jobs:
       # the OSV/PyPI advisory database - Python equivalent of npm audit
       - name: Audit dependencies (pip-audit)
         run: pip-audit -r requirements.txt
+
+      - name: Run tests
+        run: pytest tests/ -v
 
   # Frontend: lint, type-check, build, audit 
   frontend:
