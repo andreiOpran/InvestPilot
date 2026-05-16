@@ -65,9 +65,11 @@ export function formatUSDCompact(value: number): string {
   if (abs >= 1_000_000_000) {
     return `$${sign}${(abs / 1_000_000_000).toFixed(1)}B`;
   } else if (abs >= 1_000_000) {
-    return `$${sign}${(abs / 1_000_000).toFixed(0)}M`;
+    const m = (abs / 1_000_000).toFixed(1);
+    return `$${sign}${m.endsWith(".0") ? m.slice(0, -2) : m}M`;
   } else if (abs >= 1_000) {
-    return `$${sign}${(abs / 1_000).toFixed(0)}k`;
+    const k = (abs / 1_000).toFixed(1);
+    return `$${sign}${k.endsWith(".0") ? k.slice(0, -2) : k}k`;
   } else {
     return `$${sign}${Math.floor(abs)}`;
   }
