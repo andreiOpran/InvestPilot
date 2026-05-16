@@ -93,7 +93,6 @@ build-local:
 clean:
 	@echo "Cleaning up..."
 	cd operational-node && rm -f coverage.out coverage_report.html
-	cd operational-node && rm -rf tmp/
 	find decisional-node -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null; true
 	find decisional-node -type d -name .pytest_cache -exec rm -rf {} + 2>/dev/null; true
 	rm -f decisional-node/.coverage
