@@ -105,6 +105,13 @@ export function ValueOverTime({ onInvestClick }: ValueOverTimeProps) {
           const pad = (maxVal - minVal) * 0.08 || maxVal * 0.02;
           const yDomain: [number, number] = [minVal - pad, maxVal + pad];
 
+          const range = maxVal - minVal;
+          const mid = (maxVal + minVal) / 2;
+          const useCompact = range > mid * 0.05;
+          const yTickFormatter = useCompact
+            ? formatUSDCompact
+            : (v: number) => formatUSDNoFrac(v);
+
           return (
           <div
             className="transition-opacity duration-300"
@@ -128,7 +135,7 @@ export function ValueOverTime({ onInvestClick }: ValueOverTimeProps) {
                 <YAxis
                   orientation="right"
                   domain={yDomain}
-                  tickFormatter={formatUSDCompact}
+                  tickFormatter={yTickFormatter}
                   tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
                   axisLine={false}
                   tickLine={false}
