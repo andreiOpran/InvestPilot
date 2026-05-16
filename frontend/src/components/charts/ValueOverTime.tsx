@@ -105,9 +105,9 @@ export function ValueOverTime({ onInvestClick }: ValueOverTimeProps) {
           const pad = (maxVal - minVal) * 0.08 || maxVal * 0.02;
           const yDomain: [number, number] = [minVal - pad, maxVal + pad];
 
-          const range = maxVal - minVal;
+          const valueRange = maxVal - minVal;
           const mid = (maxVal + minVal) / 2;
-          const useCompact = range > mid * 0.05;
+          const useCompact = valueRange > mid * 0.05;
           const yTickFormatter = useCompact
             ? formatUSDCompact
             : (v: number) => formatUSDNoFrac(v);
