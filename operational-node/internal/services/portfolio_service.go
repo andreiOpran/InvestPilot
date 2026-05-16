@@ -340,39 +340,7 @@ func (s *portfolioService) GetPortfolioSummary(userID uint) (*models.PortfolioSu
 
 func (s *portfolioService) GetPortfolioHistory(userID uint, timeRange string) (models.PortfolioHistoryResponse, error) {
 	now := time.Now()
-	var since time.Time
-	var interval time.Duration // if interval is left 0, it is default to 1 day
-	isIntraday := false
-
-	switch timeRange {
-	case "1D":
-		since = now.AddDate(0, 0, -1)
-		isIntraday = true
-		interval = 15 * time.Minute
-	case "1W":
-		since = now.AddDate(0, 0, -7)
-		isIntraday = true
-		interval = 1 * time.Hour
-	case "1M":
-		since = now.AddDate(0, -1, 0)
-		interval = 24 * time.Hour
-	case "6M":
-		since = now.AddDate(0, -6, 0)
-		interval = 24 * time.Hour
-	case "1Y":
-		since = now.AddDate(-1, 0, 0)
-		interval = 24 * time.Hour
-	case "YTD":
-		since = time.Date(now.Year(), 1, 1, 0, 0, 0, 0, now.Location())
-		interval = 24 * time.Hour
-	case "5Y":
-		since = now.AddDate(-5, 0, 0)
-		interval = 5 * 24 * time.Hour
-	default:
-		// default to 1M
-		since = now.AddDate(0, -1, 0)
-		interval = 24 * time.Hour
-	}
+	since, interval, isIntraday := parseHistoryTimeRange(timeRange, now)
 
 	// fetch rounds and extract unique tickers
 	rounds, err := s.portfolioRepo.GetHistoricalRounds(userID, since)
@@ -380,21 +348,7 @@ func (s *portfolioService) GetPortfolioHistory(userID uint, timeRange string) (m
 		return models.PortfolioHistoryResponse{}, err
 	}
 
-	// extract unique tickers across historical rounds,
-	// so we only fetch pricing for what was actually held
-	tickerMap := make(map[string]bool)
-	for _, r := range rounds {
-		for _, h := range r.Holdings {
-			if h.Ticker != "USD" {
-				tickerMap[h.Ticker] = true
-			}
-		}
-	}
-
-	var tickers []string
-	for t := range tickerMap {
-		tickers = append(tickers, t)
-	}
+	tickers, tickerMap := extractTickers(rounds)
 
 	// fetch pricing data
 	pricing, err := s.portfolioRepo.GetPricingData(tickers, since, isIntraday)
@@ -408,159 +362,259 @@ func (s *portfolioService) GetPortfolioHistory(userID uint, timeRange string) (m
 		return models.PortfolioHistoryResponse{}, err
 	}
 
-	// extract and sort all unique timestamps across all tickers
-	// assets might have prices recorded at slightly different timestamp,
-	// so we extract a timeline by getting unique timestamps (sorted asc)
-	timestampSet := make(map[time.Time]struct{})
-	for _, prices := range pricing {
-		for _, p := range prices {
-			ts := p.Timestamp
-
-			// aggregate multiple DB timestamps into defined interval bucket
-			if interval > 0 {
-				// round up to next boundary (14:15 -> 15:00)
-				if ts.Truncate(interval) != ts {
-					ts = ts.Add(interval).Truncate(interval)
-				}
-			}
-
-			timestampSet[ts] = struct{}{}
-		}
-	}
+	timestampSet := collectPricingTimestamps(pricing, interval)
+	effectiveSince := since // updated if intraday fallback fires
 
 	// for intraday ranges on weekends/holidays, the 24h window may fall entirely
 	// outside market hours; fall back to the last available trading session
-	effectiveSince := since // updated if intraday fallback fires
 	if isIntraday && len(timestampSet) == 0 && len(tickers) > 0 {
-		fallbackSince := since.AddDate(0, 0, -4)
-		pricing, err = s.portfolioRepo.GetPricingData(tickers, fallbackSince, isIntraday)
+		rounds, pricing, tickers, effectiveSince, timestampSet, err = s.applyIntradayFallback(userID, since, tickers, tickerMap, pricing, rounds, interval, now)
 		if err != nil {
 			return models.PortfolioHistoryResponse{}, err
-		}
-		var latestDay time.Time
-		for _, prices := range pricing {
-			for _, p := range prices {
-				if day := p.Timestamp.Truncate(24 * time.Hour); day.After(latestDay) {
-					latestDay = day
-				}
-			}
-		}
-		if !latestDay.IsZero() {
-			for _, prices := range pricing {
-				for _, p := range prices {
-					if p.Timestamp.Truncate(24 * time.Hour).Equal(latestDay) {
-						ts := p.Timestamp
-						if ts.Truncate(interval) != ts {
-							ts = ts.Add(interval).Truncate(interval)
-						}
-						if !ts.After(now) {
-							timestampSet[ts] = struct{}{}
-						}
-					}
-				}
-			}
-			// update effective window to the start of the last trading session
-			effectiveSince = latestDay
-			// re-fetch rounds so earlier rounds active during this session are included
-			rounds, err = s.portfolioRepo.GetHistoricalRounds(userID, effectiveSince)
-			if err != nil {
-				return models.PortfolioHistoryResponse{}, err
-			}
-
-			// find tickers in the extended rounds that weren't in the original set
-			var deltaTickers []string
-			for _, r := range rounds {
-				for _, h := range r.Holdings {
-					if h.Ticker != "USD" && !tickerMap[h.Ticker] {
-						tickerMap[h.Ticker] = true
-						deltaTickers = append(deltaTickers, h.Ticker)
-					}
-				}
-			}
-
-			// only fetch pricing for the genuinely new tickers
-			if len(deltaTickers) > 0 {
-				deltaPricing, err := s.portfolioRepo.GetPricingData(deltaTickers, effectiveSince, isIntraday)
-				if err != nil {
-					return models.PortfolioHistoryResponse{}, err
-				}
-				for ticker, prices := range deltaPricing {
-					pricing[ticker] = prices
-				}
-				tickers = append(tickers, deltaTickers...)
-			}
 		}
 	}
 
 	// if USD-only portfolio, generate anchored timestamps to real market data
 	// so the chart aligns with actual trading hours instead of synthetic intervals
 	if len(tickers) == 0 {
-		marketTimestamps, err := s.portfolioRepo.GetMarketTimestamps(since, isIntraday)
+		timestampSet, err = s.buildUSDTimestampSet(since, isIntraday, interval, now)
 		if err != nil {
 			return models.PortfolioHistoryResponse{}, err
 		}
-
-		// if intraday window is empty (weekend/holiday), fall back to last trading session
-		if isIntraday && len(marketTimestamps) == 0 {
-			marketTimestamps, err = s.portfolioRepo.GetMarketTimestamps(since.AddDate(0, 0, -4), isIntraday)
-			if err != nil {
-				return models.PortfolioHistoryResponse{}, err
-			}
-			var latestDay time.Time
-			for _, ts := range marketTimestamps {
-				if day := ts.Truncate(24 * time.Hour); day.After(latestDay) {
-					latestDay = day
-				}
-			}
-			filtered := marketTimestamps[:0]
-			for _, ts := range marketTimestamps {
-				if ts.Truncate(24 * time.Hour).Equal(latestDay) {
-					filtered = append(filtered, ts)
-				}
-			}
-			marketTimestamps = filtered
-		}
-
-		for _, ts := range marketTimestamps {
-			if interval > 0 {
-				if ts.Truncate(interval) != ts {
-					ts = ts.Add(interval).Truncate(interval)
-				}
-				if ts.After(now) {
-					continue
-				}
-			}
-			timestampSet[ts] = struct{}{}
-		}
 	}
 
-	var allTimestamps []time.Time
-	for t := range timestampSet {
-		allTimestamps = append(allTimestamps, t)
-	}
-	sort.Slice(allTimestamps, func(i, j int) bool {
-		return allTimestamps[i].Before(allTimestamps[j])
-	})
+	allTimestamps := sortedTimestamps(timestampSet)
 
-	// build time series
-	dataPoints := []models.PortfolioHistoryPoint{}
-
-	// state trackers for algorithmic traversal
-	priceIndices := make(map[string]int)
 	// pre-seed with pre-window prices so seed round holdings are valued from timestamp zero
 	lastKnownPrices, err := s.portfolioRepo.GetPricesBeforeWindow(tickers, effectiveSince, isIntraday)
 	if err != nil {
 		return models.PortfolioHistoryResponse{}, err
 	}
 
+	return models.PortfolioHistoryResponse{
+		Range: timeRange,
+		Data:  buildDataPoints(allTimestamps, tickers, pricing, rounds, transactions, lastKnownPrices),
+	}, nil
+}
+
+func parseHistoryTimeRange(timeRange string, now time.Time) (since time.Time, interval time.Duration, isIntraday bool) {
+	switch timeRange {
+	case "1D":
+		return now.AddDate(0, 0, -1), 15 * time.Minute, true
+	case "1W":
+		return now.AddDate(0, 0, -7), 1 * time.Hour, true
+	case "1M":
+		return now.AddDate(0, -1, 0), 24 * time.Hour, false
+	case "6M":
+		return now.AddDate(0, -6, 0), 24 * time.Hour, false
+	case "1Y":
+		return now.AddDate(-1, 0, 0), 24 * time.Hour, false
+	case "YTD":
+		return time.Date(now.Year(), 1, 1, 0, 0, 0, 0, now.Location()), 24 * time.Hour, false
+	case "5Y":
+		return now.AddDate(-5, 0, 0), 5 * 24 * time.Hour, false
+	default:
+		// default to 1M
+		return now.AddDate(0, -1, 0), 24 * time.Hour, false
+	}
+}
+
+func extractTickers(rounds []models.InvestmentRound) ([]string, map[string]bool) {
+	// extract unique tickers across historical rounds,
+	// so we only fetch pricing for what was actually held
+	tickerMap := make(map[string]bool)
+	for _, r := range rounds {
+		for _, h := range r.Holdings {
+			if h.Ticker != "USD" {
+				tickerMap[h.Ticker] = true
+			}
+		}
+	}
+	tickers := make([]string, 0, len(tickerMap))
+	for t := range tickerMap {
+		tickers = append(tickers, t)
+	}
+	return tickers, tickerMap
+}
+
+// bucketTimestamp rounds ts up to the next interval boundary (e.g. 14:15 -> 15:00)
+func bucketTimestamp(ts time.Time, interval time.Duration) time.Time {
+	if interval > 0 && ts.Truncate(interval) != ts {
+		// round up to next boundary (14:15 -> 15:00)
+		return ts.Add(interval).Truncate(interval)
+	}
+	return ts
+}
+
+// collectPricingTimestamps extracts and deduplicates all unique timestamps across all tickers
+// Assets may have prices recorded at slightly different timestamps, so we build a unified
+// timeline by collecting unique bucketed timestamps (sorted asc by the caller)
+func collectPricingTimestamps(pricing map[string][]models.AssetPricePoint, interval time.Duration) map[time.Time]struct{} {
+	set := make(map[time.Time]struct{})
+	for _, prices := range pricing {
+		for _, p := range prices {
+			// aggregate multiple DB timestamps into defined interval bucket
+			set[bucketTimestamp(p.Timestamp, interval)] = struct{}{}
+		}
+	}
+	return set
+}
+
+// applyIntradayFallback handles the case where the current 24h/7d window falls entirely
+// outside market hours (weekend/holiday). It looks back up to 4 days to find the last
+// trading session and rebuilds rounds, pricing, tickers, and the timestamp set for that session
+func (s *portfolioService) applyIntradayFallback(
+	userID uint,
+	since time.Time,
+	tickers []string,
+	tickerMap map[string]bool,
+	pricing map[string][]models.AssetPricePoint,
+	rounds []models.InvestmentRound,
+	interval time.Duration,
+	now time.Time,
+) ([]models.InvestmentRound, map[string][]models.AssetPricePoint, []string, time.Time, map[time.Time]struct{}, error) {
+	var err error
+	pricing, err = s.portfolioRepo.GetPricingData(tickers, since.AddDate(0, 0, -4), true)
+	if err != nil {
+		return nil, nil, nil, since, nil, err
+	}
+
+	var latestDay time.Time
+	for _, prices := range pricing {
+		for _, p := range prices {
+			if day := p.Timestamp.Truncate(24 * time.Hour); day.After(latestDay) {
+				latestDay = day
+			}
+		}
+	}
+
+	timestampSet := make(map[time.Time]struct{})
+	if latestDay.IsZero() {
+		return rounds, pricing, tickers, since, timestampSet, nil
+	}
+
+	for _, prices := range pricing {
+		for _, p := range prices {
+			if p.Timestamp.Truncate(24 * time.Hour).Equal(latestDay) {
+				ts := bucketTimestamp(p.Timestamp, interval)
+				if !ts.After(now) {
+					timestampSet[ts] = struct{}{}
+				}
+			}
+		}
+	}
+
+	// update effective window to the start of the last trading session
+	effectiveSince := latestDay
+
+	// re-fetch rounds so earlier rounds active during this session are included
+	rounds, err = s.portfolioRepo.GetHistoricalRounds(userID, effectiveSince)
+	if err != nil {
+		return nil, nil, nil, effectiveSince, nil, err
+	}
+
+	// find tickers in the extended rounds that weren't in the original set
+	var deltaTickers []string
+	for _, r := range rounds {
+		for _, h := range r.Holdings {
+			if h.Ticker != "USD" && !tickerMap[h.Ticker] {
+				tickerMap[h.Ticker] = true
+				deltaTickers = append(deltaTickers, h.Ticker)
+			}
+		}
+	}
+
+	// only fetch pricing for the genuinely new tickers
+	if len(deltaTickers) > 0 {
+		deltaPricing, err := s.portfolioRepo.GetPricingData(deltaTickers, effectiveSince, true)
+		if err != nil {
+			return nil, nil, nil, effectiveSince, nil, err
+		}
+		for ticker, prices := range deltaPricing {
+			pricing[ticker] = prices
+		}
+		tickers = append(tickers, deltaTickers...)
+	}
+
+	return rounds, pricing, tickers, effectiveSince, timestampSet, nil
+}
+
+// buildUSDTimestampSet returns market-anchored timestamps for a USD-only portfolio,
+// falling back to the last trading session when the intraday window is empty.
+func (s *portfolioService) buildUSDTimestampSet(
+	since time.Time,
+	isIntraday bool,
+	interval time.Duration,
+	now time.Time,
+) (map[time.Time]struct{}, error) {
+	marketTimestamps, err := s.portfolioRepo.GetMarketTimestamps(since, isIntraday)
+	if err != nil {
+		return nil, err
+	}
+
+	// if intraday window is empty (weekend/holiday), fall back to last trading session
+	if isIntraday && len(marketTimestamps) == 0 {
+		marketTimestamps, err = s.portfolioRepo.GetMarketTimestamps(since.AddDate(0, 0, -4), isIntraday)
+		if err != nil {
+			return nil, err
+		}
+		var latestDay time.Time
+		for _, ts := range marketTimestamps {
+			if day := ts.Truncate(24 * time.Hour); day.After(latestDay) {
+				latestDay = day
+			}
+		}
+		filtered := marketTimestamps[:0]
+		for _, ts := range marketTimestamps {
+			if ts.Truncate(24 * time.Hour).Equal(latestDay) {
+				filtered = append(filtered, ts)
+			}
+		}
+		marketTimestamps = filtered
+	}
+
+	set := make(map[time.Time]struct{})
+	for _, ts := range marketTimestamps {
+		bucketed := bucketTimestamp(ts, interval)
+		if interval > 0 && bucketed.After(now) {
+			continue
+		}
+		set[bucketed] = struct{}{}
+	}
+	return set, nil
+}
+
+func sortedTimestamps(set map[time.Time]struct{}) []time.Time {
+	result := make([]time.Time, 0, len(set))
+	for t := range set {
+		result = append(result, t)
+	}
+	sort.Slice(result, func(i, j int) bool {
+		return result[i].Before(result[j])
+	})
+	return result
+}
+
+// buildDataPoints walks the sorted timeline and computes portfolio value, net contributions,
+// and return percentage at each timestamp. lastKnownPrices is mutated in-place as a price board.
+func buildDataPoints(
+	allTimestamps []time.Time,
+	tickers []string,
+	pricing map[string][]models.AssetPricePoint,
+	rounds []models.InvestmentRound,
+	transactions []models.Transaction,
+	lastKnownPrices map[string]float64,
+) []models.PortfolioHistoryPoint {
+	// state trackers for algorithmic traversal
+	priceIndices := make(map[string]int)
 	// store values from the first day of the interval
 	// to have as a comparison for return percentages
-	var baselinePortfolioValue float64
-	var baselineNetContributions float64
+	var baselinePortfolioValue, baselineNetContributions float64
+	dataPoints := make([]models.PortfolioHistoryPoint, 0, len(allTimestamps))
 
 	for i, t := range allTimestamps {
 		// update current price board for this specific timestamp
-		// advance a pointer for each ticker , using last known
+		// advance a pointer for each ticker, using last known
 		// price to handle mismatched pricing timestamps
 		for _, ticker := range tickers {
 			prices := pricing[ticker]
@@ -592,10 +646,8 @@ func (s *portfolioService) GetPortfolioHistory(userID uint, timeRange string) (m
 				if h.Ticker == "USD" {
 					// for USD, shares represent cash value
 					portfolioValue += h.Shares
-				} else {
-					if price, ok := lastKnownPrices[h.Ticker]; ok {
-						portfolioValue += h.Shares * price
-					}
+				} else if price, ok := lastKnownPrices[h.Ticker]; ok {
+					portfolioValue += h.Shares * price
 				}
 			}
 		}
@@ -641,8 +693,5 @@ func (s *portfolioService) GetPortfolioHistory(userID uint, timeRange string) (m
 		})
 	}
 
-	return models.PortfolioHistoryResponse{
-		Range: timeRange,
-		Data:  dataPoints,
-	}, nil
+	return dataPoints
 }
