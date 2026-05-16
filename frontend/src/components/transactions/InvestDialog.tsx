@@ -120,7 +120,7 @@ export function InvestDialog({ open, onOpenChange, onSuccess }: InvestDialogProp
                 label="Confirm Investment"
                 onConfirm={form.handleSubmit(onSubmit)}
                 isLoading={isSubmitting}
-                disabled={!amount || amount <= 0}
+                disabled={!amount || amount <= 0 || amount > (user?.wallet_balance ?? 0)}
                 open={open}
               />
             </div>
