@@ -991,7 +991,7 @@ kubectl autoscale deployment decisional-node \
 
 ### Kubernetes NetworkPolicy — isolate Decisional node pod
 
-Decisional node should only make outbound connections (to RabbitMQ and DB). It should never receive inbound HTTP. A NetworkPolicy enforces this at the network level:
+Decisional node should only make outbound connections (to RabbitMQ and DB). It should never receive inbound HTTP — except Prometheus scraping on port 9090 from Grafana Agent (`monitoring` namespace). A NetworkPolicy enforces this at the network level:
 ```yaml
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
@@ -1004,10 +1004,20 @@ spec:
       app: decisional-node
   policyTypes:
     - Ingress
-  ingress: []  # deny all inbound
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: monitoring
+      ports:
+        - protocol: TCP
+          port: 9090
 ```
+> **Note:** `ingress: []` (deny all) blocked Grafana Agent from scraping port 9090 — decisional node exposes Prometheus metrics via `prometheus_client.start_http_server(9090)`. The rule above allows inbound 9090 from `monitoring` ns only; all other inbound remains denied.
+
 - [x] Apply NetworkPolicy for Decisional node pod
 - [x] Verify Operational node pods can still reach Supabase + CloudAMQP (outbound not affected)
+- [x] Fix: allow inbound TCP 9090 from `monitoring` namespace for Prometheus scraping
 
 ### Supabase backups
 
