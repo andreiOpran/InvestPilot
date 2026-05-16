@@ -576,9 +576,9 @@ func (s *portfolioService) GetPortfolioHistory(userID uint, timeRange string) (m
 		// determine active portfolio composition by finding the
 		// InvestmentRound that was active exactly at timestamp 't'
 		var activeRound *models.InvestmentRound
-		for i := range rounds {
-			if rounds[i].CreatedAt.Before(t) || rounds[i].CreatedAt.Equal(t) {
-				activeRound = &rounds[i]
+		for j := range rounds {
+			if rounds[j].CreatedAt.Before(t) || rounds[j].CreatedAt.Equal(t) {
+				activeRound = &rounds[j]
 			} else {
 				// because rounds are fetched sorted by CreatedAt, we can shortcircuit
 				break
