@@ -9,3 +9,4 @@ __pycache__/
 decisional-node/debug_output*/
 *-secrets.yaml
 .coverage
+operational-node/tmp/
