@@ -6,7 +6,7 @@ LAYOUT_LANDSCAPE()
 Person(investor, "Investor", "Monitors investments and manages cash flow. Portfolio allocation is handled automatically by the platform.")
 
 System_Ext(cloudflare, "Cloudflare", "CDN and TLS proxy. Sits in the request path in front of the frontend.")
-System_Ext(stripe, "Stripe", "Payment processing (Sandbox / Paper Trading)")
+System_Ext(stripe, "Stripe", "Payment processing (Sandbox mode)")
 System_Ext(yfinance, "Yahoo Finance", "ETF historical closing prices fetched via yfinance library")
 
 System_Boundary(investpilot, "InvestPilot") {
