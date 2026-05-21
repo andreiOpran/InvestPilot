@@ -18,7 +18,7 @@ System_Boundary(investpilot, "InvestPilot") {
 
     Container(decisional, "Nodul Decizional", "Python 3 + Pika", "Motor matematic fără stare. Consumă comenzi RabbitMQ: CMD_SYNC_DAILY, CMD_SYNC_INTRADAY, CMD_GENERATE, CMD_REBALANCE_USER, CMD_FORECAST. Rulează HRP, simulare Monte Carlo, sincronizare yfinance (5 ani historical + 15 min intraday). Scrie doar DML, niciodată DDL.")
 
-    Container(scheduler, "Planificator Pipeline", "K8s CronJob (producție) / GoCron (dev local)")
+    Container(scheduler, "Planificator Pipeline", "K8s CronJob (producție) / robfig/cron (dev local)")
 
     Container(rabbitmq, "RabbitMQ", "CloudAMQP (administrat)", "Bus asincron de comenzi. Coadă durabilă: cmd_queue. Pattern RPC prin correlation_id pentru comenzi sincrone precum CMD_REBALANCE_USER.")
 

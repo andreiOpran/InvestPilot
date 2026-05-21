@@ -18,7 +18,7 @@ System_Boundary(investpilot, "InvestPilot") {
 
     Container(decisional, "Decisional Node", "Python 3 + Pika", "Stateless math engine. Consumes RabbitMQ commands: CMD_SYNC_DAILY, CMD_SYNC_INTRADAY, CMD_GENERATE, CMD_REBALANCE_USER, CMD_FORECAST. Runs HRP, Monte Carlo simulation, yfinance sync (5y historical + 15-min intraday). Writes DML only, never DDL.")
 
-    Container(scheduler, "Pipeline Scheduler", "K8s CronJob (prod) / GoCron (local dev)")
+    Container(scheduler, "Pipeline Scheduler", "K8s CronJob (prod) / robfig/cron (local dev)")
 
     Container(rabbitmq, "RabbitMQ", "CloudAMQP (managed)", "Async command bus. Durable queue: cmd_queue. RPC pattern via correlation_id for synchronous commands like CMD_REBALANCE_USER.")
 

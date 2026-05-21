@@ -58,7 +58,7 @@ else Sell within bounds
     Go --> SPA : 200 OK
 end
 
-== Monthly Rebalance (K8s CronJob → prod / GoCron → local dev) ==
+== Monthly Rebalance (K8s CronJob → prod / robfig/cron → local dev) ==
 
 [-> Go : POST /internal/rebalance
 

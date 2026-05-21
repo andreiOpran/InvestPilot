@@ -58,7 +58,7 @@ else Vânzare în limite
     Go --> SPA : 200 OK
 end
 
-== Rebalansare Lunară (K8s CronJob → prod / GoCron → dev local) ==
+== Rebalansare Lunară (K8s CronJob → prod / robfig/cron → dev local) ==
 
 [-> Go : POST /internal/rebalance
 
