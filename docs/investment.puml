@@ -1,0 +1,79 @@
+@startuml InvestPilot-Sequence-Investment
+skinparam defaultFontSize 10
+skinparam defaultFontName Arial
+skinparam sequenceArrowThickness 1
+skinparam sequenceGroupBorderThickness 1
+
+actor "Investor" as User
+participant "React SPA" as SPA
+participant "Operational Node\n(Go)" as Go
+participant "RabbitMQ\ncmd_queue" as MQ
+participant "Decisional Node\n(Python)" as Python
+database "PostgreSQL" as DB
+
+
+== Invest (Cash → Portfolio) ==
+
+User -> SPA : Click "Invest" (amount)
+SPA -> Go : POST /api/v1/invest
+Go -> DB : SELECT wallet (validate balance)\nSELECT active investment_round + holdings
+
+alt First investment
+    Go -> DB : INSERT investment_round\nINSERT holding (ticker=USD, weight=1.0,\nshares=amount, purchase_price=1.0)
+else Has existing portfolio
+    Go -> Go : Carry forward existing ticker holdings\nAdd/increase USD holding for new cash
+    Go -> DB : Deactivate old investment_round\nINSERT new investment_round with:\n  · existing ETF holdings (unchanged)\n  · USD holding (new cash amount)
+end
+
+Go -> DB : UPDATE wallets SET balance -= amount\nINSERT transactions (type=INVEST)
+Go --> SPA : 200 OK
+
+note over DB : New cash sits as a USD holding\nuntil the next monthly rebalance
+
+== Sell (Portfolio → Wallet) ==
+
+User -> SPA : Click "Sell" (amount)
+SPA -> Go : POST /api/v1/sell
+Go -> DB : SELECT active investment_round + holdings\nSELECT latest intraday prices (non-USD tickers)
+Go -> Go : Compute live total value\n(shares × current_price per holding)
+
+alt amount > live total value
+    Go --> SPA : 400 Bad Request - sell exceeds portfolio value
+else Sell within bounds
+    Go -> Go : **Pass 1 - drain USD first**\nconsumed = min(USD.shares, remainingToSell)\nremainingToSell -= consumed
+
+    alt USD covered full amount
+        Go -> Go : Copy all ETF holdings unchanged\nUSD holding reduced or dropped
+    else USD not enough - Pass 2: proportional ETF sell
+        Go -> Go : totalETFValue = Σ(shares × price) for ETFs\nfraction = remainingToSell / totalETFValue\nPer ETF: newShares = shares × (1 − fraction)\nDrop dust positions (newShares × price < $0.01)
+    end
+
+    alt Remaining portfolio value < $0.01 (full liquidation)
+        Go -> DB : Deactivate old investment_round\n(no new round created)
+    else Partial sell
+        Go -> DB : Deactivate old investment_round\nINSERT new investment_round + reduced holdings
+    end
+
+    Go -> DB : UPDATE wallets SET balance += amount\nINSERT transactions (type=SELL)
+    Go --> SPA : 200 OK
+end
+
+== Monthly Rebalance (K8s CronJob → prod / GoCron → local dev) ==
+
+[-> Go : POST /internal/rebalance
+
+Go -> DB : Fetch model_portfolios (HRP weights per bucket_key)\nFetch latest closing prices\nGet max InvestmentRound ID (ceiling)
+
+loop Paginate active investment_rounds (batch size N)
+    Go -> DB : SELECT active rounds WITH holdings + user profile
+    Go -> Go : Per user: derive bucket_key\n(risk_N_horizon_short/medium/long)\nMap current holdings → current_allocation\nLook up target_weights from model_portfolios
+    Go -> MQ : PublishRPC CMD_REBALANCE_BATCH\n{users: [{request_id, current_allocation,\ntarget_weights}], threshold, cash_first}
+    MQ -> Python : Deliver CMD_REBALANCE_BATCH
+    Python -> Python : Per user: apply cash-first rule\ncompute weight deltas\nskip assets below threshold
+    Python --> MQ : Reply {results: [{request_id,\nadjusted_targets, skipped}]}
+    MQ --> Go : RPC response (CorrelationId match)
+    Go -> Go : Per user: compute shares\n(weight × total_value / closing_price)
+    Go -> DB : Atomic swap:\nINSERT new investment_round + ETF holdings\nSET old investment_round is_active=false
+end
+
+@enduml

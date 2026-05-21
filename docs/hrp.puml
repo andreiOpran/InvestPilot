@@ -1,0 +1,103 @@
+@startuml InvestPilot-HRP-Algorithm
+' left to right direction
+
+skinparam defaultFontSize 10
+skinparam defaultFontName Arial
+skinparam StateBorderColor #333333
+skinparam StateBackgroundColor #FFFFFF
+skinparam ArrowColor #555555
+
+title HRP Portfolio Generation - CMD_GENERATE
+
+[*] --> DataPrep
+
+state "Data Preparation" as DataPrep {
+  [*] --> FetchData
+  FetchData : Fetch 5y daily closing prices\nfrom daily_market_data (DB)
+  FetchData --> PivotData
+  PivotData : Pivot to wide format\n(rows = dates, cols = tickers)
+  PivotData --> ComputeReturns
+  ComputeReturns : Compute daily returns via pct_change()
+}
+
+DataPrep --> SharpFilter
+
+state "Equity Selection (Sharpe Filter)" as SharpFilter {
+  [*] --> ComputeSharpe
+  ComputeSharpe : Compute annualised Sharpe ratio per ticker\n(mean × 252) / (std × sqrt(252))
+  ComputeSharpe --> KeepTopN
+  KeepTopN : Keep top N equities by Sharpe\n(N from Go config payload)
+}
+
+SharpFilter --> HRPEquity
+SharpFilter --> HRPBond
+
+state "HRP - Equity Universe" as HRPEquity {
+  [*] --> EquityReturns
+  EquityReturns : Filtered equity returns
+}
+
+state "HRP - Bond Universe" as HRPBond {
+  [*] --> BondReturns
+  BondReturns : All bond returns
+}
+
+HRPEquity --> PhaseA
+HRPBond --> PhaseA
+
+state "Phase A - Statistical Base" as PhaseA {
+  [*] --> CovMatrix
+  CovMatrix : Covariance matrix\n(how assets co-move in absolute terms)
+  CovMatrix --> CorrMatrix
+  CorrMatrix : Correlation matrix\n(scale-independent, used for clustering)
+}
+
+PhaseA --> PhaseB
+
+state "Phase B - Hierarchical Clustering" as PhaseB {
+  [*] --> DistMatrix
+  DistMatrix : Distance matrix\ndist = sqrt( 0.5 × (1 - corr) )
+  DistMatrix --> BuildTree
+  BuildTree : Build cluster tree via\nsingle-linkage agglomeration (scipy linkage)
+  BuildTree --> QuasiDiag
+  QuasiDiag : Reorder assets so similar assets adjacent\n(quasi-diagonalisation)
+}
+
+PhaseB --> PhaseC
+
+state "Phase C - Recursive Bisection" as PhaseC {
+  [*] --> InitWeights
+  InitWeights : Initialise weight budgets = 1.0 for all assets
+  InitWeights --> SplitClusters
+  SplitClusters : Split cluster into left / right halves
+  SplitClusters --> ComputeIVP
+  ComputeIVP : IVP cluster variance per half\nvar = w' × cov × w
+  ComputeIVP --> ComputeAlpha
+  ComputeAlpha : alpha = 1 - var_left / (var_left + var_right)\nriskier cluster gets less weight
+  ComputeAlpha --> UpdateBudgets
+  UpdateBudgets : weight_budgets[left]  *= alpha\nweight_budgets[right] *= (1 - alpha)
+  UpdateBudgets --> SplitClusters : more clusters remain
+  UpdateBudgets --> HRPWeights : single-asset clusters only
+  HRPWeights : HRP weights per universe (sum = 1.0)
+}
+
+PhaseC --> MacroBlend
+
+state "Macro Allocation Blend" as MacroBlend {
+  [*] --> BlendWeights
+  BlendWeights : Blend equity + bond weights\nvia base_equity_allocation table
+  BlendWeights --> ApplyHorizon
+  ApplyHorizon : Apply horizon multipliers\n(long horizon → more equity)
+  ApplyHorizon --> ClampCap
+  ClampCap : Clamp to max_equity_cap
+  ClampCap --> DropSmall
+  DropSmall : Drop tickers below weight_threshold\nand renormalise
+}
+
+MacroBlend --> GenerateBuckets
+GenerateBuckets : Generate all 15 bucket keys\n(risk 1..5 × short / medium / long)
+GenerateBuckets --> Upsert
+Upsert : UPSERT into model_portfolios\n(bucket_key, weights JSON, computed_at)
+Upsert --> [*]
+
+@enduml
