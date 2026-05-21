@@ -37,6 +37,7 @@ rectangle "DigitalOcean - Cluster K3s" as K3S {
 
 node "Stripe\nSandbox Plăți" as StripeExt
 node "Yahoo Finance\nyfinance" as YFin
+node "Resend\nAPI Email Tranzacțional" as ResendExt
 
 database "Supabase\nPostgreSQL Administrat\nmod sesiune · :5432" as PG
 database "CloudAMQP\nRabbitMQ Administrat\ncmd_queue (durabilă)" as AMQP
@@ -68,5 +69,7 @@ Python --> YFin : HTTPS
 Agent --> Go : scrape :8081/metrics
 Agent --> Python : scrape :9090/metrics
 Agent --> GCInner : remote_write HTTPS
+Go --> ResendExt : HTTPS
+' ResendExt -[hidden]-> StripeExt
 
 @enduml

@@ -8,6 +8,7 @@ Person(investor, "Investitor", "Monitorizează investițiile și gestionează fl
 System_Ext(cloudflare, "Cloudflare", "CDN și proxy TLS. Se află în calea cererilor, în fața frontend-ului.")
 System_Ext(stripe, "Stripe", "Procesarea plăților (Sandbox mode)")
 System_Ext(yfinance, "Yahoo Finance", "Prețuri istorice de închidere ETF preluate prin biblioteca yfinance")
+System_Ext(mailer, "Furnizor Email", "Resend API (producție) / Gmail SMTP (dev local). Trimite verificare email, resetare parolă, confirmare depunere și alerte blocare cont.")
 
 System_Boundary(investpilot, "InvestPilot") {
 
@@ -35,5 +36,8 @@ Rel(operational, postgres, "Citire/Scriere", "TCP")
 Rel(decisional, postgres, "Scrie rezultate (doar DML)", "TCP")
 Rel(operational, stripe, "Creare intenție de plată, verificare webhook", "HTTPS")
 Rel(decisional, yfinance, "Preia 5 ani date istorice + 15 min intraday ETF", "HTTPS")
+Rel(operational, mailer, "Trimitere emailuri tranzacționale", "HTTPS (prod) / SMTP (dev)")
+
+Lay_R(mailer, stripe)
 
 @enduml

@@ -8,6 +8,7 @@ Person(investor, "Investor", "Monitors investments and manages cash flow. Portfo
 System_Ext(cloudflare, "Cloudflare", "CDN and TLS proxy. Sits in the request path in front of the frontend.")
 System_Ext(stripe, "Stripe", "Payment processing (Sandbox mode)")
 System_Ext(yfinance, "Yahoo Finance", "ETF historical closing prices fetched via yfinance library")
+System_Ext(mailer, "Email Provider", "Resend API (prod) / Gmail SMTP (local dev). Sends email verification, password reset, deposit confirmation and account lockout alerts.")
 
 System_Boundary(investpilot, "InvestPilot") {
 
@@ -35,5 +36,8 @@ Rel(operational, postgres, "Read/Write", "TCP")
 Rel(decisional, postgres, "Write results (DML only)", "TCP")
 Rel(operational, stripe, "Create payment intent, verify webhook", "HTTPS")
 Rel(decisional, yfinance, "Fetch 5y historical + 15-min intraday ETF data", "HTTPS")
+Rel(operational, mailer, "Send transactional emails", "HTTPS (prod) / SMTP (dev)")
+
+Lay_R(mailer, stripe)
 
 @enduml
