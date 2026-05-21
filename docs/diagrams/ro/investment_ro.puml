@@ -1,0 +1,79 @@
+@startuml InvestPilot-Sequence-Investment-RO
+skinparam defaultFontSize 10
+skinparam defaultFontName Arial
+skinparam sequenceArrowThickness 1
+skinparam sequenceGroupBorderThickness 1
+
+actor "Investitor" as User
+participant "React SPA" as SPA
+participant "Nodul Operațional\n(Go)" as Go
+participant "RabbitMQ\ncmd_queue" as MQ
+participant "Nodul Decizional\n(Python)" as Python
+database "PostgreSQL" as DB
+
+
+== Investiție (Numerar → Portofoliu) ==
+
+User -> SPA : Click "Investește" (sumă)
+SPA -> Go : POST /api/v1/invest
+Go -> DB : SELECT wallet (validare sold)\nSELECT investment_round activ + holdings
+
+alt Prima investiție
+    Go -> DB : INSERT investment_round\nINSERT holding (ticker=USD, weight=1.0,\nshares=amount, purchase_price=1.0)
+else Portofoliu existent
+    Go -> Go : Păstrare holdings existente\nAdăugare/mărire holding USD pentru numerar nou
+    Go -> DB : Dezactivare investment_round vechi\nINSERT investment_round nou cu:\n  · ETF holdings existente (nemodificate)\n  · USD holding (suma nouă în numerar)
+end
+
+Go -> DB : UPDATE wallets SET balance -= amount\nINSERT transactions (type=INVEST)
+Go --> SPA : 200 OK
+
+note over DB : Numerarul nou stă ca un USD holding\npână la următoarea rebalansare lunară
+
+== Vânzare (Portofoliu → Portofel) ==
+
+User -> SPA : Click "Vinde" (sumă)
+SPA -> Go : POST /api/v1/sell
+Go -> DB : SELECT investment_round activ + holdings\nSELECT ultimele prețuri intraday (tickers non-USD)
+Go -> Go : Calcul valoare totală curentă\n(acțiuni × preț_curent per holding)
+
+alt sumă > valoare totală curentă
+    Go --> SPA : 400 Bad Request - vânzarea depășește valoarea portofoliului
+else Vânzare în limite
+    Go -> Go : **Pasul 1 - epuizare USD mai întâi**\nconsumed = min(USD.shares, remainingToSell)\nremainingToSell -= consumed
+
+    alt USD acoperă suma integrală
+        Go -> Go : Copiere toate ETF holdings nemodificate\nUSD holding redus sau eliminat
+    else USD insuficient - Pasul 2: vânzare proporțională ETF
+        Go -> Go : totalETFValue = Σ(shares × price) pentru ETF-uri\nfracție = remainingToSell / totalETFValue\nPer ETF: newShares = shares × (1 − fracție)\nEliminare poziții reziduale (newShares × price < $0.01)
+    end
+
+    alt Valoare portofoliu rămas < $0.01 (lichidare totală)
+        Go -> DB : Dezactivare investment_round vechi\n(niciun round nou creat)
+    else Vânzare parțială
+        Go -> DB : Dezactivare investment_round vechi\nINSERT investment_round nou + holdings reduse
+    end
+
+    Go -> DB : UPDATE wallets SET balance += amount\nINSERT transactions (type=SELL)
+    Go --> SPA : 200 OK
+end
+
+== Rebalansare Lunară (K8s CronJob → prod / GoCron → dev local) ==
+
+[-> Go : POST /internal/rebalance
+
+Go -> DB : Preluare model_portfolios (ponderi HRP per bucket_key)\nPreluare ultimele prețuri de închidere\nObtinere max InvestmentRound ID (plafon)
+
+loop Paginare investment_rounds active (batch de N)
+    Go -> DB : SELECT runde active CU holdings + profil utilizator
+    Go -> Go : Per utilizator: derivare bucket_key\n(risk_N_horizon_short/medium/long)\nMapare holdings curente → alocare_curentă\nCăutare target_weights din model_portfolios
+    Go -> MQ : PublishRPC CMD_REBALANCE_BATCH\n{users: [{request_id, current_allocation,\ntarget_weights}], threshold, cash_first}
+    MQ -> Python : Livrare CMD_REBALANCE_BATCH
+    Python -> Python : Per utilizator: aplicare regulă cash-first\ncalcul deltas ponderi\nomitere active sub prag
+    Python --> MQ : Reply {results: [{request_id,\nadjusted_targets, skipped}]}
+    MQ --> Go : Răspuns RPC (potrivire CorrelationId)
+    Go -> Go : Per utilizator: calcul acțiuni\n(pondere × valoare_totală / preț_închidere)
+    Go -> DB : Schimb atomic:\nINSERT investment_round nou + ETF holdings\nSET old investment_round is_active=false
+end
+
+@enduml

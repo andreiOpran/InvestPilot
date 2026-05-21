@@ -1,0 +1,103 @@
+@startuml InvestPilot-HRP-Algorithm-RO
+' left to right direction
+
+skinparam defaultFontSize 10
+skinparam defaultFontName Arial
+skinparam StateBorderColor #333333
+skinparam StateBackgroundColor #FFFFFF
+skinparam ArrowColor #555555
+
+title Generare Portofoliu HRP - CMD_GENERATE
+
+[*] --> DataPrep
+
+state "Pregătire Date" as DataPrep {
+  [*] --> FetchData
+  FetchData : Preluare prețuri zilnice de închidere pe 5 ani\ndin daily_market_data (DB)
+  FetchData --> PivotData
+  PivotData : Pivotare în format lat\n(rânduri = date, coloane = tickers)
+  PivotData --> ComputeReturns
+  ComputeReturns : Calcul randamente zilnice prin pct_change()
+}
+
+DataPrep --> SharpFilter
+
+state "Selecție Acțiuni (Filtru Sharpe)" as SharpFilter {
+  [*] --> ComputeSharpe
+  ComputeSharpe : Calcul raport Sharpe anual per ticker\n(medie × 252) / (std × sqrt(252))
+  ComputeSharpe --> KeepTopN
+  KeepTopN : Păstrare top N acțiuni după Sharpe\n(N din payload-ul de configurare Go)
+}
+
+SharpFilter --> HRPEquity
+SharpFilter --> HRPBond
+
+state "HRP - Univers Acțiuni" as HRPEquity {
+  [*] --> EquityReturns
+  EquityReturns : Randamente acțiuni filtrate
+}
+
+state "HRP - Univers Obligațiuni" as HRPBond {
+  [*] --> BondReturns
+  BondReturns : Toate randamentele obligațiunilor
+}
+
+HRPEquity --> PhaseA
+HRPBond --> PhaseA
+
+state "Faza A - Bază Statistică" as PhaseA {
+  [*] --> CovMatrix
+  CovMatrix : Matrice de covarianță\n(cum se mișcă activele împreună în termeni absoluți)
+  CovMatrix --> CorrMatrix
+  CorrMatrix : Matrice de corelație\n(independentă de scală, folosită pentru clustering)
+}
+
+PhaseA --> PhaseB
+
+state "Faza B - Clustering Ierarhic" as PhaseB {
+  [*] --> DistMatrix
+  DistMatrix : Matrice de distanță\ndist = sqrt( 0.5 × (1 - corr) )
+  DistMatrix --> BuildTree
+  BuildTree : Construire arbore de clustere prin\naglomerare single-linkage (scipy linkage)
+  BuildTree --> QuasiDiag
+  QuasiDiag : Reordonare active astfel încât activele similare să fie adiacente\n(quasi-diagonalizare)
+}
+
+PhaseB --> PhaseC
+
+state "Faza C - Bipartiție Recursivă" as PhaseC {
+  [*] --> InitWeights
+  InitWeights : Inițializare bugete ponderi = 1.0 pentru toate activele
+  InitWeights --> SplitClusters
+  SplitClusters : Împărțire cluster în jumătăți stânga / dreapta
+  SplitClusters --> ComputeIVP
+  ComputeIVP : Varianță cluster IVP per jumătate\nvar = w' × cov × w
+  ComputeIVP --> ComputeAlpha
+  ComputeAlpha : alpha = 1 - var_left / (var_left + var_right)\nclusteul mai riscant primește pondere mai mică
+  ComputeAlpha --> UpdateBudgets
+  UpdateBudgets : weight_budgets[left]  *= alpha\nweight_budgets[right] *= (1 - alpha)
+  UpdateBudgets --> SplitClusters : mai există clustere
+  UpdateBudgets --> HRPWeights : doar clustere cu un singur activ
+  HRPWeights : Ponderi HRP per univers (sumă = 1.0)
+}
+
+PhaseC --> MacroBlend
+
+state "Amestecare Alocare Macro" as MacroBlend {
+  [*] --> BlendWeights
+  BlendWeights : Amestecare ponderi acțiuni + obligațiuni\nprin tabela base_equity_allocation
+  BlendWeights --> ApplyHorizon
+  ApplyHorizon : Aplicare multiplicatori orizont\n(orizont lung → mai multe acțiuni)
+  ApplyHorizon --> ClampCap
+  ClampCap : Limitare la max_equity_cap
+  ClampCap --> DropSmall
+  DropSmall : Eliminare tickers sub weight_threshold\nși renormalizare
+}
+
+MacroBlend --> GenerateBuckets
+GenerateBuckets : Generare toate cele 15 chei bucket\n(risc 1..5 × scurt / mediu / lung)
+GenerateBuckets --> Upsert
+Upsert : UPSERT into model_portfolios\n(bucket_key, weights JSON, computed_at)
+Upsert --> [*]
+
+@enduml

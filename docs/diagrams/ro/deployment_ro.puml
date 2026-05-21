@@ -1,0 +1,72 @@
+@startuml InvestPilot-Deployment-RO
+
+top to bottom direction
+
+actor "Investitor" as Investor
+
+cloud "Cloudflare Edge" as CF {
+    component "Terminare TLS · CDN · DDoS\ninvestpilot.live" as CDN
+}
+
+
+rectangle "DigitalOcean - Cluster K3s" as K3S {
+
+    node "vps-1 · k3s-master · 1vCPU 2GB" as VPS1 {
+        component "K3s Control Plane\nAPI Server · Scheduler · Controller Manager · etcd" as ControlPlane
+        component "Traefik Ingress Controller\n:443 websecure" as Traefik
+    }
+
+    rectangle "Noduri Worker · k3s-worker-1 · k3s-worker-2\nSarcini planificate K8s" as Workers {
+        component "Nodul Operațional Go\n2 replici · nodeAffinity: not k3s-master\nPlanificat K8s pe noduri worker · :8081 /metrics" as Go
+        component "Nginx · React SPA · 1 replică · Planificat K8s · :80" as Nginx
+        component "Nodul Decizional Python\n1 replică · nodeSelector: k3s-worker-2\n:9090 /metrics" as Python
+    }
+
+    rectangle "CronJob-uri K8s - namespace: investpilot" as CJ {
+        artifact "cron-pipeline-daily\nzilnic · 22:00 UTC" as CronD
+        artifact "cron-pipeline-intraday\nla fiecare 15 min" as CronI
+        artifact "cron-rebalance\nlunar · ziua 1 · 02:00 UTC" as CronR
+        artifact "cron-cleanup\nzilnic · 03:00 UTC" as CronC
+    }
+
+    rectangle "Grafana Agent DaemonSet - namespace: monitoring\n1 pod per nod · k3s-master · k3s-worker-1 · k3s-worker-2" as Mon {
+        component "Grafana Agent (Alloy)\nkube-state-metrics · node-exporter" as Agent
+    }
+
+}
+
+node "Stripe\nSandbox Plăți" as StripeExt
+node "Yahoo Finance\nyfinance" as YFin
+
+database "Supabase\nPostgreSQL Administrat\nmod sesiune · :5432" as PG
+database "CloudAMQP\nRabbitMQ Administrat\ncmd_queue (durabilă)" as AMQP
+
+cloud "Grafana Cloud" as GCloud {
+    component "Prometheus · Grafana\nAlertmanager" as GCInner
+}
+
+' AMQP la baza
+' Python -[hidden]-> AMQP
+' GCloud la baza
+Mon -[hidden]-> GCloud
+Go -[hidden]-> GCloud
+
+Investor -right-> CDN : HTTPS
+CDN --> Traefik : HTTPS / origin cert
+Traefik --> Nginx : "/* → :80"
+Traefik --> Go : "/api /internal → :8081"
+CronD --> Go : "POST /internal/* + X-Internal-Secret"
+CronI --> Go
+CronR --> Go
+CronC --> Go
+Go --> AMQP : publicare AMQP
+Python --> AMQP : "consum AMQP · răspuns RPC"
+Go --> PG : TCP / DDL+DML
+Python --> PG : TCP / doar DML
+Go --> StripeExt : HTTPS
+Python --> YFin : HTTPS
+Agent --> Go : scrape :8081/metrics
+Agent --> Python : scrape :9090/metrics
+Agent --> GCInner : remote_write HTTPS
+
+@enduml

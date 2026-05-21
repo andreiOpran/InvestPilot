@@ -1,0 +1,191 @@
+@startuml InvestPilot Diagrama ER
+
+top to bottom direction
+skinparam linetype ortho
+skinparam defaultFontSize 10
+skinparam defaultFontName Arial
+skinparam entity {
+  BackgroundColor #FFFFFF
+  BorderColor #333333
+  FontSize 10
+}
+skinparam arrow {
+  Color #555555
+  Thickness 1
+}
+skinparam nodesep 40
+skinparam ranksep 50
+skinparam padding 2
+hide circle
+hide empty methods
+
+' entitate principală
+entity "users" as User {
+  * id : uint <<PK>>
+  --
+  email : string
+  password : string
+  is_email_verified : bool
+  two_factor_secret : string
+  is_two_factor_enabled : bool
+  investment_horizon : int
+  risk_tolerance : int
+  created_at : timestamp
+  updated_at : timestamp
+}
+
+' cluster autentificare (același rang → același rând)
+together {
+  entity "login_attempts" as LoginAttempt {
+    * id : uint <<PK>>
+    --
+    * user_id : uint <<FK>>
+    is_success : bool
+    ip_address : string
+    created_at : timestamp
+  }
+
+  entity "sessions" as Session {
+    * id : uint <<PK>>
+    --
+    * user_id : uint <<FK>>
+    family_id : string
+    refresh_token : string
+    is_used : bool
+    client_ip : string
+    user_agent : string
+    expires_at : timestamp
+    created_at : timestamp
+    updated_at : timestamp
+  }
+
+  entity "action_tokens" as ActionToken {
+    * id : uint <<PK>>
+    --
+    * user_id : uint <<FK>>
+    token : string
+    type : string
+    expires_at : timestamp
+    created_at : timestamp
+  }
+
+  entity "wallets" as Wallet {
+    * id : uint <<PK>>
+    --
+    * user_id : uint <<FK, unique>>
+    balance : float64
+    created_at : timestamp
+    updated_at : timestamp
+  }
+}
+
+' cluster financiar
+together {
+  entity "fundings" as Funding {
+    * id : uint <<PK>>
+    --
+    * user_id : uint <<FK>>
+    type : string
+    amount : float64
+    stripe_payment_id : string
+    status : string
+    created_at : timestamp
+    updated_at : timestamp
+  }
+
+  entity "transactions" as Transaction {
+    * id : uint <<PK>>
+    --
+    * user_id : uint <<FK>>
+    type : string
+    amount : float64
+    created_at : timestamp
+  }
+
+  entity "forecast_results" as ForecastResult {
+    * id : uint <<PK>>
+    --
+    * user_id : uint <<FK>>
+    task_id : string
+    status : string
+    payload : json
+    created_at : timestamp
+    updated_at : timestamp
+  }
+}
+
+' cluster portofoliu
+together {
+  entity "investment_rounds" as InvestmentRound {
+    * id : uint <<PK>>
+    --
+    * user_id : uint <<FK>>
+    total_value : float64
+    is_active : bool
+    created_at : timestamp
+  }
+
+  entity "holdings" as Holding {
+    * id : uint <<PK>>
+    --
+    * user_id : uint <<FK>>
+    * investment_round_id : uint <<FK>>
+    ticker : string
+    weight : float64
+    shares : float64
+    purchase_price : float64
+    allocated_amount : float64
+    created_at : timestamp
+    updated_at : timestamp
+  }
+}
+
+' date de piață (fără FK, scrise de nodul decizional)
+together {
+  entity "daily_market_data" as DailyMarketData {
+    * id : uint <<PK>>
+    --
+    ticker : string
+    date : date
+    close_price : float64
+    created_at : timestamp
+  }
+
+  entity "intraday_market_data" as IntradayMarketData {
+    * id : uint <<PK>>
+    --
+    ticker : string
+    timestamp : timestamp
+    price : float64
+    created_at : timestamp
+  }
+
+  entity "model_portfolios" as ModelPortfolio {
+    * id : uint <<PK>>
+    --
+    bucket_key : string
+    weights : json
+    computed_at : timestamp
+    created_at : timestamp
+  }
+}
+
+' relații
+User ||--o{ LoginAttempt     : ""
+User ||--o{ Session          : ""
+User ||--o{ ActionToken      : ""
+User ||--|| Wallet           : ""
+User ||--o{ Funding          : ""
+User ||--o{ Transaction      : ""
+User ||--o{ InvestmentRound  : ""
+User ||--o{ Holding          : ""
+User ||--o{ ForecastResult   : ""
+
+InvestmentRound ||--o{ Holding : ""
+
+' ancoram datele de piață sub entitățile din stânga pentru spațiu
+Wallet -[hidden]down-> DailyMarketData
+ActionToken -[hidden]down-> IntradayMarketData
+Session -[hidden]down-> ModelPortfolio
+
+@enduml
