@@ -499,4 +499,3 @@ This is just a quick introduction, the actual deployment plan is written in ./PL
 
 - [ ] **Go — Modular Monolith with Vertical Slices:** Transition from layered (`handlers/`, `services/`, `repositories/`) to business domain slices (`features/auth/`, `features/ledger/`, `features/portfolio/`) for maximum cohesion and independent team workflows
 - [ ] **Notifications Microservice:** Extend RabbitMQ to publish domain events (e.g., `user.registered`, `rebalance.completed`). Standalone consumer handles all email delivery asynchronously with zero data loss on crash
-- [ ] **Redis Caching (Cache-Aside Pattern):** Cache the 15 model portfolio weight sets in Redis RAM. Go reads from sub-millisecond cache on dashboard load instead of querying `model_portfolios` table. Cache invalidated and refreshed after each daily CMD_GENERATE run
