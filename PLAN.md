@@ -464,30 +464,11 @@ An `EmailSender` interface decouples email logic from business logic.
 
 ### Phase 5: Frontend Dashboard
 
-This is just a quick introduction, the actual frontend plan is written in ./PLAN_FRONTEND.md
-
-- [ ] Serve static HTML/JS from the Go router
-- [ ] Build Login/Register UI (including 2FA QR code display and verification step)
-- [ ] Build Dashboard UI: current balance, Stripe deposit form, portfolio allocation
-- [ ] Fetch GET /user/portfolio and render Plotly.js Pie Chart of asset allocation
-- [ ] **Frontend Security & Session Management:** Implement token storage strategy. Options: `localStorage` (simpler) vs `HttpOnly` Cookies (XSS-resistant). Decision must be documented
-- [ ] **Frontend Fetch Interceptor (`fetchWithAuth`):** Global wrapper that intercepts 401 responses, silently calls POST /refresh-token, retries original request
-- [ ] **Refresh Queue (Race Condition Mitigation):** Global `isRefreshing` semaphore + Promise queue. Only one refresh request fires when multiple calls expire simultaneously — others wait for the new token
-- [ ] **XSS Awareness:** All dynamic data rendered via `textContent`, never `innerHTML`
-- [ ] **Frontend Logout:** POST /logout → clear local state → redirect to login
-- [ ] **Anti-Bot UI:** Cloudflare Turnstile widget on auth forms, `cf-turnstile-response` token in Fetch payloads
-- [ ] **Monte Carlo UI:** POST /forecast → capture task_id → setInterval polling on GET /forecast/status/:task_id → Plotly.js "Cone of Uncertainty" showing 5th/50th/95th percentiles
+The actual frontend plan is written in ./PLAN_FRONTEND.md
 
 ### Phase 6: Cloud Deployment (Digital Ocean)
 
-This is just a quick introduction, the actual deployment plan is written in ./PLAN_DEPLOYMENT.md
-
-- [ ] Provision 2 Ubuntu Droplets (Droplet 1: PostgreSQL + Go; Droplet 2: Python)
-- [ ] Configure internal VPC networking (Python node is never exposed to the public internet)
-- [ ] Configure UFW firewall: block all except SSH and Go's web port
-- [ ] Deploy and verify daily cron pipeline (sync → generate-models) in production
-- [ ] Verify rebalance staleness check operates correctly across timezone boundaries
-- [ ] Note on serverless option: scipy + pandas + numpy (~150MB) likely exceed DO Function limits and create cold start problems. Dedicated Droplet in private VPC preferred for both security and reliability
+The actual deployment plan is written in ./PLAN_DEPLOYMENT.md
 
 ### Phase 7: Blockchain Audit Log (Optional / Bonus)
 
