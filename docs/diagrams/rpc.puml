@@ -15,7 +15,7 @@ User -> SPA : Request forecast
 SPA -> Go : POST /api/v1/forecast
 
 Go -> DB : INSERT forecast_results\n(status=pending, task_id=uuid)
-Go -> MQ : Publish CMD_FORECAST\n(CorrelationId=task_id, ReplyTo=tmp_queue)
+Go -> MQ : Publish CMD_FORECAST\n(task_id, weights, years, initial_investment)
 Go --> SPA : 202 Accepted {task_id}
 
 MQ -> Python : Deliver CMD_FORECAST
@@ -28,8 +28,7 @@ end
 
 Python -> DB : Fetch market data + model portfolio
 Python -> Python : Monte Carlo simulation\n(10,000 paths)
-Python -> DB : UPDATE forecast_results\n(status=completed, payload=json)
-Python -> MQ : Reply on ReplyTo queue\n(CorrelationId=task_id)
+Python -> DB : UPDATE forecast_results\n(status=complete, payload=json)
 
 SPA -> Go : GET /api/v1/forecast/{task_id}
 Go -> DB : SELECT status WHERE task_id=?
