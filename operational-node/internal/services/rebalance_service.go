@@ -11,6 +11,7 @@ import (
 	"github.com/andreiOpran/licenta/operational-node/internal/metrics"
 	"github.com/andreiOpran/licenta/operational-node/internal/models"
 	"github.com/andreiOpran/licenta/operational-node/internal/repositories"
+	"github.com/google/uuid"
 )
 
 type RebalanceService interface {
@@ -122,7 +123,7 @@ func (s *rebalanceService) RunMonthlyRebalance() error {
 				currentAllocation[h.Ticker] = h.AllocatedAmount / round.TotalValue
 			}
 
-			reqID := fmt.Sprintf("%d", round.UserID)
+			reqID := uuid.New().String()
 			roundMap[reqID] = round
 
 			batchRequest.Users = append(batchRequest.Users, models.RebalanceUserRequest{
