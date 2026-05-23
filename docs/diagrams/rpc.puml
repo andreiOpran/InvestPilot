@@ -1,37 +1,36 @@
-@startuml InvestPilot-Sequence-Forecast
+@startuml InvestPilot-Sequence-RPC
 skinparam defaultFontSize 10
 skinparam defaultFontName Arial
 skinparam sequenceArrowThickness 1
 skinparam sequenceGroupBorderThickness 1
 
-actor "Investor" as User
-participant "React SPA" as SPA
 participant "Operational Node\n(Go)" as Go
 participant "RabbitMQ\ncmd_queue" as MQ
+participant "RabbitMQ\nreply queue\n(exclusive, temp)" as RQ
 participant "Decisional Node\n(Python)" as Python
 database "PostgreSQL" as DB
 
-User -> SPA : Request forecast
-SPA -> Go : POST /api/v1/forecast
+Go -> DB : staleness check (latest market data date)
+note over Go : if older than PriceStalenessDays + 2\n-> abort, increment\nrebalance_stale_data_aborts_total
+Go -> DB : load model_portfolios + latest prices
 
-Go -> DB : INSERT forecast_results\n(status=pending, task_id=uuid)
-Go -> MQ : Publish CMD_FORECAST\n(task_id, weights, years, initial_investment)
-Go --> SPA : 202 Accepted {task_id}
+loop per batch (up to REBALANCE_BATCH_SIZE = 500 active rounds)
+    Go -> DB : fetch active investment rounds
+    note over Go : build batch payload Users[]:\nrequest_id = uuid (anonymous),\ncurrent_allocation, target_weights\n(+ batch-level threshold, cash_first)\nno user ID / email / balance
 
-MQ -> Python : Deliver CMD_FORECAST
+    Go -> RQ : declare exclusive reply queue + consume
+    Go -> MQ : Publish CMD_REBALANCE_BATCH\nReplyTo = reply queue, CorrelationId = uuid\n(blocks up to 30s for reply)
+    MQ -> Python : Deliver (prefetch = 1)
 
-loop Frontend polling (every 2s)
-    SPA -> Go : GET /api/v1/forecast/{task_id}
-    Go -> DB : SELECT status WHERE task_id=?
-    Go --> SPA : 200 {status: "pending"}
+    loop for each user in payload
+        Python -> Python : compute_rebalance\n(cash-first + threshold filter,\npure math, no DB access)
+    end
+
+    Python -> RQ : Publish {results: [...]}\ncorrelation_id = uuid
+    note over Python : basic_ack on cmd_queue
+    RQ -> Go : deliver reply (match CorrelationId)
+
+    note over Go : for each result:\nshares = adjusted_weight x total_value / price
+    Go -> DB : write new InvestmentRound + holdings (tx),\ndeactivate old round
 end
-
-Python -> DB : Fetch market data + model portfolio
-Python -> Python : Monte Carlo simulation\n(10,000 paths)
-Python -> DB : UPDATE forecast_results\n(status=complete, payload=json)
-
-SPA -> Go : GET /api/v1/forecast/{task_id}
-Go -> DB : SELECT status WHERE task_id=?
-Go --> SPA : 200 {status: "completed", payload: {...}}
-SPA --> User : Render forecast chart
 @enduml

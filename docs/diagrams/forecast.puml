@@ -1,0 +1,37 @@
+@startuml InvestPilot-Sequence-Forecast
+skinparam defaultFontSize 10
+skinparam defaultFontName Arial
+skinparam sequenceArrowThickness 1
+skinparam sequenceGroupBorderThickness 1
+
+actor "Investor" as User
+participant "React SPA" as SPA
+participant "Operational Node\n(Go)" as Go
+participant "RabbitMQ\ncmd_queue" as MQ
+participant "Decisional Node\n(Python)" as Python
+database "PostgreSQL" as DB
+
+User -> SPA : Request forecast
+SPA -> Go : POST /api/v1/forecast
+
+Go -> DB : INSERT forecast_results\n(status=pending, task_id=uuid)
+Go -> MQ : Publish CMD_FORECAST\n(task_id, weights, years, initial_investment)
+Go --> SPA : 202 Accepted {task_id}
+
+MQ -> Python : Deliver CMD_FORECAST
+
+loop Frontend polling (every 2s)
+    SPA -> Go : GET /api/v1/forecast/{task_id}
+    Go -> DB : SELECT status WHERE task_id=?
+    Go --> SPA : 200 {status: "pending"}
+end
+
+Python -> DB : Fetch market data + model portfolio
+Python -> Python : Monte Carlo simulation\n(10,000 paths)
+Python -> DB : UPDATE forecast_results\n(status=complete, payload=json)
+
+SPA -> Go : GET /api/v1/forecast/{task_id}
+Go -> DB : SELECT status WHERE task_id=?
+Go --> SPA : 200 {status: "completed", payload: {...}}
+SPA --> User : Render forecast chart
+@enduml

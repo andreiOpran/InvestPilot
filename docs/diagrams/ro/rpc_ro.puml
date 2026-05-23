@@ -1,37 +1,36 @@
-@startuml InvestPilot-Sequence-Forecast-RO
+@startuml InvestPilot-Sequence-RPC-RO
 skinparam defaultFontSize 10
 skinparam defaultFontName Arial
 skinparam sequenceArrowThickness 1
 skinparam sequenceGroupBorderThickness 1
 
-actor "Investitor" as User
-participant "React SPA" as SPA
 participant "Nodul Operațional\n(Go)" as Go
 participant "RabbitMQ\ncmd_queue" as MQ
+participant "RabbitMQ\ncoadă răspuns\n(exclusivă, temporară)" as RQ
 participant "Nodul Decizional\n(Python)" as Python
 database "PostgreSQL" as DB
 
-User -> SPA : Solicitare prognoză
-SPA -> Go : POST /api/v1/forecast
+Go -> DB : verificare prospețime (data ultimelor prețuri)
+note over Go : dacă depășește PriceStalenessDays + 2\n-> abort, incrementează\nrebalance_stale_data_aborts_total
+Go -> DB : încarcă model_portfolios + ultimele prețuri
 
-Go -> DB : INSERT forecast_results\n(status=pending, task_id=uuid)
-Go -> MQ : Publish CMD_FORECAST\n(task_id, weights, years, initial_investment)
-Go --> SPA : 202 Accepted {task_id}
+loop pentru fiecare lot (max REBALANCE_BATCH_SIZE = 500 runde active)
+    Go -> DB : preia rundele de investiție active
+    note over Go : construiește payload Users[]:\nrequest_id = uuid (anonim),\ncurrent_allocation, target_weights\n(+ threshold, cash_first la nivel de lot)\nfără ID utilizator / email / sold
 
-MQ -> Python : Livrare CMD_FORECAST
+    Go -> RQ : declară coada de răspuns exclusivă + consumă
+    Go -> MQ : Publish CMD_REBALANCE_BATCH\nReplyTo = coadă răspuns, CorrelationId = uuid\n(blochează până la 30s)
+    MQ -> Python : Livrare (prefetch = 1)
 
-loop Polling frontend (la fiecare 2s)
-    SPA -> Go : GET /api/v1/forecast/{task_id}
-    Go -> DB : SELECT status WHERE task_id=?
-    Go --> SPA : 200 {status: "pending"}
+    loop pentru fiecare utilizator din payload
+        Python -> Python : compute_rebalance\n(cash-first + filtru de prag,\nmatematică pură, fără acces DB)
+    end
+
+    Python -> RQ : Publish {results: [...]}\ncorrelation_id = uuid
+    note over Python : basic_ack pe cmd_queue
+    RQ -> Go : livrare răspuns (potrivire CorrelationId)
+
+    note over Go : pentru fiecare rezultat:\nshares = adjusted_weight x total_value / preț
+    Go -> DB : scrie InvestmentRound + holdings noi (tx),\ndezactivează runda veche
 end
-
-Python -> DB : Preluare date de piață + model portofoliu
-Python -> Python : Simulare Monte Carlo\n(10.000 căi)
-Python -> DB : UPDATE forecast_results\n(status=complete, payload=json)
-
-SPA -> Go : GET /api/v1/forecast/{task_id}
-Go -> DB : SELECT status WHERE task_id=?
-Go --> SPA : 200 {status: "completed", payload: {...}}
-SPA --> User : Randare grafic prognoză
 @enduml

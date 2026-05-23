@@ -1,0 +1,37 @@
+@startuml InvestPilot-Sequence-Forecast-RO
+skinparam defaultFontSize 10
+skinparam defaultFontName Arial
+skinparam sequenceArrowThickness 1
+skinparam sequenceGroupBorderThickness 1
+
+actor "Investitor" as User
+participant "React SPA" as SPA
+participant "Nodul Operațional\n(Go)" as Go
+participant "RabbitMQ\ncmd_queue" as MQ
+participant "Nodul Decizional\n(Python)" as Python
+database "PostgreSQL" as DB
+
+User -> SPA : Solicitare prognoză
+SPA -> Go : POST /api/v1/forecast
+
+Go -> DB : INSERT forecast_results\n(status=pending, task_id=uuid)
+Go -> MQ : Publish CMD_FORECAST\n(task_id, weights, years, initial_investment)
+Go --> SPA : 202 Accepted {task_id}
+
+MQ -> Python : Livrare CMD_FORECAST
+
+loop Polling frontend (la fiecare 2s)
+    SPA -> Go : GET /api/v1/forecast/{task_id}
+    Go -> DB : SELECT status WHERE task_id=?
+    Go --> SPA : 200 {status: "pending"}
+end
+
+Python -> DB : Preluare date de piață + model portofoliu
+Python -> Python : Simulare Monte Carlo\n(10.000 căi)
+Python -> DB : UPDATE forecast_results\n(status=complete, payload=json)
+
+SPA -> Go : GET /api/v1/forecast/{task_id}
+Go -> DB : SELECT status WHERE task_id=?
+Go --> SPA : 200 {status: "completed", payload: {...}}
+SPA --> User : Randare grafic prognoză
+@enduml
