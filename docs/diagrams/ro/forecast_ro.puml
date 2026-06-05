@@ -26,8 +26,8 @@ loop Polling frontend (la fiecare 2s)
     Go --> SPA : 200 {status: "pending"}
 end
 
-Python -> DB : Preluare date de piață + model portofoliu
-Python -> Python : Simulare Monte Carlo\n(10.000 căi)
+Python -> DB : Preluare date de piață + portofoliu
+Python -> Python : Simulare Monte Carlo\n(10.000 scenarii)
 Python -> DB : UPDATE forecast_results\n(status=complete, payload=json)
 
 SPA -> Go : GET /api/v1/forecast/{task_id}

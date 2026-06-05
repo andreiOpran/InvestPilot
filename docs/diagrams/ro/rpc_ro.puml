@@ -23,7 +23,7 @@ loop pentru fiecare lot (max REBALANCE_BATCH_SIZE = 500 runde active)
     MQ -> Python : Livrare (prefetch = 1)
 
     loop pentru fiecare utilizator din payload
-        Python -> Python : compute_rebalance\n(cash-first + filtru de prag,\nmatematică pură, fără acces DB)
+        Python -> Python : compute_rebalance\n(cash-first + filtru de prag,\ndoar calcule, fără acces DB)
     end
 
     Python -> RQ : Publish {results: [...]}\ncorrelation_id = uuid

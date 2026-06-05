@@ -5,7 +5,7 @@ top to bottom direction
 actor "Investitor" as Investor
 
 cloud "Cloudflare Edge" as CF {
-    component "Terminare TLS · CDN · DDoS\ninvestpilot.live" as CDN
+    component "Endpoint TLS · CDN · Protecție DDoS\ninvestpilot.live" as CDN
 }
 
 
@@ -16,17 +16,17 @@ rectangle "DigitalOcean - Cluster K3s" as K3S {
         component "Traefik Ingress Controller\n:443 websecure" as Traefik
     }
 
-    rectangle "Noduri Worker · k3s-worker-1 · k3s-worker-2\nSarcini planificate K8s" as Workers {
-        component "Nodul Operațional Go\n2 replici · nodeAffinity: not k3s-master\nPlanificat K8s pe noduri worker · :8081 /metrics" as Go
-        component "Nginx · React SPA · 1 replică · Planificat K8s · :80" as Nginx
+    rectangle "Noduri Worker · k3s-worker-1 · k3s-worker-2\nExecuție și orchestrare" as Workers {
+        component "Nodul Operațional Go\n2 replici · nodeAffinity: not k3s-master\n:8081 /metrics" as Go
+        component "Nginx · React SPA · 1 replică\nServire resurse statice · :80" as Nginx
         component "Nodul Decizional Python\n1 replică · nodeSelector: k3s-worker-2\n:9090 /metrics" as Python
     }
 
     rectangle "CronJob-uri K8s - namespace: investpilot" as CJ {
-        artifact "cron-pipeline-daily\nzilnic · 22:00 UTC" as CronD
-        artifact "cron-pipeline-intraday\nla fiecare 15 min" as CronI
-        artifact "cron-rebalance\nlunar · ziua 1 · 02:00 UTC" as CronR
-        artifact "cron-cleanup\nzilnic · 03:00 UTC" as CronC
+        artifact "cron-pipeline-daily\nZilnic · 22:00 UTC" as CronD
+        artifact "cron-pipeline-intraday\nLa fiecare 15 min" as CronI
+        artifact "cron-rebalance\nLunar · Ziua 1 · 02:00 UTC" as CronR
+        artifact "cron-cleanup\nZilnic · 03:00 UTC" as CronC
     }
 
     rectangle "Grafana Agent DaemonSet - namespace: monitoring\n1 pod per nod · k3s-master · k3s-worker-1 · k3s-worker-2" as Mon {
@@ -39,8 +39,8 @@ node "Stripe\nSandbox Plăți" as StripeExt
 node "Yahoo Finance\nyfinance" as YFin
 node "Resend\nAPI Email Tranzacțional" as ResendExt
 
-database "Supabase\nPostgreSQL Administrat\nmod sesiune · :5432" as PG
-database "CloudAMQP\nRabbitMQ Administrat\ncmd_queue (durabilă)" as AMQP
+database "Supabase\nPostgreSQL (managed)\nmod sesiune · :5432" as PG
+database "CloudAMQP\nRabbitMQ (managed)\ncmd_queue (durable)" as AMQP
 
 cloud "Grafana Cloud" as GCloud {
     component "Prometheus · Grafana\nAlertmanager" as GCInner
@@ -63,7 +63,7 @@ CronC --> Go
 Go --> AMQP : publicare AMQP
 Python --> AMQP : "consum AMQP · răspuns RPC"
 Go --> PG : TCP / DDL+DML
-Python --> PG : TCP / doar DML
+Python --> PG : TCP / DML
 Go --> StripeExt : HTTPS
 Python --> YFin : HTTPS
 Agent --> Go : scrape :8081/metrics

@@ -12,29 +12,29 @@ participant "Nodul Decizional\n(Python)" as Python
 database "PostgreSQL" as DB
 
 
-== Investiție (Numerar → Portofoliu) ==
+== Investiție (Cash → Portofoliu) ==
 
-User -> SPA : Click "Investește" (sumă)
+User -> SPA : Click "Invest" (sumă)
 SPA -> Go : POST /api/v1/invest
-Go -> DB : SELECT wallet (validare sold)\nSELECT investment_round activ + holdings
+Go -> DB : SELECT wallet (validare sold disponibil)\nSELECT investment_round activ + holdings
 
 alt Prima investiție
     Go -> DB : INSERT investment_round\nINSERT holding (ticker=USD, weight=1.0,\nshares=amount, purchase_price=1.0)
 else Portofoliu existent
-    Go -> Go : Păstrare holdings existente\nAdăugare/mărire holding USD pentru numerar nou
-    Go -> DB : Dezactivare investment_round vechi\nINSERT investment_round nou cu:\n  · ETF holdings existente (nemodificate)\n  · USD holding (suma nouă în numerar)
+    Go -> Go : Păstrare holdings existente\nAdăugare/mărire holding USD pentru cash-ul nou
+    Go -> DB : Dezactivare investment_round vechi\nINSERT investment_round nou cu:\n  · ETF holdings existente (nemodificate)\n  · USD holding (suma nouă sub forma de cash)
 end
 
 Go -> DB : UPDATE wallets SET balance -= amount\nINSERT transactions (type=INVEST)
 Go --> SPA : 200 OK
 
-note over DB : Numerarul nou stă ca un USD holding\npână la următoarea rebalansare lunară
+note over DB : Cash-ul nou este stocat sub forma de USD\nholding până la următoarea rebalansare lunară
 
 == Vânzare (Portofoliu → Portofel) ==
 
-User -> SPA : Click "Vinde" (sumă)
+User -> SPA : Click "Sell" (sumă)
 SPA -> Go : POST /api/v1/sell
-Go -> DB : SELECT investment_round activ + holdings\nSELECT ultimele prețuri intraday (tickers non-USD)
+Go -> DB : SELECT investment_round activ + holdings\nSELECT ultimele prețuri intraday
 Go -> Go : Calcul valoare totală curentă\n(acțiuni × preț_curent per holding)
 
 alt sumă > valoare totală curentă
@@ -45,7 +45,7 @@ else Vânzare în limite
     alt USD acoperă suma integrală
         Go -> Go : Copiere toate ETF holdings nemodificate\nUSD holding redus sau eliminat
     else USD insuficient - Pasul 2: vânzare proporțională ETF
-        Go -> Go : totalETFValue = Σ(shares × price) pentru ETF-uri\nfracție = remainingToSell / totalETFValue\nPer ETF: newShares = shares × (1 − fracție)\nEliminare poziții reziduale (newShares × price < $0.01)
+        Go -> Go : totalETFValue = Σ(shares × price) pentru ETF-uri\nfraction = remainingToSell / totalETFValue\nPer ETF: newShares = shares × (1 − fraction)\nEliminare poziții reziduale (newShares × price < $0.01)
     end
 
     alt Valoare portofoliu rămas < $0.01 (lichidare totală)

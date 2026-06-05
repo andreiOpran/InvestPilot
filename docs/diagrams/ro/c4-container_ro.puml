@@ -5,37 +5,37 @@ LAYOUT_LANDSCAPE()
 
 Person(investor, "Investitor", "Monitorizează investițiile și gestionează fluxul de numerar. Alocarea portofoliului este gestionată automat de platformă.")
 
-System_Ext(cloudflare, "Cloudflare", "CDN și proxy TLS. Se află în calea cererilor, în fața frontend-ului.")
+System_Ext(cloudflare, "Cloudflare", "CDN și proxy TLS. Interceptează traficul înainte ca acesta să ajungă la frontend.")
 System_Ext(stripe, "Stripe", "Procesarea plăților (Sandbox mode)")
-System_Ext(yfinance, "Yahoo Finance", "Prețuri istorice de închidere ETF preluate prin biblioteca yfinance")
+System_Ext(yfinance, "Yahoo Finance", "Sursă pentru istoricul prețurilor ETF, accesată prin biblioteca yfinance.")
 System_Ext(mailer, "Furnizor Email", "Resend API (producție) / Gmail SMTP (dev local). Trimite verificare email, resetare parolă, confirmare depunere și alerte blocare cont.")
 
 System_Boundary(investpilot, "InvestPilot") {
 
     Container(spa, "Frontend React", "React 19 + TypeScript + Vite", "Aplicație Single-Page. Dashboard portofoliu, prognoze, fluxuri de autentificare, onboarding, setări. Autentificare JWT.")
 
-    Container(operational, "Nodul Operațional", "Go + Gin + GORM", "API REST principal. Autentificare și IAM (JWT, 2FA, sesiuni), depunere/retragere portofel, investiție/vânzare portofoliu, orchestrarea rebalansării și prognozei. Deține schema DB prin GORM AutoMigrate.")
+    Container(operational, "Nodul Operațional", "Go + Gin + GORM", "API REST principal. Autentificare și IAM (JWT, 2FA, sesiuni), depunere/retragere portofel, investiție/vânzare portofoliu, orchestrarea rebalansării și prognozei. Gestionează automat structura bazei de date prin GORM AutoMigrate.")
 
-    Container(decisional, "Nodul Decizional", "Python 3 + Pika", "Motor matematic fără stare. Consumă comenzi RabbitMQ: CMD_SYNC_DAILY, CMD_SYNC_INTRADAY, CMD_GENERATE, CMD_REBALANCE_USER, CMD_FORECAST. Rulează HRP, simulare Monte Carlo, sincronizare yfinance (5 ani historical + 15 min intraday). Scrie doar DML, niciodată DDL.")
+    Container(decisional, "Nodul Decizional", "Python 3 + Pika", "Motor matematic fără stare. Consumă comenzi RabbitMQ: CMD_SYNC_DAILY, CMD_SYNC_INTRADAY, CMD_GENERATE, CMD_REBALANCE_BATCH, CMD_FORECAST. Rulează HRP, simulare Monte Carlo, sincronizare yfinance (5 ani historical + 15 min intraday). Scrie doar DML, niciodată DDL.")
 
-    Container(scheduler, "Planificator Pipeline", "K8s CronJob (producție) / robfig/cron (dev local)")
+    Container(scheduler, "Pipeline Scheduler", "K8s CronJob (producție) / robfig/cron (dev local)")
 
-    Container(rabbitmq, "RabbitMQ", "CloudAMQP (administrat)", "Bus asincron de comenzi. Coadă durabilă: cmd_queue. Pattern RPC prin correlation_id pentru comenzi sincrone precum CMD_REBALANCE_USER.")
+    Container(rabbitmq, "RabbitMQ", "CloudAMQP (managed)", "Broker de mesaje asincron. Coadă de tip durable: cmd_queue. Pattern RPC prin correlation_id pentru comenzi sincrone precum CMD_REBALANCE_BATCH.")
 
-    ContainerDb(postgres, "PostgreSQL", "Supabase (administrat)", "Toate datele persistente. Go deține schema prin GORM AutoMigrate. Python scrie rezultate doar prin DML.")
+    ContainerDb(postgres, "PostgreSQL", "Supabase (managed)", "Stocarea datelor. Nodul Go gestionează structura (DDL) prin GORM, iar Python scrie doar rezultate (DML).")
 }
 
 ' Relații
 Rel_L(investor, cloudflare, "Cerere HTTPS", "HTTPS")
 Rel_U(cloudflare, spa, "Proxy și livrare resurse SPA", "HTTPS")
 Rel(spa, operational, "Apeluri REST API", "HTTPS/JSON")
-Rel(operational, rabbitmq, "Publică comenzi (CMD_SYNC_DAILY, CMD_SYNC_INTRADAY, CMD_GENERATE, CMD_REBALANCE_USER, CMD_FORECAST)", "AMQP")
+Rel(operational, rabbitmq, "Publică comenzi (CMD_SYNC_DAILY, CMD_SYNC_INTRADAY, CMD_GENERATE, CMD_REBALANCE_BATCH, CMD_FORECAST)", "AMQP")
 Rel(rabbitmq, decisional, "Livrează comenzi", "AMQP")
-Rel(scheduler, operational, "Declanșează pipeline și rebalansare", "HTTP POST / in-process")
+Rel(scheduler, operational, "Declanșează pipeline date și rebalansare", "HTTP POST / in-process")
 Rel(operational, postgres, "Citire/Scriere", "TCP")
 Rel(decisional, postgres, "Scrie rezultate (doar DML)", "TCP")
 Rel(operational, stripe, "Creare intenție de plată, verificare webhook", "HTTPS")
-Rel(decisional, yfinance, "Preia 5 ani date istorice + 15 min intraday ETF", "HTTPS")
+Rel(decisional, yfinance, "Sincronizează cotații: 5 ani (zilnic) și ultimele 2 săptămâni (la 15 min)", "HTTPS")
 Rel(operational, mailer, "Trimitere emailuri tranzacționale", "HTTPS (prod) / SMTP (dev)")
 
 Lay_R(mailer, stripe)
