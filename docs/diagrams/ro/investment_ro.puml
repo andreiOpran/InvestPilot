@@ -58,22 +58,6 @@ else Vânzare în limite
     Go --> SPA : 200 OK
 end
 
-== Rebalansare Lunară (K8s CronJob → prod / robfig/cron → dev local) ==
-
-[-> Go : POST /internal/rebalance
-
-Go -> DB : Preluare model_portfolios (ponderi HRP per bucket_key)\nPreluare ultimele prețuri de închidere\nObtinere max InvestmentRound ID (plafon)
-
-loop Paginare investment_rounds active (batch de N)
-    Go -> DB : SELECT runde active CU holdings + profil utilizator
-    Go -> Go : Per utilizator: derivare bucket_key\n(risk_N_horizon_short/medium/long)\nMapare holdings curente → alocare_curentă\nCăutare target_weights din model_portfolios
-    Go -> MQ : PublishRPC CMD_REBALANCE_BATCH\n{users: [{request_id, current_allocation,\ntarget_weights}], threshold, cash_first}
-    MQ -> Python : Livrare CMD_REBALANCE_BATCH
-    Python -> Python : Per utilizator: aplicare regulă cash-first\ncalcul deltas ponderi\nomitere active sub prag
-    Python --> MQ : Reply {results: [{request_id,\nadjusted_targets, skipped}]}
-    MQ --> Go : Răspuns RPC (potrivire CorrelationId)
-    Go -> Go : Per utilizator: calcul acțiuni\n(pondere × valoare_totală / preț_închidere)
-    Go -> DB : Schimb atomic:\nINSERT investment_round nou + ETF holdings\nSET old investment_round is_active=false
-end
+note over Go, Python : Reechilibrarea lunară este singurul flux care apelează\nnodul decizional; vezi figura RPC.
 
 @enduml

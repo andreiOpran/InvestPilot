@@ -58,22 +58,6 @@ else Sell within bounds
     Go --> SPA : 200 OK
 end
 
-== Monthly Rebalance (K8s CronJob → prod / robfig/cron → local dev) ==
-
-[-> Go : POST /internal/rebalance
-
-Go -> DB : Fetch model_portfolios (HRP weights per bucket_key)\nFetch latest closing prices\nGet max InvestmentRound ID (ceiling)
-
-loop Paginate active investment_rounds (batch size N)
-    Go -> DB : SELECT active rounds WITH holdings + user profile
-    Go -> Go : Per user: derive bucket_key\n(risk_N_horizon_short/medium/long)\nMap current holdings → current_allocation\nLook up target_weights from model_portfolios
-    Go -> MQ : PublishRPC CMD_REBALANCE_BATCH\n{users: [{request_id, current_allocation,\ntarget_weights}], threshold, cash_first}
-    MQ -> Python : Deliver CMD_REBALANCE_BATCH
-    Python -> Python : Per user: apply cash-first rule\ncompute weight deltas\nskip assets below threshold
-    Python --> MQ : Reply {results: [{request_id,\nadjusted_targets, skipped}]}
-    MQ --> Go : RPC response (CorrelationId match)
-    Go -> Go : Per user: compute shares\n(weight × total_value / closing_price)
-    Go -> DB : Atomic swap:\nINSERT new investment_round + ETF holdings\nSET old investment_round is_active=false
-end
+note over Go, Python : Monthly rebalancing is the only flow that calls\nthe decisional node; see the RPC figure.
 
 @enduml
