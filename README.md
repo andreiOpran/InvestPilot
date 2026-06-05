@@ -95,28 +95,19 @@ HRP runs separately on equities and bonds; results are blended via a macro alloc
 
 **Prerequisites:** Docker, Docker Compose, Node.js, Go 1.23+
 
+**Quick start:**
 ```bash
-# Start all backend services
-make up        # PostgreSQL, RabbitMQ, Go backend, Python engine, Adminer
-
-# Frontend (separate terminal)
-cd frontend
-npm install
-npm run dev    # Vite dev server at :3000, proxies /api/* → :8081
+make up                # Start all backend services (PostgreSQL, RabbitMQ, Go, Python)
+make frontend-dev      # Start frontend Vite dev server in a separate terminal
 ```
 
-Other useful commands:
-```bash
-make down
-make rebuild   # Force rebuild containers
-make logs
+**All available commands:** see [Makefile](Makefile) or run `make help` for the full list (testing, linting, debugging, Kubernetes ops).
 
-# Go tests
-cd operational-node && go test -v ./internal/...
-
-# Frontend build
-cd frontend && npm run build
-```
+**Key commands:**
+- `make test-all`: run Go + Python test suites
+- `make lint`: lint all services
+- `make logs`: tail all service logs
+- `make k8s-*`: interact with production k3s cluster
 
 **Ports:**
 
