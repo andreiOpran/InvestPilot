@@ -1,0 +1,7 @@
+# prometheus-node-exporter (v4.55.0), monitoring namespace.
+# exclude virtual interfaces (veth/cni/flannel/docker/lo) from the netclass and
+# netdev collectors so node_network_* is never collected for them. mirrored by
+# the node_exporter_filter relabel in agent-values.yaml.
+extraArgs:
+  - --collector.netclass.ignored-devices=^(veth.*|cni.*|flannel.*|docker.*|lo)$
+  - --collector.netdev.device-exclude=^(veth.*|cni.*|flannel.*|docker.*|lo)$

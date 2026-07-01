@@ -16,11 +16,11 @@ System_Boundary(investpilot, "InvestPilot") {
 
     Container(operational, "Operational Node", "Go + Gin + GORM", "Core REST API. Auth and IAM (JWT, 2FA, sessions), wallet deposit/cashout, portfolio invest/sell, rebalance and forecast orchestration. Owns all DB schema via GORM AutoMigrate.")
 
-    Container(decisional, "Decisional Node", "Python 3 + Pika", "Stateless math engine. Consumes RabbitMQ commands: CMD_SYNC_DAILY, CMD_SYNC_INTRADAY, CMD_GENERATE, CMD_REBALANCE_USER, CMD_FORECAST. Runs HRP, Monte Carlo simulation, yfinance sync (5y historical + 15-min intraday). Writes DML only, never DDL.")
+    Container(decisional, "Decisional Node", "Python 3 + Pika", "Stateless math engine. Consumes RabbitMQ commands: CMD_SYNC_DAILY, CMD_SYNC_INTRADAY, CMD_GENERATE, CMD_REBALANCE_BATCH, CMD_FORECAST. Runs HRP, Monte Carlo simulation, yfinance sync (5y historical + 15-min intraday). Writes DML only, never DDL.")
 
     Container(scheduler, "Pipeline Scheduler", "K8s CronJob (prod) / robfig/cron (local dev)")
 
-    Container(rabbitmq, "RabbitMQ", "CloudAMQP (managed)", "Async command bus. Durable queue: cmd_queue. RPC pattern via correlation_id for synchronous commands like CMD_REBALANCE_USER.")
+    Container(rabbitmq, "RabbitMQ", "CloudAMQP (managed)", "Async command bus. Durable queue: cmd_queue. RPC pattern via correlation_id for synchronous commands like CMD_REBALANCE_BATCH.")
 
     ContainerDb(postgres, "PostgreSQL", "Supabase (managed)", "All persistent data. Go owns schema via GORM AutoMigrate. Python writes results via DML only.")
 }
@@ -29,7 +29,7 @@ System_Boundary(investpilot, "InvestPilot") {
 Rel_L(investor, cloudflare, "HTTPS request", "HTTPS")
 Rel_U(cloudflare, spa, "Proxies and delivers SPA assets", "HTTPS")
 Rel(spa, operational, "REST API calls", "HTTPS/JSON")
-Rel(operational, rabbitmq, "Publishes commands (CMD_SYNC_DAILY, CMD_SYNC_INTRADAY, CMD_GENERATE, CMD_REBALANCE_USER, CMD_FORECAST)", "AMQP")
+Rel(operational, rabbitmq, "Publishes commands (CMD_SYNC_DAILY, CMD_SYNC_INTRADAY, CMD_GENERATE, CMD_REBALANCE_BATCH, CMD_FORECAST)", "AMQP")
 Rel(rabbitmq, decisional, "Delivers commands", "AMQP")
 Rel(scheduler, operational, "Triggers pipeline and rebalance", "HTTP POST / in-process")
 Rel(operational, postgres, "Read/Write", "TCP")

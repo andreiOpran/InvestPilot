@@ -92,11 +92,64 @@ agent:
 
       // == kube-state-metrics ===============================================
 
+      // Drop unused KSM series before remote_write. None are queried by any
+      // dashboard or alert (verified repo-wide). kube_pod_* / kube_replicaset_*
+      // series are churned hard by short-lived CronJob pods, inflating the
+      // monthly billable active-series count well above live usage.
+      prometheus.relabel "kube_state_metrics_filter" {
+        forward_to = [prometheus.remote_write.grafana_cloud.receiver]
+
+        // -- original drops: unused, high-cardinality (kube_pod_* churn)
+        rule {
+          source_labels = ["__name__"]
+          regex         = "kube_pod_tolerations|kube_pod_status_reason|kube_deployment_status_condition"
+          action        = "drop"
+        }
+
+        // -- replicaset series (unused)
+        rule {
+          source_labels = ["__name__"]
+          regex         = "kube_replicaset_(created|metadata_generation|spec_replicas|status_fully_labeled_replicas|status_observed_generation|status_ready_replicas|status_replicas|status_terminating_replicas)"
+          action        = "drop"
+        }
+
+        // -- object metadata we never query (secrets/configmaps/endpointslices/leases/services)
+        rule {
+          source_labels = ["__name__"]
+          regex         = "kube_(secret|configmap|endpointslice|lease|service)_.*"
+          action        = "drop"
+        }
+
+        // -- per-pod detail series (unused; heaviest CronJob-pod churn contributors)
+        rule {
+          source_labels = ["__name__"]
+          regex         = "kube_pod_(container_info|container_state_started|container_status_ready|created|ips|restart_policy|scheduler|service_account|start_time|status_initialized_time|status_scheduled_time|status_container_ready_time|status_ready_time)"
+          action        = "drop"
+        }
+
+        // -- misc unused
+        rule {
+          source_labels = ["__name__"]
+          regex         = "kube_namespace_status_phase"
+          action        = "drop"
+        }
+
+        // -- KSM self-telemetry. NOTE: likely a no-op on the :8080 metrics port
+        //    (KSM serves its Go/promhttp self-metrics on the separate :8081
+        //    telemetry port, which we don't scrape). The live copies of these
+        //    come from the Go app (investpilot_pods, unfiltered) + node-exporter.
+        rule {
+          source_labels = ["__name__"]
+          regex         = "go_gc_duration_seconds|promhttp_metric_handler_requests_total"
+          action        = "drop"
+        }
+      }
+
       prometheus.scrape "kube_state_metrics" {
         targets = [{
           __address__ = "kube-state-metrics.monitoring.svc.cluster.local:8080",
         }]
-        forward_to      = [prometheus.remote_write.grafana_cloud.receiver]
+        forward_to      = [prometheus.relabel.kube_state_metrics_filter.receiver]
         scrape_interval = "60s"
       }
 
@@ -135,9 +188,48 @@ agent:
         }
       }
 
+      // Drop unused node-exporter series before remote_write. None are queried
+      // by any dashboard or alert (verified repo-wide).
+      // KEPT ON PURPOSE (future disk-space alert): node_filesystem_avail_bytes,
+      // free_bytes, size_bytes, files, files_free, mount_info, purgeable_bytes.
+      // node_network_* is ALSO excluded at the source via the node-exporter
+      // chart (k8s/monitoring/node-exporter-values.yaml); this rule is the net.
+      prometheus.relabel "node_exporter_filter" {
+        forward_to = [prometheus.remote_write.grafana_cloud.receiver]
+
+        // -- original drop: per-collector scrape meta gauges
+        rule {
+          source_labels = ["__name__"]
+          regex         = "node_scrape_collector_duration_seconds|node_scrape_collector_success"
+          action        = "drop"
+        }
+
+        // -- per-interface network stats (biggest win, ~1,182 series; virtual
+        //    veth/cni/flannel ifaces). Also excluded at source (see note above).
+        rule {
+          source_labels = ["__name__"]
+          regex         = "node_network_.*"
+          action        = "drop"
+        }
+
+        // -- unused filesystem health flags (KEEP avail/free/size/files/mount_info)
+        rule {
+          source_labels = ["__name__"]
+          regex         = "node_filesystem_device_error|node_filesystem_readonly"
+          action        = "drop"
+        }
+
+        // -- misc unused node series
+        rule {
+          source_labels = ["__name__"]
+          regex         = "node_arp_entries|node_time_clocksource_available_info|node_udp_queues"
+          action        = "drop"
+        }
+      }
+
       prometheus.scrape "node_exporter" {
         targets         = discovery.relabel.node_exporter_pods.output
-        forward_to      = [prometheus.remote_write.grafana_cloud.receiver]
+        forward_to      = [prometheus.relabel.node_exporter_filter.receiver]
         scrape_interval = "60s"
       }
 
